@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+:root {
+  /* Colors - Primary (Blue) */
+  --primary: 37 99 235; /* blue-600 */
+  --primary-foreground: 255 255 255;
+  --primary-hover: 29 78 216; /* blue-700 */
+  
+  /* Colors - Secondary */
+  --secondary: 241 245 249; /* slate-100 */
+  --secondary-foreground: 15 23 42; /* slate-900 */
+  
+  /* Colors - Accent */
+  --accent: 249 250 251; /* gray-50 */
+  --accent-foreground: 17 24 39; /* gray-900 */
+  
+  /* Colors - Background */
+  --background: 255 255 255;
+  --foreground: 17 24 39; /* gray-900 */
+  
+  /* Colors - Muted */
+  --muted: 249 250 251; /* gray-50 */
+  --muted-foreground: 107 114 128; /* gray-500 */
+  
+  /* Colors - Border */
+  --border: 229 231 235; /* gray-200 */
+  --input: 229 231 235; /* gray-200 */
+  --ring: 37 99 235; /* blue-600 */
+  
+  /* Colors - Status */
+  --success: 34 197 94; /* green-500 */
+  --success-foreground: 255 255 255;
+  --error: 239 68 68; /* red-500 */
+  --error-foreground: 255 255 255;
+  --warning: 234 179 8; /* yellow-500 */
+  --warning-foreground: 255 255 255;
+  --info: 59 130 246; /* blue-500 */
+  --info-foreground: 255 255 255;
+  
+  /* Typography */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Spacing */
+  --radius: 0.5rem; /* 8px */
+}
+
+@theme inline {
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-success: rgb(var(--success));
+  --color-error: rgb(var(--error));
+  --color-warning: rgb(var(--warning));
+  --color-info: rgb(var(--info));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Article content styling for better readability */
+.article-content {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.75; /* 28px */
+  max-width: 65ch; /* Optimal reading width */
+}
+
+.article-content h2 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 700;
+  color: rgb(17 24 39); /* gray-900 */
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+.article-content h3 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  color: rgb(37 99 235); /* blue-600 */
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.article-content h4 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  color: rgb(31 41 55); /* gray-800 */
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.article-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.75;
+}
+
+.article-content ul,
+.article-content ol {
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+  padding-left: 1.75rem;
+  line-height: 1.75;
+}
+
+.article-content li {
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.article-content li::marker {
+  color: rgb(37 99 235); /* blue-600 */
+}
+
+.article-content strong {
+  font-weight: 600;
+  color: rgb(17 24 39); /* gray-900 */
+}
+
+.article-content a {
+  color: rgb(37 99 235); /* blue-600 */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-content a:hover {
+  color: rgb(29 78 216); /* blue-700 */
+}
