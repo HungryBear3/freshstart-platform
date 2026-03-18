@@ -1,0 +1,5 @@
+export { HeroSection } from "./HeroSection"
+export { StatsBar } from "./StatsBar"
+export { HowItWorksSection } from "./HowItWorksSection"
+export { TestimonialsSection } from "./TestimonialsSection"
+export { TrustBadgesSection } from "./TrustBadgesSection"

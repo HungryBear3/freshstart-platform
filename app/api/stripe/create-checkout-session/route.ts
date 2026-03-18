@@ -1,0 +1,156 @@
+import { NextRequest, NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth/session"
+import { stripe } from "@/lib/stripe/config"
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer"
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get authenticated user
+    const user = await getCurrentUser(request)
+    if (!user || !user.email) {
+      console.error("[Checkout] Unauthorized - no user or email")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    console.log("[Checkout] Creating session for user:", user.id, user.email)
+    console.log("[Checkout] Environment check - ANNUAL_PRICE_ID:", process.env.ANNUAL_PRICE_ID ? `set (${process.env.ANNUAL_PRICE_ID.substring(0, 20)}...)` : "MISSING")
+    console.log("[Checkout] All env vars:", Object.keys(process.env).filter(k => k.includes("STRIPE") || k.includes("PRICE")).join(", "))
+
+    // Get plan from request body (default to annual)
+    const body = await request.json()
+    const plan = body.plan || "annual"
+
+    let priceId: string | undefined
+    if (plan === "annual") priceId = process.env.ANNUAL_PRICE_ID
+    else if (plan === "monthly") priceId = process.env.MONTHLY_PRICE_ID
+    else if (plan === "one_time") priceId = process.env.ONE_TIME_PRICE_ID
+
+    console.log("[Checkout] Plan:", plan, "Price ID:", priceId ? `${priceId.substring(0, 20)}...` : "NOT FOUND")
+
+    if (!priceId) {
+      const varName = plan === "annual" ? "ANNUAL_PRICE_ID" : plan === "monthly" ? "MONTHLY_PRICE_ID" : "ONE_TIME_PRICE_ID"
+      console.error(`[Checkout] ${varName} not configured`)
+      return NextResponse.json(
+        { error: "Price ID not configured. Please check server configuration." },
+        { status: 500 }
+      )
+    }
+
+    console.log("[Checkout] Using price ID:", priceId)
+
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("[Checkout] STRIPE_SECRET_KEY not set")
+      return NextResponse.json(
+        { error: "Stripe not configured. Please check server configuration." },
+        { status: 500 }
+      )
+    }
+
+    // Get or create Stripe customer
+    const customer = await getOrCreateStripeCustomer(user.id, user.email)
+    console.log("[Checkout] Customer created/retrieved:", customer.id)
+
+    // Create checkout session
+    try {
+      const isOneTime = plan === "one_time"
+      // Stripe's `checkout.sessions.create` is overloaded; extracting the parameter type via `Parameters<>`
+      // can resolve to the wrong overload (e.g., `RequestOptions`). Keep this param payload flexible.
+      const sessionParams: any = {
+        customer: customer.id,
+        mode: isOneTime ? "payment" : "subscription",
+        payment_method_types: ["card"],
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard?success=true`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pricing?canceled=true`,
+        metadata: { userId: user.id, plan },
+      }
+
+      if (!isOneTime) {
+        sessionParams.subscription_data = {
+          trial_period_days: 7,
+          metadata: { userId: user.id, plan },
+        }
+      }
+
+      // #region agent log: checkout session params
+      fetch(
+        "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "0e4fed",
+          },
+          body: JSON.stringify({
+            sessionId: "0e4fed",
+            runId: "pre-fix",
+            hypothesisId: "H1",
+            location: "app/api/stripe/create-checkout-session/route.ts",
+            message: "Creating checkout session",
+            data: {
+              plan,
+              mode: sessionParams.mode,
+              isOneTime,
+              priceIdDefined: !!priceId,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {})
+      // #endregion
+
+      const session = await stripe.checkout.sessions.create(sessionParams)
+
+      console.log("[Checkout] Session created successfully:", session.id)
+
+      // #region agent log: checkout session created
+      fetch(
+        "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "0e4fed",
+          },
+          body: JSON.stringify({
+            sessionId: "0e4fed",
+            runId: "pre-fix",
+            hypothesisId: "H1",
+            location: "app/api/stripe/create-checkout-session/route.ts",
+            message: "Checkout session created",
+            data: { sessionId: session.id, sessionMode: session.mode },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {})
+      // #endregion
+
+      // Return both sessionId and url for compatibility
+      // The url is what we'll use for the redirect
+      return NextResponse.json({ 
+        sessionId: session.id,
+        url: session.url 
+      })
+    } catch (stripeError: any) {
+      console.error("[Checkout] Stripe API error:", stripeError)
+      return NextResponse.json(
+        { 
+          error: "Stripe error: " + (stripeError.message || "Failed to create checkout session"),
+          details: stripeError.type || "unknown"
+        },
+        { status: 500 }
+      )
+    }
+  } catch (error: any) {
+    console.error("[Checkout] Unexpected error:", error)
+    console.error("[Checkout] Error stack:", error.stack)
+    return NextResponse.json(
+      { 
+        error: "Failed to create checkout session",
+        details: error.message || "Unknown error"
+      },
+      { status: 500 }
+    )
+  }
+}
