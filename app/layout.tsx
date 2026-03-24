@@ -38,6 +38,10 @@ export const metadata: Metadata = {
     title: "FreshStart IL - Divorce Guidance Platform",
     description: "Guide people in Illinois through their divorce process.",
   },
+  alternates: {
+    types: { "application/rss+xml": `${baseUrl}/rss.xml` },
+  },
+  robots: { index: true, follow: true },
   icons: {
     icon: { url: FAVICON_DATA_URL, type: "image/png", sizes: "32x32" },
   },

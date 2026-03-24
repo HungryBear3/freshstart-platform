@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { Button } from "@/components/ui/button"
@@ -13,8 +14,31 @@ import {
 } from "@/components/home"
 import { ChecklistForm } from "@/components/lead-magnet/checklist-form"
 
+export const metadata: Metadata = {
+  title: "Illinois Divorce Guidance | Get Court-Ready Forms",
+  description: "FreshStart IL guides Illinois residents through every step of the divorce process — questionnaires, court-ready documents, and expert guidance. Start free.",
+}
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  name: "FreshStart IL",
+  url: "https://www.freshstart-il.com",
+  description: "Illinois divorce guidance platform — questionnaires, document generation, and court-ready forms for Cook County and statewide.",
+  areaServed: {
+    "@type": "AdministrativeArea",
+    name: "Illinois",
+  },
+  serviceType: "Divorce Document Preparation",
+}
+
 export default function Home() {
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     <MainLayout>
       <div className="bg-gray-50">
         {/* Hero Section */}
@@ -172,5 +196,6 @@ export default function Home() {
         </div>
       </div>
     </MainLayout>
+    </>
   )
 }
