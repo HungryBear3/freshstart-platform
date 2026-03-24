@@ -88,7 +88,7 @@ export function ChecklistForm({ variant = "page" }: ChecklistFormProps) {
       {status === "error" && (
         <p className="text-sm text-red-600 mt-2 text-center">{errorMessage}</p>
       )}
-      <p className="text-xs text-gray-500 mt-2 text-center">
+      <p className="text-xs text-green-600 font-medium mt-2 text-center">
         No account needed. No spam. Instant delivery.
       </p>
     </form>
