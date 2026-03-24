@@ -10,12 +10,10 @@ export function StatsBar() {
           calculators. No lawyer required for uncontested cases.
         </p>
         <a
-          href="https://calendly.com/freshstart-il/intro"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/contact"
           className="inline-block bg-white text-blue-900 font-semibold px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm"
         >
-          Not sure where to start? Book a free 15-min intro call →
+          Not sure where to start? Send us a message →
         </a>
       </div>
     </section>

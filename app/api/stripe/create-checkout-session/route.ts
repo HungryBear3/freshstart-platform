@@ -22,13 +22,12 @@ export async function POST(request: NextRequest) {
 
     let priceId: string | undefined
     if (plan === "annual") priceId = process.env.ANNUAL_PRICE_ID
-    else if (plan === "monthly") priceId = process.env.MONTHLY_PRICE_ID
     else if (plan === "one_time") priceId = process.env.ONE_TIME_PRICE_ID
 
     console.log("[Checkout] Plan:", plan, "Price ID:", priceId ? `${priceId.substring(0, 20)}...` : "NOT FOUND")
 
     if (!priceId) {
-      const varName = plan === "annual" ? "ANNUAL_PRICE_ID" : plan === "monthly" ? "MONTHLY_PRICE_ID" : "ONE_TIME_PRICE_ID"
+      const varName = plan === "annual" ? "ANNUAL_PRICE_ID" : "ONE_TIME_PRICE_ID"
       console.error(`[Checkout] ${varName} not configured`)
       return NextResponse.json(
         { error: "Price ID not configured. Please check server configuration." },

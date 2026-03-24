@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 interface SubscribeButtonProps {
-  plan?: "annual" | "monthly" | "one_time"
+  plan?: "annual" | "one_time"
   className?: string
   size?: "default" | "sm" | "lg" | "icon"
   children?: React.ReactNode

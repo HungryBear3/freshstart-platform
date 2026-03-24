@@ -14,14 +14,14 @@ export function IntroCallBanner() {
               Not sure where to start?
             </p>
             <p className="text-gray-600 text-sm mt-0.5">
-              We offer a free 15-minute orientation call to point you in the right direction.
+              Have questions? Send us a message and we'll point you in the right direction.
             </p>
           </div>
         </div>
         <div className="sm:flex-shrink-0">
           <Button asChild variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 w-full sm:w-auto">
-            <a href="https://calendly.com/freshstart-il/intro" target="_blank" rel="noopener noreferrer">
-              Book a Free Call
+            <a href="/contact">
+              Contact Us
             </a>
           </Button>
         </div>
