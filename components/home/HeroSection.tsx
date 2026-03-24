@@ -9,24 +9,17 @@ export function HeroSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
-              FreshStart IL
+              Illinois divorce,<br />done right.
             </h1>
             <p className="mt-3 text-xl text-gray-600 sm:text-2xl">
-              Your guide through the Illinois divorce process
+              Court-ready forms, step-by-step guidance, and financial tools — for less than one hour of attorney time.
             </p>
             <p className="mt-4 text-lg text-gray-500 max-w-xl">
-              Navigate your divorce with confidence. Get step-by-step guidance,
-              generate court documents, and track your case progress—all in one place.
-              Works for couples with or without prenuptial agreements.
+              FreshStart IL walks you through every step of an Illinois uncontested divorce: auto-filled court documents, parenting plans, financial calculators, and deadline tracking. No law degree required.
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
               <Link href="/auth/signup">
-                <Button size="lg">Get Started</Button>
-              </Link>
-              <Link href="/auth/signin">
-                <Button variant="outline" size="lg">
-                  Sign In
-                </Button>
+                <Button size="lg">Start Free Trial</Button>
               </Link>
               <Link href="/calculators">
                 <Button variant="outline" size="lg">

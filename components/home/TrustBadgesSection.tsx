@@ -1,20 +1,25 @@
-import { Shield, CheckCircle2, FileCheck } from "lucide-react"
+import { Shield, CheckCircle2, FileCheck, DollarSign } from "lucide-react"
 
 const badges = [
   {
     icon: Shield,
     title: "Illinois-Specific",
-    description: "All forms and guidance tailored to Illinois law and court requirements.",
+    description: "All forms and guidance tailored to Illinois law and Cook County court requirements.",
   },
   {
     icon: CheckCircle2,
     title: "Court-Ready Forms",
-    description: "All required divorce forms filled correctly per Illinois Compiled Statutes.",
+    description: "All required divorce forms filled correctly per Illinois Compiled Statutes. Edit and regenerate anytime.",
   },
   {
     icon: FileCheck,
     title: "Prenup Support",
-    description: "Works for couples with or without prenuptial agreements.",
+    description: "Works for couples with or without prenuptial or postnuptial agreements.",
+  },
+  {
+    icon: DollarSign,
+    title: "Less Than One Attorney Hour",
+    description: "Chicago divorce attorneys charge $300–$500/hr. FreshStart IL costs less than a single consultation — for your entire case.",
   },
 ]
 
@@ -25,9 +30,9 @@ export function TrustBadgesSection() {
         Why FreshStart IL
       </h3>
       <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-        Trusted by Illinois residents to navigate divorce with confidence.
+        Built for Illinois residents who want to do this right — without paying attorney rates for forms a platform can handle.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
         {badges.map((badge, i) => {
           const Icon = badge.icon
           return (
