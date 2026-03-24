@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Users,
   Baby,
+  TrendingDown,
 } from "lucide-react"
 
 export default function PricingPage() {
@@ -165,6 +166,23 @@ export default function PricingPage() {
               </h1>
               <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
                 Forms, guidance, case management, and answers—available 24/7. No hourly fees.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Attorney Cost Callout */}
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-8 pb-0">
+          <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-lg p-5">
+            <div className="flex-shrink-0 bg-amber-100 p-2 rounded-lg">
+              <TrendingDown className="h-5 w-5 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-gray-900 font-semibold text-sm">
+                Illinois divorce attorneys average $15,000–$25,000 in total fees.
+              </p>
+              <p className="text-gray-600 text-sm mt-1">
+                FreshStart IL costs a fraction of a single consultation. Handle your uncontested divorce with confidence — without the hourly rate.
               </p>
             </div>
           </div>

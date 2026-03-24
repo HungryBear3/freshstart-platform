@@ -11,6 +11,8 @@ import {
   HowItWorksSection,
   TestimonialsSection,
   TrustBadgesSection,
+  AttorneySection,
+  IntroCallBanner,
 } from "@/components/home"
 import { ChecklistForm } from "@/components/lead-magnet/checklist-form"
 
@@ -117,6 +119,9 @@ export default function Home() {
           {/* How It Works */}
           <HowItWorksSection />
 
+          {/* Attorney Credibility */}
+          <AttorneySection />
+
           {/* Trust Badges */}
           <TrustBadgesSection />
 
@@ -193,6 +198,9 @@ export default function Home() {
           <div className="mt-12 flex justify-center">
             <VisitorCounter showToday={true} className="text-center" />
           </div>
+
+          {/* Intro Call Banner */}
+          <IntroCallBanner />
         </div>
       </div>
     </MainLayout>
