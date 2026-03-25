@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendChecklistEmail } from "@/lib/email"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
+import { prisma } from "@/lib/db"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest) {
 
   try {
     await sendChecklistEmail(email)
+
+    // Save subscriber (non-blocking — don't fail if DB save fails)
+    const referer = request.headers.get("referer") || ""
+    prisma.checklistSubscriber.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        source: referer.includes("/checklist") ? "checklist-page" : "homepage",
+      },
+    }).catch(err => console.error("[Checklist] Failed to save subscriber:", err))
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[Checklist] Email delivery error:", error)

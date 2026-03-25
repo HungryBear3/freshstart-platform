@@ -650,3 +650,13 @@ model MarketingLink {
   @@index([utmCampaign])
   @@map("marketing_links")
 }
+
+model ChecklistSubscriber {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  createdAt  DateTime @default(now())
+  source     String
+  utmSource  String?
+  utmMedium  String?
+  utmCampaign String?
+}
