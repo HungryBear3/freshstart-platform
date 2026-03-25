@@ -11,7 +11,7 @@ import {
   HowItWorksSection,
   TestimonialsSection,
   TrustBadgesSection,
-  AttorneySection,
+
   IntroCallBanner,
 } from "@/components/home"
 import { ChecklistForm } from "@/components/lead-magnet/checklist-form"
@@ -118,9 +118,6 @@ export default function Home() {
 
           {/* How It Works */}
           <HowItWorksSection />
-
-          {/* Attorney Credibility */}
-          <AttorneySection />
 
           {/* Trust Badges */}
           <TrustBadgesSection />
