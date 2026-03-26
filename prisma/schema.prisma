@@ -660,3 +660,16 @@ model ChecklistSubscriber {
   utmMedium  String?
   utmCampaign String?
 }
+
+model DripEmail {
+  id           String   @id @default(cuid())
+  email        String
+  sequence     String   // "fs-checklist" | "ot-township"
+  step         Int      // 1-5
+  scheduledFor DateTime
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([scheduledFor, sentAt])
+  @@index([email, sequence])
+}
