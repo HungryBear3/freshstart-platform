@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next"
 import { prisma } from "@/lib/db"
+import { getAllPosts } from '@/lib/blog'
 
 const baseUrl =
   process.env.NEXTAUTH_URL ||
@@ -40,5 +41,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB may not be available during build
   }
 
-  return [...staticPages, ...legalPages]
+  let blogPages: MetadataRoute.Sitemap = []
+  try {
+    const blogPosts = getAllPosts()
+    blogPages = blogPosts.map(post => ({
+      url: url(`/blog/${post.slug}`),
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }))
+  } catch {
+    // Handle getAllPosts failure silently
+  }
+
+  return [...staticPages, ...legalPages, ...blogPages]
 }
