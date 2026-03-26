@@ -1,2 +1,8 @@
 # Ralphy Progress Log
 
+- [✗] 2026-03-26 00:55 - sitemap.ts exports all blog URLs + /blog index (11 existing + 4 new = 15 blog URLs)
+- [✗] 2026-03-26 00:59 - Blog posts have JSON-LD Article schema
+- [✗] 2026-03-26 01:05 - Blog posts have canonical tags in metadata
+- [✗] 2026-03-26 01:09 - Homepage metadata description is user-focused (not internal/corporate)
+- [✗] 2026-03-26 01:10 - 4 new blog posts exist in content/blog/ with proper frontmatter (title, description, date, slug)
+- [✗] 2026-03-26 01:10 - Existing blog posts have internal links added

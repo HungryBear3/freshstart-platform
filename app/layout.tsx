@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     default: "FreshStart IL - Divorce Guidance Platform",
     template: "%s | FreshStart IL",
   },
-  description: "Guide people in Illinois through their divorce process with questionnaires, document generation, and court-ready forms.",
+  description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
   keywords: ["Illinois divorce", "divorce forms", "divorce process", "pro se divorce", "Cook County divorce"],
   authors: [{ name: "FreshStart IL" }],
   openGraph: {
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
     url: baseUrl,
     siteName: "FreshStart IL",
     title: "FreshStart IL - Divorce Guidance Platform",
-    description: "Guide people in Illinois through their divorce process with questionnaires, document generation, and court-ready forms.",
+    description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
   },
   twitter: {
     card: "summary_large_image",
     title: "FreshStart IL - Divorce Guidance Platform",
-    description: "Guide people in Illinois through their divorce process.",
+    description: "Simplify your Illinois divorce process with FreshStart's helpful tools and guidance.",
   },
   alternates: {
     types: { "application/rss+xml": `${baseUrl}/rss.xml` },
@@ -54,9 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
         </Providers>
