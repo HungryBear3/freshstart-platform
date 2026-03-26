@@ -20,7 +20,7 @@ export function IntroCallBanner() {
         </div>
         <div className="sm:flex-shrink-0">
           <Button asChild variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 w-full sm:w-auto">
-            <a href="https://calendly.com/overtaxed-il-support/30min" target="_blank" rel="noopener noreferrer">
+            <a href="https://calendly.com/il-support/30min" target="_blank" rel="noopener noreferrer">
               Book a Free Call
             </a>
           </Button>
