@@ -659,6 +659,8 @@ model ChecklistSubscriber {
   utmSource  String?
   utmMedium  String?
   utmCampaign String?
+  followupStep Int @default(0)
+  followupSentAt DateTime?
 }
 
 model DripEmail {
