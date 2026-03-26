@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { sendChecklistEmail } from "@/lib/email"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { prisma } from "@/lib/db"
+import { enrollInDrip } from "@/lib/drip"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -41,6 +42,11 @@ export async function POST(request: NextRequest) {
         source: referer.includes("/checklist") ? "checklist-page" : "homepage",
       },
     }).catch(err => console.error("[Checklist] Failed to save subscriber:", err))
+
+    // Enroll in drip sequence (non-blocking)
+    enrollInDrip(email, "fs-checklist").catch(err =>
+      console.error("[Drip] Failed to enroll subscriber:", err)
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {
