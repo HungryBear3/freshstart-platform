@@ -106,8 +106,8 @@ alternates: {
 - [x] Homepage metadata description is user-focused (not internal/corporate)
 - [x] 4 new blog posts exist in content/blog/ with proper frontmatter (title, description, date, slug)
 - [x] Existing blog posts have internal links added
-- [ ] Everything compiles without TypeScript errors (run `npx tsc --noEmit` to check)
-- [ ] Commit all changes with message: "feat(seo): fix sitemap, add schema, new blog posts"
+- [x] Everything compiles without TypeScript errors (run `npx tsc --noEmit` to check)
+- [x] Commit all changes with message: "feat(seo): fix sitemap, add schema, new blog posts"
 
 ## Notes
 - Do NOT modify any auth, dashboard, Stripe, or Supabase-related code

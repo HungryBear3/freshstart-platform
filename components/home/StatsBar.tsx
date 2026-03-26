@@ -10,7 +10,7 @@ export function StatsBar() {
           calculators. No lawyer required for uncontested cases.
         </p>
         <a
-          href="https://calendly.com/freshstart-il-support/15min"
+          href="https://calendly.com/overtaxed-il-support/30min"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block bg-white text-blue-900 font-semibold px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors text-sm"
