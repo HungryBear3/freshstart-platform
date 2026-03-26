@@ -312,6 +312,48 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* Plan Comparison Table */}
+        <div className="bg-gray-50 border-t border-gray-200">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Compare Plans</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 pr-6 font-semibold text-gray-700 w-1/2">Feature</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-700">One-Time<br/><span className="font-normal text-gray-500">$149</span></th>
+                    <th className="text-center py-3 px-4 font-semibold text-blue-700">Annual<br/><span className="font-normal text-blue-500">$299/yr</span></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    ["All Illinois divorce forms, auto-filled", true, true],
+                    ["Step-by-step filing roadmap", true, true],
+                    ["Child support calculator", true, true],
+                    ["Parenting plan builder", true, true],
+                    ["Unlimited document regeneration", true, true],
+                    ["AI guidance & answers", true, true],
+                    ["30-day money-back guarantee", true, true],
+                    ["7-day free trial", false, true],
+                    ["Unlimited access duration", false, true],
+                    ["Priority support", false, true],
+                  ].map(([feature, oneTime, annual], i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="py-3 pr-6 text-gray-700">{feature as string}</td>
+                      <td className="text-center py-3 px-4">
+                        {oneTime ? <span className="text-green-600 font-bold">✓</span> : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {annual ? <span className="text-blue-600 font-bold">✓</span> : <span className="text-gray-300">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         {/* Testimonials Section */}
         <div className="bg-white border-t border-gray-200">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
