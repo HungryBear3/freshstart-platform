@@ -10,22 +10,16 @@ export function HeroSection() {
             Illinois Divorce Paperwork Done Right Without the Attorney Fees
           </h1>
           <p className="mt-4 text-xl text-gray-700">
-            Step-by-step guidance court-ready documents checklist tailored to your county Most cases complete in under 2 hours
+            Step-by-step guidance. Court-ready documents. Checklist tailored to your county. Most cases complete in under 2 hours.
           </p>
-          <div className="mt-8 flex gap-4">
-            <Link href="/auth/signup" legacyBehavior>
-              <a>
-                <Button size="lg" style={{ backgroundColor: "#16a34a", color: "white" }}>
-                  Start Free Checklist
-                </Button>
-              </a>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link href="/auth/signup">
+              <Button size="lg" style={{ backgroundColor: "#16a34a", color: "white" }} className="shadow-lg hover:shadow-xl transition-shadow">
+                Get My Free Checklist
+              </Button>
             </Link>
-            <Link href="#how-it-works" legacyBehavior>
-              <a>
-                <Button size="lg" variant="outline">
-                  See How It Works
-                </Button>
-              </a>
+            <Link href="#how-it-works" className="text-gray-600 hover:text-gray-800 font-medium underline underline-offset-2 text-base">
+              See how it works
             </Link>
           </div>
           <p className="mt-10 text-gray-600 font-semibold">Trusted by Illinois residents in all 102 counties</p>

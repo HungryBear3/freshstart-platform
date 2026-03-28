@@ -11,10 +11,11 @@ import {
   HowItWorksSection,
   TestimonialsSection,
   TrustBadgesSection,
-
+  AttorneyEndorsementBand,
   IntroCallBanner,
 } from "@/components/home"
 import { ChecklistForm } from "@/components/lead-magnet/checklist-form"
+import { MobileStickyBar } from "@/components/MobileStickyBar"
 
 export const metadata: Metadata = {
   title: "Illinois Divorce Guidance | Get Court-Ready Forms",
@@ -42,7 +43,8 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
     <MainLayout>
-      <div className="bg-gray-50">
+      <MobileStickyBar href="/auth/signup" label="Get My Free Checklist" subtext="No account needed — takes 2 minutes" color="green" />
+      <div className="bg-gray-50 pb-20 md:pb-0">
         {/* Hero Section */}
         <HeroSection />
 
@@ -122,6 +124,9 @@ export default function Home() {
           {/* Trust Badges */}
           <TrustBadgesSection />
 
+          {/* Attorney Endorsement */}
+          <AttorneyEndorsementBand />
+
           {/* Testimonials */}
           <TestimonialsSection />
 
@@ -135,65 +140,52 @@ export default function Home() {
                 Learn about Illinois divorce law, requirements, and get answers to common questions.
               </p>
             </div>
-            <Card className="w-full">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Link
-                    href="/legal-info/grounds-for-divorce"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Grounds for Divorce in Illinois</span>
-                  </Link>
-                  <Link
-                    href="/legal-info/property-division"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Property Division Rules</span>
-                  </Link>
-                  <Link
-                    href="/legal-info/child-custody"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Child Custody & Parenting Time</span>
-                  </Link>
-                  <Link
-                    href="/legal-info/spousal-maintenance"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Spousal Maintenance (Alimony)</span>
-                  </Link>
-                  <Link
-                    href="/legal-info/residency-requirements"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Residency Requirements</span>
-                  </Link>
-                  <Link
-                    href="/legal-info/prenups-in-illinois"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>Prenuptial and Postnuptial Agreements</span>
-                  </Link>
-                  <Link
-                    href="/legal-info"
-                    className="text-blue-600 hover:text-blue-700 hover:underline flex items-start gap-2 font-semibold"
-                  >
-                    <span className="mt-0.5">→</span>
-                    <span>View All Legal Resources</span>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { href: "/legal-info/grounds-for-divorce", label: "Grounds for Divorce in Illinois" },
+                { href: "/legal-info/property-division", label: "Property Division Rules" },
+                { href: "/legal-info/child-custody", label: "Child Custody & Parenting Time" },
+                { href: "/legal-info/spousal-maintenance", label: "Spousal Maintenance (Alimony)" },
+                { href: "/legal-info/residency-requirements", label: "Residency Requirements" },
+                { href: "/legal-info/prenups-in-illinois", label: "Prenuptial & Postnuptial Agreements" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                >
+                  <span className="text-blue-600 group-hover:translate-x-0.5 transition-transform text-sm">→</span>
+                  <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700">{item.label}</span>
+                </Link>
+              ))}
+              <Link
+                href="/legal-info"
+                className="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors sm:col-span-2"
+              >
+                <span className="text-sm font-semibold">→ View All Legal Resources</span>
+              </Link>
+            </div>
           </div>
 
           <div className="mt-12 flex justify-center">
             <VisitorCounter showToday={true} className="text-center" />
+          </div>
+
+          {/* Soft nudge before call banner */}
+          <div className="mt-16 bg-blue-50 rounded-2xl p-8 text-center max-w-2xl mx-auto border border-blue-100">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-2">Need help deciding?</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Talk to someone who&apos;s been through it.</h3>
+            <p className="text-gray-600 text-sm mb-5">
+              Free 15-minute call. We&apos;ll answer your questions and tell you if FreshStart is right for your situation.
+            </p>
+            <a
+              href="https://calendly.com/freshstart-il-support/30min"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors text-sm"
+            >
+              Book Free Call →
+            </a>
           </div>
 
           {/* Intro Call Banner */}
