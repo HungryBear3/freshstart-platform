@@ -8,7 +8,9 @@ import Link from "next/link"
 export function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session, status } = useSession()
+  const sessionResult = useSession()
+  const session = sessionResult?.data
+  const status = sessionResult?.status ?? 'loading'
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
