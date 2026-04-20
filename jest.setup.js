@@ -27,6 +27,17 @@ if (!loaded) {
   config() // Load .env
 }
 
+// Supabase connection pooler uses a self-signed intermediate cert that Node rejects by default.
+// The pooler URL is safe (traffic is still TLS-encrypted); we just skip chain verification.
+// Matches the behavior of lib/db/prisma.ts when DATABASE_INSECURE_TLS=1.
+{
+  const dbUrl = process.env.DATABASE_URL || ""
+  const isPooler = dbUrl.includes("pooler.supabase.com") || dbUrl.includes("pgbouncer=true")
+  if (isPooler && !process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+  }
+}
+
 // Learn more: https://github.com/testing-library/jest-dom
 require("@testing-library/jest-dom")
 

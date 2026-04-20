@@ -1,3 +1,19 @@
+// Load .env.local before any Jest config so DATABASE_URL is available for the TLS check below
+const path = require("path")
+try {
+  require("dotenv").config({ path: path.resolve(__dirname, ".env.local"), override: true })
+} catch {}
+
+// Supabase connection pooler uses an intermediate cert that Node's TLS rejects by default.
+// Set this flag in the main process so it's inherited by every Jest worker via fork.
+{
+  const dbUrl = process.env.DATABASE_URL || ""
+  if ((dbUrl.includes("pooler.supabase.com") || dbUrl.includes("pgbouncer=true")) &&
+      !process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+  }
+}
+
 const nextJest = require("next/jest")
 
 const createJestConfig = nextJest({

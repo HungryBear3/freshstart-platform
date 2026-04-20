@@ -9,13 +9,21 @@ import { Pool } from "pg"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 let testPrisma: PrismaClient | null = null
+let testPrismaUrl: string | null = null
 
 export function getTestPrisma(): PrismaClient {
-  if (!testPrisma) {
-    const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
+  const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
 
-    if (!databaseUrl) {
-      throw new Error("TEST_DATABASE_URL or DATABASE_URL must be set")
+  if (!databaseUrl) {
+    throw new Error("TEST_DATABASE_URL or DATABASE_URL must be set")
+  }
+
+  if (!testPrisma || testPrismaUrl !== databaseUrl) {
+    // Mirror lib/db/prisma.ts: set global TLS flag when DATABASE_INSECURE_TLS=1
+    // Required because Prisma's internal engine verifies TLS independently of pg.Pool ssl config
+    const isPooler = databaseUrl.includes("pooler.supabase.com") || databaseUrl.includes("pgbouncer=true")
+    if (process.env.DATABASE_INSECURE_TLS === "1" && isPooler && !process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
     }
 
     const useLocalhost =
@@ -23,20 +31,12 @@ export function getTestPrisma(): PrismaClient {
 
     const useSSL = process.env.DATABASE_SSL !== "false" && !useLocalhost
 
-    // Note: We use rejectUnauthorized: false in the SSL config below for self-signed certs
-    // This is connection-specific and doesn't affect other TLS connections
-
     const pool = new Pool({
       connectionString: databaseUrl,
       max: 5,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 10_000,
-      ssl: useSSL
-        ? {
-            require: true,
-            rejectUnauthorized: false,
-          }
-        : false,
+      ssl: useSSL ? { rejectUnauthorized: false } : false,
     })
 
     const adapter = new PrismaPg(pool)
@@ -44,16 +44,8 @@ export function getTestPrisma(): PrismaClient {
     testPrisma = new PrismaClient({
       adapter,
     })
+    testPrismaUrl = databaseUrl
   }
 
   return testPrisma
-}
-
-// Initialize immediately if DATABASE_URL is available
-if (process.env.DATABASE_URL || process.env.TEST_DATABASE_URL) {
-  try {
-    getTestPrisma()
-  } catch (error) {
-    // Will be initialized in beforeAll
-  }
 }
