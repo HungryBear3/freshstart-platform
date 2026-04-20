@@ -6,10 +6,16 @@ export async function generateStaticParams() {
   return posts.map((post) => ({ slug: post.slug }))
 }
 
+const SITE_URL = "https://www.freshstart-il.com"
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = await getPostBySlug(params.slug)
   if (!post) return {}
-  return { title: `${post.title} | Fresh Start IL`, description: post.description }
+  return {
+    title: `${post.title} | Fresh Start IL`,
+    description: post.description,
+    alternates: { canonical: `${SITE_URL}/blog/${params.slug}` },
+  }
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {

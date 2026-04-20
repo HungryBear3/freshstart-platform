@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Download, Loader2 } from "lucide-react"
+import { CheckCircle2, Download, Loader2, ArrowRight } from "lucide-react"
 
 interface ChecklistFormProps {
   variant?: "page" | "inline"
@@ -40,7 +41,7 @@ export function ChecklistForm({ variant = "page" }: ChecklistFormProps) {
 
   if (status === "success") {
     return (
-      <div className={variant === "page" ? "text-center py-8" : "py-4"}>
+      <div className={variant === "page" ? "text-center py-6" : "py-4"}>
         <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
         <p className="text-lg font-semibold text-gray-900">Check your inbox!</p>
         <p className="text-gray-600 mt-1">
@@ -49,6 +50,22 @@ export function ChecklistForm({ variant = "page" }: ChecklistFormProps) {
         <p className="text-sm text-gray-500 mt-2">
           Don&apos;t see it? Check your spam folder.
         </p>
+        {variant === "page" && (
+          <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-left">
+            <p className="text-sm font-semibold text-blue-900 mb-1">Ready to go further?</p>
+            <p className="text-sm text-blue-800 mb-3">
+              FreshStart IL generates your complete Illinois divorce packet — petition, financial
+              affidavit, and parenting plan — from plain-English questions.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            >
+              Get started — $299/year
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     )
   }

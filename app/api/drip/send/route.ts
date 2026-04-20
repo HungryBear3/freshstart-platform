@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendEmail } from "@/lib/email"
+import { errorTracker } from "@/lib/monitoring/error-tracking"
 
 type EmailContent = { subject: string; html: string; text: string }
 
+const SITE = "https://www.freshstart-il.com"
+
 function getEmailContent(step: number, email: string): EmailContent | null {
-  const cta = `<p><a href="https://freshstart-il.com" style="color:#2563eb;">Visit FreshStart IL →</a></p>`
+  const cta = `<p><a href="${SITE}" style="color:#2563eb;">Visit FreshStart IL →</a></p>`
+  const pricingCta = `<p style="margin-top:16px"><a href="${SITE}/pricing" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">Get started — $299/year →</a></p>`
 
   switch (step) {
     case 1:
       return {
-        subject: "Your Illinois Divorce Checklist",
-        text: `You're subscribed! We'll send you helpful tips over the next few weeks. In the meantime, visit freshstart-il.com to get started.`,
-        html: `<p>You're subscribed to our Illinois divorce guidance series.</p><p>Over the next few weeks, we'll share tips to help you navigate your divorce — without overpaying for a lawyer.</p>${cta}`,
+        subject: "Your Illinois Divorce Checklist is here",
+        text: `Here's your Illinois Divorce Checklist — a step-by-step overview of what you'll need to file in Illinois.\n\nWhen you're ready to go further, FreshStart IL generates your complete divorce packet for you: petition, financial affidavit, and parenting plan — court-ready, no attorney required.\n\nSee how it works: ${SITE}/pricing`,
+        html: `<p>Here's your <strong>Illinois Divorce Checklist</strong> — a step-by-step overview of what you'll need to file.</p><p>When you're ready to go further, FreshStart IL generates your complete divorce packet for you: petition, financial affidavit, and parenting plan — court-ready, without an attorney.</p>${pricingCta}`,
       }
     case 2:
       return {
@@ -29,14 +33,14 @@ function getEmailContent(step: number, email: string): EmailContent | null {
     case 4:
       return {
         subject: "Is your spouse delaying your divorce? Here's what to do.",
-        text: `In Illinois, if your spouse is unresponsive, you can request a default judgment after 30 days. Document everything. File on time. Don't let delays drag this out. FreshStart IL can help you stay on track. Visit freshstart-il.com`,
-        html: `<p>If your spouse isn't responding, you're not stuck.</p><p>In Illinois, you can request a <strong>default judgment</strong> after 30 days of non-response. The key is filing correctly and on time.</p><p>Tips to keep things moving:<br>• Document every communication attempt<br>• File a Summons if they won't respond<br>• Don't miss your court dates</p><p>FreshStart IL helps you stay on track through every step.</p>${cta}`,
+        text: `In Illinois, if your spouse is unresponsive, you can request a default judgment after 30 days. Document everything. File on time. Don't let delays drag this out. FreshStart IL can help you stay on track — $299/year, no attorney required. Visit freshstart-il.com/pricing`,
+        html: `<p>If your spouse isn't responding, you're not stuck.</p><p>In Illinois, you can request a <strong>default judgment</strong> after 30 days of non-response. The key is filing correctly and on time.</p><p>Tips to keep things moving:<br>• Document every communication attempt<br>• File a Summons if they won't respond<br>• Don't miss your court dates</p><p>FreshStart IL generates every required form and walks you through each step.</p>${pricingCta}`,
       }
     case 5:
       return {
-        subject: "Still thinking about it? Here's a free trial.",
-        text: `It's been a month since you downloaded our checklist. If you're ready to move forward, FreshStart IL is here. Start your Illinois divorce paperwork today — no attorney required. Visit freshstart-il.com`,
-        html: `<p>It's been a month since you grabbed our checklist.</p><p>If you're still weighing your options — that's okay. Divorce is a big decision.</p><p>When you're ready, FreshStart IL makes the paperwork side simple. Start when it feels right.</p>${cta}`,
+        subject: "Ready to file? Your documents are waiting.",
+        text: `It's been a month since you downloaded our checklist. If you're ready to move forward, FreshStart IL generates your petition, financial affidavit, and parenting plan — Illinois court-ready, no attorney required. $299/year. Start today: freshstart-il.com/pricing`,
+        html: `<p>It's been a month since you grabbed our checklist.</p><p>If you're ready to move forward, here's what FreshStart IL does for you:</p><ul><li>Auto-generates your Illinois divorce petition</li><li>Builds your Financial Affidavit from your answers</li><li>Creates a court-ready Parenting Plan (if you have children)</li><li>Guides you through e-filing, county by county</li></ul><p><strong>$299/year. No attorney required.</strong></p>${pricingCta}`,
       }
     default:
       return null
@@ -87,11 +91,26 @@ export async function POST(req: NextRequest) {
         })
         sent++
       } else {
-        console.error(`[drip] Failed to send step ${record.step} to ${record.email}:`, result.error)
+        const msg = `[drip] Failed to send step ${record.step} to ${record.email}: ${result.error}`
+        console.error(msg)
+        errorTracker.captureMessage(msg, "error", {
+          path: "/api/drip/send",
+          email: record.email,
+          step: record.step,
+          sequence: record.sequence,
+          dripEmailId: record.id,
+        })
         failed++
       }
     } catch (err) {
       console.error(`[drip] Exception sending step ${record.step} to ${record.email}:`, err)
+      errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
+        path: "/api/drip/send",
+        email: record.email,
+        step: record.step,
+        sequence: record.sequence,
+        dripEmailId: record.id,
+      })
       failed++
     }
   }
