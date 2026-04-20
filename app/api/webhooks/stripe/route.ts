@@ -25,6 +25,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Idempotency guard: Stripe retries failed webhooks for up to 3 days.
+  // Create a unique record for this event ID; if it already exists (P2002),
+  // the event was already processed — return 200 so Stripe stops retrying.
+  const { prisma } = await import("@/lib/db")
+  try {
+    await prisma.stripeEvent.create({ data: { stripeEventId: event.id } })
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      console.log("[Webhook] Duplicate event ignored:", event.id)
+      return NextResponse.json({ received: true })
+    }
+    throw e
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -66,58 +80,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
-  // #region agent log: webhook checkout completed entry
-  fetch(
-    "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "0e4fed",
-      },
-      body: JSON.stringify({
-        sessionId: "0e4fed",
-        runId: "pre-fix",
-        hypothesisId: "H2",
-        location: "app/api/webhooks/stripe/route.ts",
-        message: "Checkout completed webhook received",
-        data: {
-          sessionMode: session.mode,
-          plan: session.metadata?.plan || null,
-        },
-        timestamp: Date.now(),
-      }),
-    },
-  ).catch(() => {})
-  // #endregion
-
   // One-time payment: grant 90 days of access directly
   if (session.mode === "payment") {
     const { prisma } = await import("@/lib/db")
     const now = new Date()
     const ninetyDaysOut = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
-
-    // #region agent log: one-time payment branch
-    fetch(
-      "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "0e4fed",
-        },
-        body: JSON.stringify({
-          sessionId: "0e4fed",
-          runId: "pre-fix",
-          hypothesisId: "H2",
-          location: "app/api/webhooks/stripe/route.ts",
-          message: "Executing one-time (payment) upsert",
-          data: { userId, ninetyDaysOut: ninetyDaysOut.toISOString() },
-          timestamp: Date.now(),
-        }),
-      },
-    ).catch(() => {})
-    // #endregion
 
     await prisma.subscription.upsert({
       where: { userId },

@@ -72,58 +72,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // #region agent log: checkout session params
-      fetch(
-        "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "0e4fed",
-          },
-          body: JSON.stringify({
-            sessionId: "0e4fed",
-            runId: "pre-fix",
-            hypothesisId: "H1",
-            location: "app/api/stripe/create-checkout-session/route.ts",
-            message: "Creating checkout session",
-            data: {
-              plan,
-              mode: sessionParams.mode,
-              isOneTime,
-              priceIdDefined: !!priceId,
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {})
-      // #endregion
-
       const session = await stripe.checkout.sessions.create(sessionParams)
 
       console.log("[Checkout] Session created successfully:", session.id)
-
-      // #region agent log: checkout session created
-      fetch(
-        "http://127.0.0.1:7242/ingest/48622b90-a5ef-4d61-bef0-d727777ab56e",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "0e4fed",
-          },
-          body: JSON.stringify({
-            sessionId: "0e4fed",
-            runId: "pre-fix",
-            hypothesisId: "H1",
-            location: "app/api/stripe/create-checkout-session/route.ts",
-            message: "Checkout session created",
-            data: { sessionId: session.id, sessionMode: session.mode },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {})
-      // #endregion
 
       // Return both sessionId and url for compatibility
       // The url is what we'll use for the redirect
