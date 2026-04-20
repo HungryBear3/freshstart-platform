@@ -3,6 +3,7 @@ import { sendChecklistEmail } from "@/lib/email"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { prisma } from "@/lib/db"
 import { enrollInDrip } from "@/lib/drip"
+import { errorTracker } from "@/lib/monitoring/error-tracking"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -41,12 +42,24 @@ export async function POST(request: NextRequest) {
         email,
         source: referer.includes("/checklist") ? "checklist-page" : "homepage",
       },
-    }).catch(err => console.error("[Checklist] Failed to save subscriber:", err))
+    }).catch(err => {
+      console.error("[Checklist] Failed to save subscriber:", err)
+      errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
+        path: "/api/checklist",
+        email,
+        context: "subscriber_db_save",
+      })
+    })
 
     // Enroll in drip sequence (non-blocking)
-    enrollInDrip(email, "fs-checklist").catch(err =>
+    enrollInDrip(email, "fs-checklist").catch(err => {
       console.error("[Drip] Failed to enroll subscriber:", err)
-    )
+      errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
+        path: "/api/checklist",
+        email,
+        context: "drip_enroll",
+      })
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

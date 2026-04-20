@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth/session"
 import { z } from "zod"
+import { sanitizeString, validateDate, validateSSN } from "@/lib/security/validation"
 
 // GET - Retrieve all children for user
 export async function GET(request: NextRequest) {
@@ -62,20 +63,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validated = createChildSchema.parse(body)
+    const dateOfBirth = validateDate(validated.dateOfBirth)
+
+    if (!dateOfBirth) {
+      return NextResponse.json({ error: "Invalid date of birth" }, { status: 400 })
+    }
+
+    const formattedSsn = validated.ssn ? validateSSN(validated.ssn) : undefined
 
     const child = await prisma.child.create({
       data: {
         userId: user.id,
-        firstName: validated.firstName,
-        lastName: validated.lastName,
-        dateOfBirth: new Date(validated.dateOfBirth),
+        firstName: sanitizeString(validated.firstName),
+        lastName: sanitizeString(validated.lastName),
+        dateOfBirth,
         gender: validated.gender,
-        ssn: validated.ssn,
-        currentAddress: validated.currentAddress,
-        currentSchool: validated.currentSchool,
-        currentGrade: validated.currentGrade,
-        currentDoctor: validated.currentDoctor,
-        currentHealthInsurance: validated.currentHealthInsurance,
+        ssn: formattedSsn,
+        currentAddress: validated.currentAddress ? sanitizeString(validated.currentAddress) : undefined,
+        currentSchool: validated.currentSchool ? sanitizeString(validated.currentSchool) : undefined,
+        currentGrade: validated.currentGrade ? sanitizeString(validated.currentGrade) : undefined,
+        currentDoctor: validated.currentDoctor ? sanitizeString(validated.currentDoctor) : undefined,
+        currentHealthInsurance: validated.currentHealthInsurance ? sanitizeString(validated.currentHealthInsurance) : undefined,
       },
       include: {
         addressHistory: true,
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest) {
       await prisma.childAddressHistory.create({
         data: {
           childId: child.id,
-          address: validated.currentAddress,
+          address: sanitizeString(validated.currentAddress),
           startDate: new Date(),
           isCurrent: true,
         },
@@ -100,8 +108,8 @@ export async function POST(request: NextRequest) {
       await prisma.childSchoolHistory.create({
         data: {
           childId: child.id,
-          schoolName: validated.currentSchool,
-          grade: validated.currentGrade,
+          schoolName: sanitizeString(validated.currentSchool),
+          grade: validated.currentGrade ? sanitizeString(validated.currentGrade) : undefined,
           startDate: new Date(),
           isCurrent: true,
         },
@@ -112,7 +120,7 @@ export async function POST(request: NextRequest) {
       await prisma.childDoctorHistory.create({
         data: {
           childId: child.id,
-          providerName: validated.currentDoctor,
+          providerName: sanitizeString(validated.currentDoctor),
           startDate: new Date(),
           isCurrent: true,
         },

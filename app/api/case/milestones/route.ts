@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth/session"
 import { z } from "zod"
+import { sanitizeString, validateDate } from "@/lib/security/validation"
 
 // GET - Get all milestones for user's case
 export async function GET(request: NextRequest) {
@@ -53,6 +54,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validated = milestoneSchema.parse(body)
+    const milestoneDate = validateDate(validated.date)
+
+    if (!milestoneDate) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 })
+    }
 
     // Get or create case info
     let caseInfo = await prisma.caseInfo.findUnique({
@@ -68,9 +74,9 @@ export async function POST(request: NextRequest) {
     const milestone = await prisma.milestone.create({
       data: {
         caseInfoId: caseInfo.id,
-        title: validated.title,
-        description: validated.description,
-        date: new Date(validated.date),
+        title: sanitizeString(validated.title),
+        description: validated.description ? sanitizeString(validated.description) : undefined,
+        date: milestoneDate,
         completed: validated.completed || false,
       },
     })

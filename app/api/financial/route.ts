@@ -2,6 +2,46 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth/session"
 import { z } from "zod"
+import { validateAmount } from "@/lib/security/validation"
+
+const numericSchema = z.number().refine((value) => value >= 0, {
+  message: "Amount must be positive",
+})
+
+function toNumber(value: unknown): number | null {
+  if (value == null) return null
+  const n = Number(value)
+  const amount = validateAmount(isNaN(n) ? Number.NaN : n)
+  return amount === null ? null : amount
+}
+
+function serializeFinancialData<T extends {
+  income?: Array<Record<string, unknown>>
+  expenses?: Array<Record<string, unknown>>
+  assets?: Array<Record<string, unknown>>
+  debts?: Array<Record<string, unknown>>
+}>(financialData: T): T {
+  return {
+    ...financialData,
+    income: financialData.income?.map((item) => ({
+      ...item,
+      amount: toNumber(item.amount),
+    })),
+    expenses: financialData.expenses?.map((item) => ({
+      ...item,
+      amount: toNumber(item.amount),
+    })),
+    assets: financialData.assets?.map((item) => ({
+      ...item,
+      value: toNumber(item.value),
+    })),
+    debts: financialData.debts?.map((item) => ({
+      ...item,
+      balance: toNumber(item.balance),
+      monthlyPayment: item.monthlyPayment == null ? item.monthlyPayment : toNumber(item.monthlyPayment),
+    })),
+  }
+}
 
 // GET - Retrieve user's financial data
 export async function GET(request: NextRequest) {
@@ -32,7 +72,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(financialData)
+    return NextResponse.json(serializeFinancialData(financialData))
   } catch (error) {
     console.error("Error fetching financial data:", error)
     return NextResponse.json(
@@ -49,7 +89,7 @@ const financialDataSchema = z.object({
     z.object({
       type: z.string(),
       source: z.string(),
-      amount: z.number(),
+      amount: numericSchema,
       frequency: z.string(),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
@@ -61,7 +101,7 @@ const financialDataSchema = z.object({
     z.object({
       category: z.string(),
       description: z.string(),
-      amount: z.number(),
+      amount: numericSchema,
       frequency: z.string(),
       notes: z.string().optional(),
     })
@@ -70,7 +110,7 @@ const financialDataSchema = z.object({
     z.object({
       type: z.string(),
       description: z.string(),
-      value: z.number(),
+      value: numericSchema,
       ownership: z.string(),
       notes: z.string().optional(),
     })
@@ -80,8 +120,8 @@ const financialDataSchema = z.object({
       type: z.string(),
       creditor: z.string(),
       description: z.string().optional(),
-      balance: z.number(),
-      monthlyPayment: z.number().optional(),
+      balance: numericSchema,
+      monthlyPayment: numericSchema.optional(),
       ownership: z.string(),
       notes: z.string().optional(),
     })
@@ -175,7 +215,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json(updated)
+      return NextResponse.json(serializeFinancialData(updated))
     } else {
       // Create new financial data
       const created = await prisma.financialData.create({
@@ -232,7 +272,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json(created)
+      return NextResponse.json(serializeFinancialData(created))
     }
   } catch (error) {
     console.error("Error saving financial data:", error)
