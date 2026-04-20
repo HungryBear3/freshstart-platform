@@ -22,10 +22,9 @@ export function CheckoutSuccessTracker() {
     // Only track if success parameter is present
     if (success !== "true") return
 
-    // Get subscription details from session storage or make API call
-    // For now, we'll use default values - in production you might want to fetch from API
-    const plan = "annual" // Default plan
-    const planPrice = 299 // Annual price in USD
+    const plan = (typeof window !== "undefined" && sessionStorage.getItem("subscribe_plan")) || "annual"
+    const planPrice = plan === "one_time" ? 149 : 299
+    if (typeof window !== "undefined") sessionStorage.removeItem("subscribe_plan")
 
     // Track conversion
     analytics.subscriptionComplete(plan, planPrice, sessionId || undefined)

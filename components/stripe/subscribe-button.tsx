@@ -22,6 +22,7 @@ export function SubscribeButton({
   const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState("")
 
   const handleSubscribe = async () => {
     // If not logged in, redirect to signup with return URL
@@ -63,10 +64,8 @@ export function SubscribeButton({
       window.location.href = url
     } catch (error) {
       console.error("Checkout error:", error)
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong. Please try again."
+      setCheckoutError(
+        error instanceof Error ? error.message : "Something went wrong. Please try again."
       )
       setLoading(false)
     }
@@ -92,14 +91,19 @@ export function SubscribeButton({
   }
 
   return (
-    <Button
-      size={size}
-      className={className}
-      onClick={handleSubscribe}
-      disabled={loading || !session}
-      data-subscribe-button="true"
-    >
-      {loading ? "Loading..." : children || "Start Free Trial"}
-    </Button>
+    <div className="w-full">
+      <Button
+        size={size}
+        className={className}
+        onClick={handleSubscribe}
+        disabled={loading || !session}
+        data-subscribe-button="true"
+      >
+        {loading ? "Redirecting to Stripe…" : children || "Start Free Trial"}
+      </Button>
+      {checkoutError && (
+        <p className="text-sm text-red-600 mt-2 text-center">{checkoutError}</p>
+      )}
+    </div>
   )
 }

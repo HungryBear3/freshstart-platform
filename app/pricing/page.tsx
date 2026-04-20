@@ -167,6 +167,9 @@ export default function PricingPage() {
               <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
                 Forms, guidance, case management, and answers—available 24/7. No hourly fees.
               </p>
+              <p className="mt-5 text-sm text-gray-500">
+                7-day free trial &nbsp;·&nbsp; 30-day money-back guarantee &nbsp;·&nbsp; Cancel anytime
+              </p>
             </div>
           </div>
         </div>
@@ -309,6 +312,10 @@ export default function PricingPage() {
           <p className="text-center text-sm text-gray-500 mt-8">
             Both plans include all features. Annual is better for cases spanning multiple months.
             One-time is ideal if you expect to file within 90 days.
+          </p>
+          <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1.5">
+            <Shield className="h-3.5 w-3.5 text-gray-300 flex-shrink-0" />
+            Payments secured by Stripe &nbsp;·&nbsp; 256-bit encryption &nbsp;·&nbsp; Your data is never shared
           </p>
         </div>
 
@@ -470,11 +477,12 @@ export default function PricingPage() {
               <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
                 Start your 7-day free trial today. No credit card required.
               </p>
-              <Link href="/auth/signup">
-                <Button size="lg" variant="secondary" className="text-lg py-6 px-8">
-                  Start Free Trial
-                </Button>
-              </Link>
+              <SubscribeButton plan="annual" size="lg" className="text-lg py-6 px-8 bg-white text-blue-600 hover:bg-blue-50">
+                Start Free Trial
+              </SubscribeButton>
+              <p className="text-sm text-blue-200 mt-3">
+                No credit card required &nbsp;·&nbsp; Cancel anytime
+              </p>
             </div>
           </div>
         </div>
