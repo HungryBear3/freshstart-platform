@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { after, NextRequest, NextResponse } from "next/server"
 import { sendChecklistEmail } from "@/lib/email"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { prisma } from "@/lib/db"
@@ -6,6 +6,37 @@ import { enrollInDrip } from "@/lib/drip"
 import { errorTracker } from "@/lib/monitoring/error-tracking"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+async function persistChecklistSignup(email: string, source: string) {
+  try {
+    await prisma.checklistSubscriber.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        source,
+      },
+    })
+  } catch (err) {
+    console.error("[Checklist] Failed to save subscriber:", err)
+    errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
+      path: "/api/checklist",
+      email,
+      context: "subscriber_db_save",
+    })
+  }
+
+  try {
+    await enrollInDrip(email, "fs-checklist")
+  } catch (err) {
+    console.error("[Drip] Failed to enroll subscriber:", err)
+    errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
+      path: "/api/checklist",
+      email,
+      context: "drip_enroll",
+    })
+  }
+}
 
 export async function POST(request: NextRequest) {
   const identifier = getClientIdentifier(request)
@@ -33,33 +64,12 @@ export async function POST(request: NextRequest) {
   try {
     await sendChecklistEmail(email)
 
-    // Save subscriber (non-blocking — don't fail if DB save fails)
+    // Schedule subscriber persistence + drip enrollment after the response.
+    // Avoid raw fire-and-forget promises: Vercel can terminate serverless work
+    // after a response, which shows up as pg "Connection terminated" noise.
     const referer = request.headers.get("referer") || ""
-    prisma.checklistSubscriber.upsert({
-      where: { email },
-      update: {},
-      create: {
-        email,
-        source: referer.includes("/checklist") ? "checklist-page" : "homepage",
-      },
-    }).catch(err => {
-      console.error("[Checklist] Failed to save subscriber:", err)
-      errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
-        path: "/api/checklist",
-        email,
-        context: "subscriber_db_save",
-      })
-    })
-
-    // Enroll in drip sequence (non-blocking)
-    enrollInDrip(email, "fs-checklist").catch(err => {
-      console.error("[Drip] Failed to enroll subscriber:", err)
-      errorTracker.captureError(err instanceof Error ? err : new Error(String(err)), {
-        path: "/api/checklist",
-        email,
-        context: "drip_enroll",
-      })
-    })
+    const source = referer.includes("/checklist") ? "checklist-page" : "homepage"
+    after(() => persistChecklistSignup(email, source))
 
     return NextResponse.json({ success: true })
   } catch (error) {
