@@ -23,6 +23,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url("/start"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: url("/auth/signin"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: url("/auth/signup"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
+    // v2 preview redesign — parallel route. Lower priority than the live
+    // /, /pricing pages until the v2 design is promoted to production.
+    { url: url("/v2"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
+    { url: url("/v2/pricing"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.55 },
   ]
 
   let legalPages: MetadataRoute.Sitemap = []

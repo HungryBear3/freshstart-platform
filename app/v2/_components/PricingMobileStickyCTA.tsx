@@ -1,0 +1,65 @@
+"use client";
+
+import * as React from "react";
+import { analytics } from "./analytics";
+import { STUB_ENDPOINTS } from "./tiers";
+
+const LABEL = "Start my filing";
+
+export function PricingMobileStickyCTA() {
+  // Hide the sticky CTA while the user is inside the tier-cards section, so
+  // we don't double-up CTAs. Respect prefers-reduced-motion for the
+  // visibility flip — no CSS transitions in that case.
+  const [hidden, setHidden] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const cards = document.querySelector(".fs-pr-tiers");
+    if (!cards) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          setHidden(e.isIntersecting);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(cards);
+    return () => observer.disconnect();
+  }, []);
+
+  const onClick = async () => {
+    analytics.track({ name: "mobile_sticky_cta_click", page: "pricing", tier: "plus" });
+    try {
+      await fetch(STUB_ENDPOINTS.startFiling, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "mobile_sticky" }),
+      });
+    } catch {
+      /* preview-only */
+    }
+  };
+
+  return (
+    <div
+      className="fs-pr-sticky"
+      data-hidden={hidden ? "true" : "false"}
+      role="region"
+      aria-label="Mobile pricing summary"
+    >
+      <div className="fs-pr-sticky-l">
+        <div className="fs-pr-sticky-price">
+          $149<span className="fs-pr-sticky-or"> or $299/yr</span>
+        </div>
+        <div className="fs-pr-sticky-meta">7-day free trial · No card</div>
+      </div>
+      <button
+        type="button"
+        className="fs-btn fs-btn-primary fs-btn-md fs-pr-sticky-btn"
+        onClick={onClick}
+      >
+        {LABEL} →
+      </button>
+    </div>
+  );
+}
