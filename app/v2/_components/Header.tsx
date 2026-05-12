@@ -4,16 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { analytics, type AnalyticsPage } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+import { beginSignupFirstCheckout } from "./checkout-intent";
 
 export function Header({ page, ctaLabel }: { page: AnalyticsPage; ctaLabel: string }) {
   const onCta = () => {
     analytics.track({ name: "cta_click", page, location: "header", label: ctaLabel });
-    void fetch(STUB_ENDPOINTS.startTrial, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: "header", page }),
-    }).catch(() => {});
+    beginSignupFirstCheckout({ plan: "annual", source: `${page}_header` });
   };
 
   return (

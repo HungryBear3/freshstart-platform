@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { analytics } from "./analytics";
-import { STUB_ENDPOINTS, type PricingTier } from "./tiers";
+import { beginSignupFirstCheckout, planForTier } from "./checkout-intent";
+import type { PricingTier } from "./tiers";
 
 const PRIMARY_CTA = "Start my filing";
 
@@ -16,15 +17,10 @@ export function PricingTiers({ tiers }: { tiers: PricingTier[] }) {
       tier: tier.key,
     });
     analytics.track({ name: "tier_select", page: "pricing", tier: tier.key });
-    try {
-      await fetch(STUB_ENDPOINTS.startFiling, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: tier.key, price: tier.priceNumber }),
-      });
-    } catch {
-      /* preview-only */
-    }
+    beginSignupFirstCheckout({
+      plan: planForTier(tier.key),
+      source: `pricing_tier_${tier.key}`,
+    });
   };
 
   return (

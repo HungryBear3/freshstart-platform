@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { analytics } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+import { beginSignupFirstCheckout } from "./checkout-intent";
 
 const LABEL = "Start my filing";
 
@@ -27,17 +27,9 @@ export function PricingMobileStickyCTA() {
     return () => observer.disconnect();
   }, []);
 
-  const onClick = async () => {
+  const onClick = () => {
     analytics.track({ name: "mobile_sticky_cta_click", page: "pricing", tier: "plus" });
-    try {
-      await fetch(STUB_ENDPOINTS.startFiling, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "mobile_sticky" }),
-      });
-    } catch {
-      /* preview-only */
-    }
+    beginSignupFirstCheckout({ plan: "annual", source: "pricing_mobile_sticky" });
   };
 
   return (

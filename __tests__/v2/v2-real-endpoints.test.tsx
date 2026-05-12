@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { ChecklistCapture } from "@/app/v2/_components/ChecklistCapture";
+import { buildSignupFirstCheckoutUrl, planForTier } from "@/app/v2/_components/checkout-intent";
 import {
   OrientationCall,
   ORIENTATION_CALENDLY_URL,
@@ -93,5 +94,54 @@ describe("OrientationCall → public Calendly link", () => {
     expect(src).not.toMatch(/\/api\/_stub\/orientation-call/);
     expect(src).not.toMatch(/Mock:/);
     expect(html).not.toContain("preview only");
+  });
+});
+
+describe("signup-first checkout intent", () => {
+  it("maps Essential to one-time checkout and Plus/unknown tiers to annual checkout", () => {
+    expect(planForTier("essential")).toBe("one_time");
+    expect(planForTier("plus")).toBe("annual");
+    expect(planForTier("concierge")).toBe("annual");
+  });
+
+  it("builds a signup URL that preserves plan and source without hitting Stripe", () => {
+    const url = buildSignupFirstCheckoutUrl({ plan: "one_time", source: "pricing_tier_essential" });
+    expect(url).toContain("/auth/signup?");
+    expect(url).toContain("redirect=%2Fpricing");
+    expect(url).toContain("subscribe=true");
+    expect(url).toContain("plan=one_time");
+    expect(url).toContain("source=pricing_tier_essential");
+  });
+
+  it("removes start-trial/start-filing stubs from v2 CTA components", () => {
+    const files = [
+      "app/v2/_components/Hero.tsx",
+      "app/v2/_components/Header.tsx",
+      "app/v2/_components/PricingTiers.tsx",
+      "app/v2/_components/PricingMobileStickyCTA.tsx",
+    ];
+
+    for (const file of files) {
+      const src = readSource(file);
+      expect(src).not.toMatch(/STUB_ENDPOINTS\.(startTrial|startFiling)/);
+      expect(src).not.toMatch(/\/api\/_stub\/(start-trial|start-filing)/);
+    }
+  });
+
+  it("resumes checkout only after authentication via the existing checkout-session route", () => {
+    const src = readSource("app/v2/_components/PricingCheckoutResume.tsx");
+    expect(src).toMatch(/status !== "authenticated"/);
+    expect(src).toMatch(/\/api\/stripe\/create-checkout-session/);
+    expect(src).not.toMatch(/stripe\.checkout/);
+  });
+});
+
+describe("Essential access grant alignment", () => {
+  it("keeps one-time payment webhook access at 60 days to match v2 marketing", () => {
+    const src = readSource("app/api/webhooks/stripe/route.ts");
+    expect(src).toMatch(/grant 60 days of access/);
+    expect(src).toMatch(/60 \* 24 \* 60 \* 60 \* 1000/);
+    expect(src).not.toMatch(/ninetyDaysOut/);
+    expect(src).not.toMatch(/grant 90 days of access/);
   });
 });

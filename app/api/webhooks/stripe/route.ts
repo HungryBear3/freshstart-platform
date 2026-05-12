@@ -80,11 +80,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
-  // One-time payment: grant 90 days of access directly
+  // One-time Essential payment: grant 60 days of access directly, matching v2 marketing copy.
   if (session.mode === "payment") {
     const { prisma } = await import("@/lib/db")
     const now = new Date()
-    const ninetyDaysOut = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+    const essentialAccessEnds = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
 
     await prisma.subscription.upsert({
       where: { userId },
@@ -96,7 +96,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         status: "active",
         plan: "one_time",
         currentPeriodStart: now,
-        currentPeriodEnd: ninetyDaysOut,
+        currentPeriodEnd: essentialAccessEnds,
         trialStart: null,
         trialEnd: null,
       },
@@ -105,11 +105,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         status: "active",
         plan: "one_time",
         currentPeriodStart: now,
-        currentPeriodEnd: ninetyDaysOut,
+        currentPeriodEnd: essentialAccessEnds,
       },
     })
 
-    console.log("[Webhook] One-time access granted for userId:", userId, "until:", ninetyDaysOut.toISOString())
+    console.log("[Webhook] One-time access granted for userId:", userId, "until:", essentialAccessEnds.toISOString())
     return
   }
 

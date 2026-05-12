@@ -4,6 +4,7 @@ import { signIn, useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { markCheckoutResumeFromSearch } from "@/app/v2/_components/checkout-intent"
 
 export function SignInForm() {
   const router = useRouter()
@@ -91,10 +92,7 @@ export function SignInForm() {
           (typeof window !== "undefined" && sessionStorage.getItem("subscribe_plan"))
         
         if (isSubscribeFlow && callbackUrl === "/pricing") {
-          // Set flag to auto-trigger checkout on pricing page
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("auto_subscribe", "true")
-          }
+          markCheckoutResumeFromSearch(searchParams.get("plan"), searchParams.get("source"));
         }
         
         console.log("Login successful, redirecting to:", callbackUrl)

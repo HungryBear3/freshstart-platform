@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { analytics } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+import { beginSignupFirstCheckout } from "./checkout-intent";
 
 const HERO_CTA_LABEL = "Start my free 7-day trial";
 
@@ -14,11 +14,7 @@ export function HomepageHero() {
       location: "hero",
       label: HERO_CTA_LABEL,
     });
-    void fetch(STUB_ENDPOINTS.startTrial, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: "hero", page: "homepage" }),
-    }).catch(() => {});
+    beginSignupFirstCheckout({ plan: "annual", source: "homepage_hero" });
   };
   const onSecondary = () => {
     analytics.track({

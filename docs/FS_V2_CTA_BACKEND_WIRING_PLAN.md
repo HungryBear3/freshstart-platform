@@ -1,8 +1,8 @@
 # FS v2 CTA Backend Wiring Plan
 
-> Planning doc only — no code changes. Maps the five `/api/_stub/*`
-> preview endpoints in the FreshStart-IL v2 redesign to real production
-> handlers. Every recommendation cites a file:line in this repo.
+> Production wiring tracker. The original v2 preview used five `/api/_stub/*`
+> endpoints; this doc now tracks which CTAs have been wired to real or
+> signup-first flows and which remain blocked.
 
 ---
 
@@ -16,75 +16,62 @@ What this pass actually wired (safe-and-tested only):
 
 | Stub | New state | Wired at | Tests |
 |---|---|---|---|
-| `start-trial` | **PLAN-ONLY** (still stub-routed in code) | n/a | n/a — see implementation plan below |
-| `start-filing` | **PLAN-ONLY** (still stub-routed in code) | n/a | n/a — see implementation plan below |
+| `start-trial` | **WIRED → signup-first checkout intent** | `app/v2/_components/Hero.tsx`, `Header.tsx`, `checkout-intent.ts`, `PricingCheckoutResume.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
+| `start-filing` | **WIRED → signup-first checkout intent** | `PricingTiers.tsx`, `PricingMobileStickyCTA.tsx`, `checkout-intent.ts`, `PricingCheckoutResume.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `lead-capture` | **WIRED → `/api/checklist`** (real endpoint) | `app/v2/_components/ChecklistCapture.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `orientation-call` | **WIRED → public Calendly anchor** | `app/v2/_components/OrientationCall.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `add-on` | **BLOCKED** — no Stripe price IDs / product decision yet | n/a | n/a |
 
-Why start-trial / start-filing remain stub-routed in code: implementing
-signup-first safely requires a new resume-after-signup route + client-side
-session-check logic + a feature flag to keep the `/v2` preview alias
-working when Stripe isn't configured. That's intentionally out of scope
-for the "close blockers" pass — the brief authorizes plan-only when
-implementation risk is meaningful. See the **Signup-first concrete
-implementation plan** section below for the exact next steps.
+Start-trial / start-filing are no longer stub-routed from v2 CTAs. They now
+store a checkout intent in `sessionStorage`, route unauthenticated users
+through `/auth/signup`, preserve plan/source through `/auth/signin`, and
+resume via the existing authenticated `/api/stripe/create-checkout-session`
+route from the pricing page. No anonymous checkout path was added.
 
-### Signup-first concrete implementation plan (start-trial + start-filing)
+### Signup-first implementation shipped (start-trial + start-filing)
 
 Goal: when an unauthenticated user clicks a checkout CTA on v2, they land
 at `/auth/signup` with their plan intent encoded; after signup they
 auto-resume the Stripe checkout flow. Authenticated users skip the
 detour.
 
-1. **New helper** `app/v2/_components/checkout-intent.ts`:
-   - Exports `redirectToCheckoutOrSignup({ plan, source, page })`.
-   - Reads `NEXT_PUBLIC_V2_CHECKOUT_LIVE` env at module load (default `false`).
-   - When the flag is `false`: keep current `POST /api/_stub/start-*`
-     behavior so the `/v2` alias preview continues to work even when
-     Stripe env vars are absent. This is the safety valve.
-   - When the flag is `true`:
-     - `GET /api/auth/session` (NextAuth's built-in, no SDK import).
-     - If `user.email` present → `POST /api/stripe/create-checkout-session`
-       with `{ plan: "annual" | "one_time" }`; navigate to returned `url`.
-     - Otherwise → `window.location.href = "/auth/signup?next=" +
-       encodeURIComponent("/v2/checkout-resume?plan=<plan>&source=<source>")`.
-   - Exported pure for unit-testing; the actual `window.location` write is
-     behind a small `navigate(url: string)` indirection so jest can spy.
+1. **Helper shipped** `app/v2/_components/checkout-intent.ts`:
+   - Encodes `plan: "annual" | "one_time"` and CTA source.
+   - Stores the pending checkout intent in `sessionStorage`.
+   - Builds `/auth/signup?redirect=/pricing&subscribe=true&plan=<plan>&source=<source>`.
+   - Maps `essential` → `one_time`; Plus/sticky/header/hero default to `annual`.
 
-2. **New resume route** `app/v2/checkout-resume/page.tsx`:
-   - Reads `?plan=` from search params.
-   - If the user lands here unauthenticated (race / direct visit), bounce
-     back to `/auth/signup` with the same `next`.
-   - Otherwise POST `/api/stripe/create-checkout-session` and redirect.
-   - Trivial server-side render guard: `<Suspense>` + a one-line client
-     component that does the POST.
+2. **Resume component shipped** `app/v2/_components/PricingCheckoutResume.tsx`:
+   - Runs only when NextAuth reports `status === "authenticated"`.
+   - Reads the pending checkout intent from `sessionStorage`.
+   - POSTs the existing authenticated `/api/stripe/create-checkout-session` route.
+   - Redirects to the returned Stripe Checkout URL.
+   - Clears intent on success or automatic-start failure.
 
-3. **Wire call sites** to the helper (instead of inline `fetch(STUB_ENDPOINTS.startTrial, ...)`):
-   - `app/v2/_components/Hero.tsx:17` — `start-trial`, `plan: "annual"`
-   - `app/v2/_components/Header.tsx:12` — `start-trial`, `plan: "annual"`
-   - `app/v2/_components/PricingTiers.tsx:20` — `start-filing`,
-     `plan: tier.key === "plus" ? "annual" : "one_time"`
-   - `app/v2/_components/PricingMobileStickyCTA.tsx:33` — `start-filing`,
-     `plan: "annual"` (sticky CTA defaults to Plus)
+3. **Auth handoff shipped**:
+   - `/auth/signup` preserves `plan` and `source` when redirecting to `/auth/signin`.
+   - `/auth/signin` marks checkout resume when `subscribe=true` and `callbackUrl=/pricing`.
 
-4. **Tests** (`__tests__/v2/v2-checkout-intent.test.ts`):
-   - Spy on `global.fetch` and the helper's `navigate()`.
-   - Cases:
-     - flag OFF → calls stub URL, no redirect
-     - flag ON, no session → redirects to `/auth/signup?next=...`
-     - flag ON, session.user.email → POST `/api/stripe/create-checkout-session`,
-       navigates to returned `url`
-     - flag ON, checkout 401 (race) → bounces to signup-resume URL
-   - No live Stripe is contacted.
+4. **CTA call-sites wired**:
+   - `app/v2/_components/Hero.tsx` — `start-trial`, `plan: "annual"`.
+   - `app/v2/_components/Header.tsx` — `start-trial`, `plan: "annual"`.
+   - `app/v2/_components/PricingTiers.tsx` — `start-filing`, Essential `one_time`, others `annual`.
+   - `app/v2/_components/PricingMobileStickyCTA.tsx` — `start-filing`, `plan: "annual"`.
 
-5. **Latent bug to fix in the same change**: `app/v2/_components/tiers.ts:42`
-   advertises "60 days of access" for Essential, but
-   `app/api/webhooks/stripe/route.ts:84-113` grants **90 days**. Pick one
-   and align — recommend 60 days (the marketed value) and update the
-   webhook constant. Add a webhook regression test.
+5. **Tests shipped** in `__tests__/v2/v2-real-endpoints.test.tsx`:
+   - plan mapping;
+   - signup URL construction;
+   - no start-trial/start-filing stub routing in v2 CTAs;
+   - resume component gates on authentication and uses existing checkout-session route;
+   - no live Stripe call is made by tests.
 
-6. **Add-ons (`/api/_stub/add-on`)**: blocked. Cannot wire until:
+6. **Grant-length alignment shipped**: `app/v2/_components/tiers.ts`
+   markets "60 days of access" for Essential, and
+   `app/api/webhooks/stripe/route.ts:84-113` now grants **60 days** for
+   one-time Essential payment sessions. Regression coverage lives in
+   `__tests__/v2/v2-real-endpoints.test.tsx`.
+
+7. **Add-ons (`/api/_stub/add-on`)**: blocked. Cannot wire until:
    - the operator decides which add-ons ship (refile-assist, parenting
      plan, etc.) and at what prices, AND
    - real Stripe Products + `*_PRICE_ID` env vars exist, AND
@@ -95,9 +82,7 @@ detour.
 
 ### Open questions for Alexy (signup-first specifically)
 
-1. Should the signup-first redirect remember the plan via URL (`?next=...`)
-   only, or also via a server-side intent token (cookie/db)? URL is
-   simpler; cookie survives email-verification round-trips.
+1. Should checkout intent move from URL/sessionStorage to a server-side intent token later? Current implementation uses URL + `sessionStorage`; it is simple and verified, but a server-side token may better survive email-verification or cross-device flows.
 2. After successful Stripe checkout, where should the user land — current
    `success_url` is `/dashboard?success=true`. Keep that, or send to a v2
    onboarding screen?
@@ -260,7 +245,7 @@ trial, attaches the user's Stripe customer (created on first call via
 
 | Tier (`tier.key`) | Stripe plan | Notes |
 |---|---|---|
-| `essential` | `"one_time"` (uses `ONE_TIME_PRICE_ID`) | $149 one-time, mode `payment`, 90-day access granted in webhook — `app/api/webhooks/stripe/route.ts:84-113` |
+| `essential` | `"one_time"` (uses `ONE_TIME_PRICE_ID`) | $149 one-time, mode `payment`, 60-day access granted in webhook — `app/api/webhooks/stripe/route.ts:84-113` |
 | `plus` | `"annual"` (uses `ANNUAL_PRICE_ID`) | $299/year subscription with 7-day trial baked in |
 | `concierge` | Needs new price ID (no `CONCIERGE_PRICE_ID` exists). Or: switch CTA to call the orientation endpoint (see Stub 4) since the button label says "Book intake call" |
 
@@ -282,7 +267,7 @@ explicit handling.
 ### Expected side effect
 - Essential (`one_time`): Stripe Checkout in `mode: "payment"` → on
   success webhook creates a `Subscription` row with `plan: "one_time"`
-  and a 90-day `currentPeriodEnd` (`app/api/webhooks/stripe/route.ts:89-110`).
+  and a 60-day `currentPeriodEnd` (`app/api/webhooks/stripe/route.ts:89-110`).
 - Plus (`annual`): same as Stub 1 (subscription + 7-day trial).
 - Concierge: undefined today (no price ID, no plan mapping).
 
@@ -318,9 +303,8 @@ explicit handling.
    endpoint (Stub 4), not Stripe.
 2. **Do we want a `CONCIERGE_PRICE_ID` and let it flow through the same
    checkout route**, or split Concierge into its own path?
-3. The current Essential bullets at `tiers.ts:37-43` advertise "60 days
-   of access" but the webhook grants **90** days
-   (`app/api/webhooks/stripe/route.ts:87`). Pick one before launch.
+3. Resolved: Essential markets 60 days of access and the one-time payment
+   webhook now grants 60 days (`app/api/webhooks/stripe/route.ts:83-113`).
 
 ---
 
@@ -544,7 +528,7 @@ Stripe Checkout in `mode: "payment"` for one-shot add-ons, with the
 appropriate price ID(s). On success the webhook handles
 `checkout.session.completed` for `session.mode === "payment"` at
 `app/api/webhooks/stripe/route.ts:84-113`, which currently writes a
-`Subscription` row with a 90-day end date. That logic was written for
+`Subscription` row with a 60-day end date. That logic was written for
 the Essential one-time plan and will need branching to record add-ons
 separately (perhaps a new `AddOnPurchase` table).
 
@@ -566,9 +550,9 @@ separately (perhaps a new `AddOnPurchase` table).
   supplied price and look up the Stripe Price ID from a server-side
   whitelist by add-on key.
 - **`session.mode === "payment"` is currently overloaded**: it grants
-  90 days of access regardless of the line items
+  60 days of access regardless of the line items
   (`app/api/webhooks/stripe/route.ts:84-113`). Buying a $29 worksheet
-  would incorrectly upgrade the user to 90-day platform access. This
+  would incorrectly upgrade the user to 60-day platform access. This
   is a real bug magnet — branch on `metadata.kind: "addon"` before the
   upsert.
 - **Plus customers get Parenting Plan worksheet for free** per copy

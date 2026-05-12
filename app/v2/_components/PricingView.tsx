@@ -15,6 +15,7 @@ import { PricingAddons } from "./PricingAddons";
 import { PricingGuaranteeBand } from "./PricingGuaranteeBand";
 import { PricingTestimonials } from "./PricingTestimonials";
 import { PricingMobileStickyCTA } from "./PricingMobileStickyCTA";
+import { PricingCheckoutResume } from "./PricingCheckoutResume";
 import { PricingProductsJsonLd } from "./JsonLd";
 import { getTierCount, getTiers } from "./tiers";
 
@@ -87,6 +88,7 @@ export function PricingView() {
         />
       </main>
       <Footer idSuffix="pricing" />
+      <PricingCheckoutResume />
       <PricingMobileStickyCTA />
     </div>
   );

@@ -107,11 +107,7 @@ export const compareRows: Array<[string, string | boolean, string | boolean, str
   ["Refile assistance if rejected", false, "$49 add-on", true],
 ];
 
-// CTA destinations — all routed through /api/_stub/* in v2 preview.
+// CTA destinations — add-ons remain stubbed until product/price IDs are approved.
 export const STUB_ENDPOINTS = {
-  startTrial: "/api/_stub/start-trial",
-  startFiling: "/api/_stub/start-filing",
-  leadCapture: "/api/_stub/lead-capture",
-  orientation: "/api/_stub/orientation-call",
   addOn: "/api/_stub/add-on",
 } as const;

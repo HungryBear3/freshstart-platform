@@ -15,7 +15,9 @@ export default function SignUpPage() {
   
   // Check if user came from pricing/subscribe flow
   const redirectUrl = searchParams.get("redirect") || "/dashboard"
-  const isSubscribeFlow = redirectUrl === "/pricing" || typeof window !== "undefined" && sessionStorage.getItem("subscribe_plan")
+  const subscribePlan = searchParams.get("plan") || "annual"
+  const subscribeSource = searchParams.get("source") || "signup"
+  const isSubscribeFlow = searchParams.get("subscribe") === "true" || redirectUrl === "/pricing" || typeof window !== "undefined" && sessionStorage.getItem("subscribe_plan")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +42,14 @@ export default function SignUpPage() {
       // If coming from subscribe flow, redirect to signin with callback to pricing
       // Otherwise, redirect to signin with normal callback
       if (isSubscribeFlow) {
-        router.push("/auth/signin?callbackUrl=/pricing&registered=true&subscribe=true")
+        const params = new URLSearchParams({
+          callbackUrl: "/pricing",
+          registered: "true",
+          subscribe: "true",
+          plan: subscribePlan,
+          source: subscribeSource,
+        })
+        router.push(`/auth/signin?${params.toString()}`)
       } else {
         router.push(`/auth/signin?callbackUrl=${redirectUrl}&registered=true`)
       }
