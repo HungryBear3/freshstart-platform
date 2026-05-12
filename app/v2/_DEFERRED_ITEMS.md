@@ -75,10 +75,13 @@ analytics package in this branch.
 
 ## Brand token sourcing
 
-The Design's dark navy + purple→blue palette is the placeholder set,
-because Claude Design couldn't fetch the production site (JS-rendered).
-The single `:root` block in `app/v2/_components/styles.css` is the
-substitution point:
+The v2 logo has been replaced with the approved document + sunrise/checkmark
+FreshStart IL mark in `app/v2/_components/Logo.tsx`. Palette remains the dark
+navy + blue/teal system already used by v2; future work is limited to final
+visual QA and optional exported asset generation for OG/social.
+
+The main substitution point remains the single `:root` block in
+`app/v2/_components/styles.css`:
 
 - `--fs-bg`, `--fs-bg-2`, `--fs-card`, etc.
 - `--fs-grad` / `--fs-grad-soft` (gradient stops)
@@ -92,10 +95,9 @@ change.
 
 ## Real logo swap
 
-The placeholder wordmark logo lives in
-`app/v2/_components/Logo.tsx`. Replace the inline SVG with the real
-production logo SVG when sourced. Both the header and footer call
-through the same component, so the swap is one file.
+Closed for v2: `app/v2/_components/Logo.tsx` now uses the approved inline SVG
+mark. Before final production promotion, optionally export the same mark to a
+static `/public` asset for favicon/OG reuse.
 
 ## Retire / update `__tests__/app/homepage-premium.test.tsx`
 

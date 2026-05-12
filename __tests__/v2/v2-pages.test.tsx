@@ -166,11 +166,15 @@ describe("v2 header cross-page nav", () => {
     expect(pricing).toContain("Start my filing");
   });
 
-  it("links the logo back to /v2 from both pages", () => {
+  it("links the approved document/sunrise logo back to /v2 from both pages", () => {
     const home = ssr(<Header page="homepage" ctaLabel="Start Free Trial" />);
     const pricing = ssr(<Header page="pricing" ctaLabel="Start my filing" />);
     expect(home).toMatch(/href="\/v2"/);
     expect(pricing).toMatch(/href="\/v2"/);
+    expect(home).toContain("FreshStart");
+    expect(home).toContain("IL</span>");
+    expect(home).toContain("A4.9 4.9 0 0 1");
+    expect(home).not.toContain("fs-logo-accent");
   });
 });
 
