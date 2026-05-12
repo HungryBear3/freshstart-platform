@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { analytics } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+
+// Lead-capture is wired to the real /api/checklist route (drop-in replacement
+// for /api/_stub/lead-capture per docs/FS_V2_CTA_BACKEND_WIRING_PLAN.md).
+// Payload is { email }; the route derives source from the Referer header and
+// handles rate-limiting, subscriber persistence, drip enrollment, and email.
+const LEAD_CAPTURE_ENDPOINT = "/api/checklist";
 
 export function ChecklistCapture() {
   const [email, setEmail] = React.useState("");
@@ -14,10 +19,10 @@ export function ChecklistCapture() {
     setStatus("submitting");
     analytics.track({ name: "email_capture_submit", page: "homepage" });
     try {
-      const res = await fetch(STUB_ENDPOINTS.leadCapture, {
+      const res = await fetch(LEAD_CAPTURE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "homepage_checklist" }),
+        body: JSON.stringify({ email }),
       });
       setStatus(res.ok ? "done" : "error");
     } catch {
@@ -60,12 +65,12 @@ export function ChecklistCapture() {
         <div className="fs-cap-fine">We&apos;ll email it once. Unsubscribe anytime.</div>
         {status === "done" && (
           <div className="fs-cap-status" role="status" aria-live="polite">
-            Mock: checklist queued for delivery (preview only).
+            Sent! Check your inbox in the next minute or two.
           </div>
         )}
         {status === "error" && (
           <div className="fs-cap-status" role="status" aria-live="polite">
-            Stub endpoint failed locally. Check console.
+            Something went wrong. Please try again, or email support@freshstart-il.com.
           </div>
         )}
       </div>

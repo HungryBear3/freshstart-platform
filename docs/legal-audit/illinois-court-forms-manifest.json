@@ -1,0 +1,180 @@
+{
+  "$schema": "./illinois-court-forms-manifest.schema (informal)",
+  "description": "Verified snapshot of the Illinois Supreme Court approved standardized forms catalog used by FreshStart. Compared against lib/forms/illinois-court-forms.ts by scripts/verify-illinois-forms.ts. The `verification` block per form is updated only by `--fetch` mode (operator-run). Catalog values (version/lastUpdated) are NEVER auto-rewritten by the script; mismatches are flagged for human review.",
+  "lastFetchedAt": null,
+  "lastFetchedBy": null,
+  "officialSources": [
+    "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+    "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/"
+  ],
+  "forms": [
+    {
+      "id": "petition-no-children",
+      "name": "Petition for Dissolution of Marriage (No Children)",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "petition-with-children",
+      "name": "Petition for Dissolution of Marriage (With Children)",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "summons",
+      "name": "Summons - Dissolution of Marriage",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "appearance",
+      "name": "Appearance",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "financial-affidavit",
+      "name": "Financial Affidavit (Family & Divorce Cases)",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-a-child-support",
+      "name": "Schedule A - Child Support Worksheet",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-b-health-insurance",
+      "name": "Schedule B - Health Insurance",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-c-debts",
+      "name": "Schedule C - Debts",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-d-accounts",
+      "name": "Schedule D - Bank/Investment Accounts",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-e-business",
+      "name": "Schedule E - Business Interests",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "schedule-f-retirement",
+      "name": "Schedule F - Retirement Accounts",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+      "catalogVersion": "2025",
+      "catalogLastUpdated": "2025-06-01",
+      "verification": null
+    },
+    {
+      "id": "parenting-plan",
+      "name": "Parenting Plan",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "allocation-judgment",
+      "name": "Allocation Judgment",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "certificate-of-service",
+      "name": "Certificate of Service",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "affidavit-service-special-process",
+      "name": "Affidavit of Service by Special Process Server",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "waiver-service",
+      "name": "Waiver of Service",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "judgment-no-children",
+      "name": "Judgment of Dissolution of Marriage (No Children)",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "judgment-with-children",
+      "name": "Judgment of Dissolution of Marriage/Civil Union (With Children)",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "marital-settlement-agreement",
+      "name": "Marital Settlement Agreement",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "child-support-order",
+      "name": "Child Support Order",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    },
+    {
+      "id": "income-withholding-order",
+      "name": "Income Withholding for Support Order",
+      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
+      "catalogVersion": "2024",
+      "catalogLastUpdated": "2024-01-01",
+      "verification": null
+    }
+  ]
+}

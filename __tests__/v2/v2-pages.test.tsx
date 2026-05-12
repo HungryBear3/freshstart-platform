@@ -39,7 +39,7 @@ describe("v2 homepage hero", () => {
   it("renders the price-forward headline variant", () => {
     const html = ssr(<HomepageHero />);
     expect(html).toContain("Your Illinois divorce, filed right");
-    expect(html).toContain("without $15,000 attorney fees.");
+    expect(html).toContain("without starting with hourly attorney fees.");
   });
 
   it("renders the locked free-trial CTA and a 'See how it works' secondary CTA", () => {
@@ -112,6 +112,14 @@ describe("v2 pricing compare table", () => {
     expect(three).toContain(">Concierge<");
     // aria-label on dash cells so SRs don't read silence
     expect(three).toMatch(/aria-label="not included"/);
+  });
+
+  it("hides rows where every visible 2-tier value is not included", () => {
+    const two = ssr(<PricingCompareTable threeTier={false} recommended="plus" />);
+    expect(two).not.toContain("1:1 human pre-filing review");
+
+    const three = ssr(<PricingCompareTable threeTier recommended="plus" />);
+    expect(three).toContain("1:1 human pre-filing review");
   });
 });
 

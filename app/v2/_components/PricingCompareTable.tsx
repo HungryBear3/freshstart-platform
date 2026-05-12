@@ -24,6 +24,11 @@ export function PricingCompareTable({
   threeTier: boolean;
   recommended: TierKey;
 }) {
+  const visibleRows = compareRows.filter((row) => {
+    const visibleValues = threeTier ? row.slice(1) : row.slice(1, 3);
+    return visibleValues.some((value) => value !== false);
+  });
+
   return (
     <section className="fs-pr-compare" aria-labelledby="compare-h2">
       <div className="fs-section-inner">
@@ -58,8 +63,8 @@ export function PricingCompareTable({
               </tr>
             </thead>
             <tbody>
-              {compareRows.map((row, i) => (
-                <tr key={i}>
+              {visibleRows.map((row, i) => (
+                <tr key={`${row[0]}-${i}`}>
                   <th scope="row" className="fs-pr-table-feat">
                     {row[0]}
                   </th>

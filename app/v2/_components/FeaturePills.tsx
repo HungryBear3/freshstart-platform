@@ -8,8 +8,8 @@ const items = [
   },
   {
     ic: "⚖",
-    title: "Court-Ready Forms",
-    body: "Auto-filled per current Illinois Supreme Court templates. Edit and regenerate anytime.",
+    title: "Illinois Form Drafts",
+    body: "Auto-filled from Illinois court templates and county filing information. Edit and regenerate anytime.",
   },
   {
     ic: "♥",
@@ -18,8 +18,8 @@ const items = [
   },
   {
     ic: "⏱",
-    title: "Under 2 Hours",
-    body: "Most uncontested cases finish their full FreshStart workflow in under 2 hours.",
+    title: "Often Under 2 Hours",
+    body: "Straightforward uncontested cases can often complete a first draft in one focused session when their information is ready.",
   },
 ];
 

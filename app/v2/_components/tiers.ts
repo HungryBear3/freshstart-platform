@@ -36,7 +36,7 @@ export function getTiers(opts: { count?: 2 | 3; recommendedTier?: TierKey } = {}
       ctaStyle: "ghost",
       bullets: [
         "All required Illinois divorce forms, auto-filled",
-        "County-specific filing instructions (all 102 counties)",
+        "Available in all 102 Illinois counties · detailed filing instructions for the largest counties",
         "Step-by-step e-filing walkthrough",
         "Save & resume anytime · 60 days of access",
         "Email support · 1–2 business day response",
@@ -94,7 +94,8 @@ export function getTiers(opts: { count?: 2 | 3; recommendedTier?: TierKey } = {}
 // Comparison table rows. Index 1 = Essential, 2 = Plus, 3 = Concierge.
 export const compareRows: Array<[string, string | boolean, string | boolean, string | boolean]> = [
   ["All required Illinois forms (auto-filled)", true, true, true],
-  ["County-specific filing instructions", true, true, true],
+  ["Available in all 102 Illinois counties", true, true, true],
+  ["Detailed filing instructions (largest counties)", true, true, true],
   ["E-filing step-by-step walkthrough", true, true, true],
   ["Length of access", "60 days", "12 months", "12 months"],
   ["Form regenerations", "3 included", "Unlimited", "Unlimited"],

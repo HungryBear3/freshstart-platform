@@ -13,7 +13,7 @@ export function OrganizationAndWebsiteJsonLd() {
       logo: `${SITE_URL}/logo.png`,
       sameAs: [SITE_URL],
       description:
-        "FreshStart-IL guides Illinois residents through court-ready uncontested divorce filings.",
+        "FreshStart-IL guides Illinois residents through uncontested divorce form preparation and filing steps.",
     },
     {
       "@context": "https://schema.org",

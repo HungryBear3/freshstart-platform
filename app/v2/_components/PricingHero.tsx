@@ -13,7 +13,7 @@ export function PricingHero() {
           Your Illinois divorce, filed right — <span className="fs-h1-accent">from $149.</span>
         </h1>
         <p className="fs-sub">
-          Same court-ready forms. Same Illinois-specific guidance. Pick the plan that fits how
+          Same Illinois form workflow. Same Illinois-specific guidance. Pick the plan that fits how
           your case is moving.
         </p>
         <div className="fs-priceline" aria-label="Plan benefits">

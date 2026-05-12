@@ -36,15 +36,16 @@ export function HomepageHero() {
       <div className="fs-hero-inner">
         <div className="fs-eyebrow">
           <span className="fs-eyebrow-dot" aria-hidden="true" />
-          Built for Illinois courts · All 102 counties
+          Available in all 102 Illinois counties
         </div>
         <h1 id="hero-h1" className="fs-h1">
           Your Illinois divorce, filed right —{" "}
-          <span className="fs-h1-accent">without $15,000 attorney fees.</span>
+          <span className="fs-h1-accent">without starting with hourly attorney fees.</span>
         </h1>
         <p className="fs-sub">
-          Court-ready forms, step-by-step guidance, and a county-specific filing roadmap. Most
-          cases complete in under 2 hours.
+          Illinois form drafts, step-by-step guidance, and a filing roadmap. Straightforward
+          uncontested cases can often complete a first draft in one focused session when their
+          information is ready.
         </p>
         <div className="fs-priceline" aria-label="Pricing summary">
           <strong>$149 one-time</strong>
@@ -75,7 +76,7 @@ export function HomepageHero() {
             <span className="fs-tick" aria-hidden="true">✓</span> Save & resume anytime
           </span>
           <span>
-            <span className="fs-tick" aria-hidden="true">✓</span> Court-ready forms
+            <span className="fs-tick" aria-hidden="true">✓</span> Illinois form drafts
           </span>
           <span>
             <span className="fs-tick" aria-hidden="true">✓</span> Cancel anytime

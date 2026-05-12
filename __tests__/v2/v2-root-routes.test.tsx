@@ -26,7 +26,7 @@ describe("root `/` renders the v2 redesigned homepage", () => {
 
   it("renders the v2 hero headline + price-forward accent", () => {
     expect(html).toContain("Your Illinois divorce, filed right");
-    expect(html).toContain("without $15,000 attorney fees.");
+    expect(html).toContain("without starting with hourly attorney fees.");
   });
 
   it("renders the locked hero CTA `Start my free 7-day trial`", () => {
@@ -54,6 +54,13 @@ describe("root `/` renders the v2 redesigned homepage", () => {
     // Single capture: exactly one "Send my checklist" button.
     const matches = html.match(/Send my checklist/g) ?? [];
     expect(matches).toHaveLength(1);
+  });
+
+  it("uses safer legal copy and labels scenarios as illustrative", () => {
+    expect(html).toContain("Illinois form drafts");
+    expect(html).toContain("Illustrative Illinois filing scenarios");
+    expect(html).not.toMatch(/Court-ready|court-ready|Reviewed against Illinois Compiled Statutes|Trusted by Illinois residents/);
+    expect(html).not.toMatch(/accepted by|actually filed/);
   });
 });
 
@@ -91,6 +98,13 @@ describe("root `/pricing` renders the v2 redesigned pricing page", () => {
     expect(html).toMatch(/À la carte/);
     // No email-capture form above or inside the pricing flow.
     expect(html).not.toMatch(/Send my checklist/);
+  });
+
+  it("avoids court-reliant promises, contestation refunds, and unsubstantiated quantified claims", () => {
+    expect(html).toContain("Illustrative pricing scenarios");
+    expect(html).toContain("We don&#x27;t mediate contested disputes");
+    expect(html).not.toMatch(/court-ready|Court-ready|Accepted statewide|same court acceptance/);
+    expect(html).not.toMatch(/80%|1 in 12|pause your Plus|prorated refund|contestation is not a separate refund trigger/);
   });
 });
 

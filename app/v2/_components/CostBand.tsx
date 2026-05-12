@@ -43,12 +43,12 @@ export function CostBand({
         <div className="fs-costband-l">
           <div className="fs-cost-eyebrow">{eyebrow}</div>
           <h2 id={`cost-band-${page}`} className="fs-h2">
-            Illinois divorce attorneys average{" "}
-            <span className="fs-cost-strike">$15,000–$25,000</span> per case.
+            Contested Illinois divorces can cost{" "}
+            <span className="fs-cost-strike">$15,000–$25,000+</span> in attorney fees.
           </h2>
           <p className="fs-costband-body">
-            FreshStart costs less than a single hour of attorney time — for your whole divorce.
-            Same Illinois forms. Same court acceptance. Without the hourly meter running.
+            FreshStart starts at $149 for straightforward uncontested filings. You get guided
+            Illinois form drafts and filing steps without the hourly meter running.
           </p>
           {variant !== "pricing" && (
             <a className="fs-link-arrow" href="/v2/pricing">
@@ -58,7 +58,7 @@ export function CostBand({
         </div>
         <div className="fs-costband-r">
           <div className="fs-cost-card fs-cost-card-att">
-            <div className="fs-cost-card-lbl">Hire an attorney</div>
+            <div className="fs-cost-card-lbl">Contested attorney path</div>
             <div className="fs-cost-card-fig">
               <span className="fs-cost-card-currency">$</span>
               <span className="fs-cost-card-amt">15,000</span>

@@ -18,8 +18,8 @@ import { OrganizationAndWebsiteJsonLd } from "./JsonLd";
 
 const FAQ_ITEMS = [
   {
-    q: "Will my forms actually be accepted by the court?",
-    a: "Yes. Every form is filled out per the Illinois Compiled Statutes and county-specific requirements. If a form is rejected for an error in our generation, we'll fix it free or refund you.",
+    q: "Are the forms built for Illinois filing?",
+    a: "Yes. FreshStart prepares Illinois divorce form drafts and county-specific filing steps based on current court templates and filing information. You review everything before filing, and support can help correct generation issues under our guarantee.",
   },
   {
     q: "What if my divorce is contested?",

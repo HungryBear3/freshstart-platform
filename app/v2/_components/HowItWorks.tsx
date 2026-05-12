@@ -8,7 +8,7 @@ const steps = [
   },
   {
     n: "02",
-    title: "Get court-ready documents",
+    title: "Get Illinois form drafts",
     body: "We auto-fill every required Illinois form. Edit and regenerate as your case evolves.",
   },
   {

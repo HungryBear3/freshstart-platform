@@ -21,15 +21,15 @@ import { getTierCount, getTiers } from "./tiers";
 const PRICING_FAQ = [
   {
     q: "What if my spouse decides to contest?",
-    a: "FreshStart is built for uncontested cases. If your spouse contests, your filing stays valid but the case moves to a litigated track. We'll refund Essential within 30 days, or pause your Plus subscription, and point you to flat-fee Illinois attorneys for the contested portion.",
+    a: "FreshStart is built for uncontested cases. If your spouse contests or stops agreeing on the basics, pause before filing and talk to an Illinois attorney. We don't mediate contested disputes or make refund decisions based on why an agreement fell apart.",
   },
   {
-    q: "Will my forms hold up in Cook County?",
-    a: "Yes. Cook County is the strictest — and the one we test against first. Every Cook-specific cover sheet, summons, and judgment template is supported. If a Cook clerk rejects on a generation error, we fix it free and refund your refile fee.",
+    q: "Does this work for Cook County?",
+    a: "FreshStart includes Cook County-specific form templates and filing notes where they apply. Cook has detailed local requirements, so you should review the generated packet and current clerk instructions before filing.",
   },
   {
     q: "What if I need to refile because the court rejected something?",
-    a: "Plus and Concierge include unlimited regenerations — fix and refile at no extra cost. On Essential, the refile add-on is $49. Roughly 1 in 12 of our cases needs a refile, and it's almost always a clerk-level formatting fix, not a substantive error.",
+    a: "Some filings need corrections after clerk review. Plus includes unlimited regenerations while your subscription is active. On Essential, the refile assistance add-on is $49 if you want help updating the packet.",
   },
   {
     q: "Do I still need a lawyer?",
@@ -37,11 +37,11 @@ const PRICING_FAQ = [
   },
   {
     q: "What actually happens after I pay?",
-    a: "You're routed straight to the guided questionnaire. About 80% of people complete their first full draft in one sitting — under 2 hours. You can save and come back. Once your forms are signed and ready, you e-file through Illinois Odyssey with our step-by-step guide.",
+    a: "You're routed straight to the guided questionnaire. Many straightforward uncontested cases can complete a first draft in one focused session when their information is ready. You can save and come back, then use our step-by-step guide for the filing process.",
   },
   {
     q: "When and how do I get refunded?",
-    a: "Email refund@freshstart-il.com (or click 'Refund' in account settings) within 30 days. We process within 3 business days. No questions, no retention call. Plus subscribers also get a prorated refund on cancelation.",
+    a: "Email support@freshstart-il.com (or use the account settings flow when available) within 30 days. Eligible refunds are processed under the published refund policy at /legal-info/refund-policy — no retention call required.",
   },
   {
     q: "Why is Plus annual instead of one-time?",

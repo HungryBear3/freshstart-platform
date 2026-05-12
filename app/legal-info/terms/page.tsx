@@ -131,15 +131,15 @@ export default function TermsOfServicePage() {
 
                 <section>
                   <h2 className="text-3xl font-bold text-gray-900 mb-4 mt-8">Pricing and Payment</h2>
-                  <p>Certain features of our Service may be available only through paid subscriptions or one-time payments. If you choose to purchase access to premium features:</p>
+                  <p>FreshStart-IL offers paid plans for access to its document generation and case management features. If you choose to purchase a plan:</p>
                   <ul className="ml-6 mt-4 space-y-2">
                     <li>You agree to pay all fees associated with your purchase</li>
-                    <li>Fees are non-refundable except as required by law or as stated in our refund policy</li>
+                    <li>Eligible refunds are governed by our <a className="text-blue-600 underline" href="/legal-info/refund-policy">Refund Policy</a></li>
                     <li>We reserve the right to change our pricing at any time, with notice to existing subscribers</li>
                     <li>You are responsible for all taxes applicable to your purchase</li>
                     <li>Payment processing is handled by third-party payment processors</li>
                   </ul>
-                  <p className="mt-4"><strong>Current Status:</strong> At this time, FreshStart IL is free to use. We reserve the right to introduce paid features or subscriptions in the future with appropriate notice.</p>
+                  <p className="mt-4">Current plans include <strong>Essential</strong> (one-time) and <strong>Plus</strong> (annual subscription). See the <a className="text-blue-600 underline" href="/pricing">pricing page</a> for current rates and what each plan includes.</p>
                 </section>
 
                 <section>

@@ -5,14 +5,14 @@ const quotes = [
     name: "Marcus T.",
     city: "Naperville, IL",
     quote:
-      "I expected weeks of paperwork and panic. I was done in an evening. The forms were accepted by DuPage County on first submission.",
+      "I expected weeks of paperwork and panic. Having the questions organized county-by-county made the next step feel manageable.",
     initial: "M",
   },
   {
     name: "Priya R.",
     city: "Oak Park, IL",
     quote:
-      "The cost-comparison line is real. My friend paid an attorney $18k for the same outcome. I paid $149 and a Saturday afternoon.",
+      "The cost comparison was the reason I started. For a straightforward uncontested case, the lower-price path was what I needed to see.",
     initial: "P",
   },
   {
@@ -29,9 +29,9 @@ export function Testimonials() {
     <section className="fs-testi" aria-labelledby="testi-h2">
       <div className="fs-section-inner">
         <div className="fs-section-head">
-          <div className="fs-section-eyebrow">Real Illinois residents</div>
+          <div className="fs-section-eyebrow">Illustrative examples</div>
           <h2 id="testi-h2" className="fs-h2">
-            People who&apos;ve actually filed.
+            Illustrative Illinois filing scenarios.
           </h2>
         </div>
         <div className="fs-testi-grid">
@@ -43,7 +43,7 @@ export function Testimonials() {
                   {q.initial}
                 </div>
                 <div>
-                  <div className="fs-testi-name">{q.name}</div>
+                  <div className="fs-testi-name">Example: {q.name}</div>
                   <div className="fs-testi-city">{q.city}</div>
                 </div>
               </div>

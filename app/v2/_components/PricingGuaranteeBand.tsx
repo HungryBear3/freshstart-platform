@@ -10,8 +10,8 @@ const items = [
   {
     num: "102",
     unit: "counties",
-    title: "Accepted statewide",
-    body: "Forms match Illinois Supreme Court templates and county filing rules.",
+    title: "Available statewide",
+    body: "FreshStart is available for Illinois residents in all 102 counties.",
   },
   {
     num: "7",

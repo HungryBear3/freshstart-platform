@@ -10,21 +10,28 @@ redesign can be considered for production promotion.
 
 ## Legal review — required before any external prospect sees the preview
 
-The brief flags the following copy as requiring legal sign-off:
+Operational copy-risk review now lives at:
 
-- Essential tier "What's not included" footer copy (`PricingTiers`,
-  `excluded` array on the Essential tier in
-  `app/v2/_components/tiers.ts`).
-- The contested-spouse FAQ answer on pricing — it promises a 30-day refund
-  on Essential and a Plus subscription pause
-  (`app/v2/pricing/page.tsx`, `PRICING_FAQ[0]`).
-- The "Reviewed against Illinois Compiled Statutes" footer line
-  (`app/v2/_components/Footer.tsx`).
-- The "All 102 counties" trust claim used in the eyebrow, the footer
-  trust bar, and the guarantee band.
+- `docs/FS_V2_LEGAL_COPY_REVIEW.md`
+- `docs/FS_V2_ILCS_CLAIMS_AUDIT.md`
 
-Preview MAY be reviewed internally before legal closes these; it must
-NOT be shown to real prospects until legal signs off.
+Safer wording pass completed after Alexy review:
+
+- Contested-spouse copy now keeps FreshStart out of the middle of disputes;
+  no special contested-case refund, reason-based refund, or Plus-pause promise remains.
+- Footer copy now says `Built around Illinois court forms and filing steps`;
+  no public `Reviewed against Illinois Compiled Statutes` claim remains.
+- Court-acceptance-style promises were removed from the v2 marketing surface.
+- `80%` and `1 in 12` quantified claims were removed pending an Opus/data audit.
+- Testimonials are now explicitly labeled as illustrative examples.
+- Opus audit recommendations applied: all-102 language is availability-only, $15k-$25k is scoped to contested divorces, and hard `under 2 hours` copy is removed from Hero.
+
+Still required before external prospects/production:
+
+- Confirm all-102-county product coverage.
+- Confirm refund policy/account behavior matches current copy.
+- Decide whether illustrative scenarios are acceptable or replace with real permissioned testimonials.
+- Complete ILCS/court-form evidence audit if we want to restore a stronger `Reviewed against...` claim.
 
 ## Real backend wiring
 
@@ -101,7 +108,11 @@ NOT a checkpoint blocker. Before production promotion, either:
 
 ## Production promotion gate
 
-Before flipping `/` and `/pricing` over to the v2 design, also do:
+Detailed gate checklist now lives at:
+
+- `docs/FS_V2_PRODUCTION_PROMOTION_GATE.md`
+
+Before flipping `/` and `/pricing` over to the v2 design in production, also do:
 
 1. Legal sign-off on the four copy items above.
 2. Backend wiring of the five stub endpoints to real providers.
@@ -187,35 +198,41 @@ Hook point: section ordering inside
 element above `<PricingTiers />` to flip variants. No data-model
 changes required.
 
-### 2. Hide dead comparison rows in 2-tier mode
+### 2. Hide dead comparison rows in 2-tier mode — DONE 2026-05-11
 
-In 2-tier mode (`PRICING_TIERS!=3`), some comparison-table rows render
-`—` on every visible tier — most prominently `1:1 human pre-filing
-review`, which only Concierge offers. Those rows add table height with
-zero discriminating signal.
+In 2-tier mode (`PRICING_TIERS!=3`), comparison-table rows where every
+visible tier value is `false` are now filtered in
+`app/v2/_components/PricingCompareTable.tsx`. `compareRows` in
+`app/v2/_components/tiers.ts` is unchanged so `PRICING_TIERS=3` still
+surfaces Concierge-only values.
 
-Fast-follow: filter `compareRows` in
-`app/v2/_components/PricingCompareTable.tsx` so any row where every
-visible tier value is `false` is skipped. This is a render-condition
-change inside the existing renderer — NOT a data-model rewrite of
-`compareRows` in `app/v2/_components/tiers.ts` (which still needs the
-3-tier values for `PRICING_TIERS=3`).
+Regression coverage:
 
-CSS-level alternative (acceptable): `:has()` selector to collapse the
-row when all `td > .fs-pr-table-dash` are present, but the render-time
-filter is simpler and more SR-friendly.
+- `__tests__/v2/v2-pages.test.tsx` asserts `1:1 human pre-filing review`
+  is hidden in 2-tier mode and present in 3-tier mode.
 
-### 3. Identify floating right-edge circular icon
+### 3. Identify floating right-edge circular icon — INVESTIGATED 2026-05-11
 
-A floating circular icon was visible on the lower-right edge of the
-preview during visual review. Source unknown. Confirm whether it is:
+Local clean-browser check against `http://localhost:3000/` did NOT show a
+floating right-edge widget. DOM inspection found no fixed-position
+right-edge app element on `/`; the only sticky/fixed v2 surfaces are:
 
-- Vercel preview UI (toolbar / live edit / feedback widget),
-- an accessibility widget injected by the browser or extension,
-- a browser extension (Grammarly, password manager, etc.),
-- or stray app code (e.g., a leftover floating CTA, chat widget, or
-  scroll-to-top button) we haven't catalogued.
+- `.fs-hd` sticky header (`app/v2/_components/styles.css`)
+- `.fs-pr-sticky` mobile pricing CTA, hidden on desktop and bottom-aligned
 
-If intentional (Vercel-injected): document and move on. If stray app
-code: remove in a later cleanup. Repro path: load preview in a clean
-incognito browser without extensions and re-check.
+Source search found no v2 app imports or markup for UserWay, Intercom,
+accessibility toolbar, chat widget, contrast widget, scroll-to-top, or a
+right-edge floating CTA.
+
+Most likely causes if it appears only in Alexy's preview browser:
+
+- Vercel preview/deployment UI,
+- browser extension injection,
+- or the uncommitted `tmp_design_bundle/.../tweaks-panel.jsx` scratch
+  tooling if that scratch prototype is opened directly. That file is in
+  `tmp_design_bundle/`, remains untracked/uncommitted, and is not imported
+  by the v2 app.
+
+If this needs final confirmation before production, repro in clean
+incognito/no-extension browser against the deployed preview. No app code
+removal is indicated from current evidence.

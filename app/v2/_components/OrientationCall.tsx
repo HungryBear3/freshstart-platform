@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { analytics, type AnalyticsPage } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+
+// Orientation CTA links to the existing public Calendly URL also used by
+// components/home/IntroCallBanner.tsx. No server stub needed; analytics
+// still fires on click. Per docs/FS_V2_CTA_BACKEND_WIRING_PLAN.md.
+export const ORIENTATION_CALENDLY_URL = "https://calendly.com/il-support/30min";
 
 export function OrientationCall({
   page,
@@ -15,19 +19,8 @@ export function OrientationCall({
   heading: string;
   body: string;
 }) {
-  const [status, setStatus] = React.useState<string | null>(null);
-  const onClick = async () => {
+  const onClick = () => {
     analytics.track({ name: "orientation_cta_click", page });
-    try {
-      const res = await fetch(STUB_ENDPOINTS.orientation, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page }),
-      });
-      if (res.ok) setStatus("Mock: booking request received — preview only.");
-    } catch {
-      setStatus("Mock: offline — preview only.");
-    }
   };
   return (
     <section className="fs-orient" aria-labelledby={`orient-${page}`}>
@@ -40,15 +33,16 @@ export function OrientationCall({
           <p className="fs-orient-body">{body}</p>
         </div>
         <div className="fs-orient-r">
-          <button type="button" className="fs-btn fs-btn-primary fs-btn-lg" onClick={onClick}>
+          <a
+            href={ORIENTATION_CALENDLY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fs-btn fs-btn-primary fs-btn-lg"
+            onClick={onClick}
+          >
             Book a free 15-min call
-          </button>
+          </a>
           <div className="fs-orient-meta">Real human · No sales script · 15 minutes</div>
-          {status && (
-            <div className="fs-orient-meta" role="status" aria-live="polite">
-              {status}
-            </div>
-          )}
         </div>
       </div>
     </section>
