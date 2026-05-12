@@ -1,5 +1,27 @@
 import type { NextConfig } from "next";
 
+// The pre-v2 informational site lived under /legal-info/*. The v2 redesign
+// consolidates its public legal-info surface under /legal plus four topic
+// pages (/grounds-for-divorce, /property-division, /child-custody,
+// /support-calculations). To avoid leaving the old light-theme hub
+// reachable while the v2 ports of cost-estimator / timeline-calculator /
+// glossary are still pending, every public /legal-info entry point sends
+// a permanent 301 redirect to /legal. The detailed write-ups at
+// /legal-info/[slug] (grounds-for-divorce, property-division, etc.) and
+// the policy pages (/legal-info/privacy, /legal-info/terms,
+// /legal-info/disclaimer, /legal-info/refund-policy) remain reachable as
+// they are linked from v2 footers and the policy summaries.
+const LEGAL_INFO_REDIRECTS = [
+  "/legal-info",
+  "/legal-info/process",
+  "/legal-info/requirements",
+  "/legal-info/court-forms",
+  "/legal-info/court-resources",
+  "/legal-info/cost-estimator",
+  "/legal-info/timeline-calculator",
+  "/legal-info/glossary",
+] as const;
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -9,6 +31,13 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  async redirects() {
+    return LEGAL_INFO_REDIRECTS.map((source) => ({
+      source,
+      destination: "/legal",
+      permanent: true,
+    }));
   },
   async headers() {
     return [

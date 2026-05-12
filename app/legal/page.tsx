@@ -5,7 +5,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 export const metadata: Metadata = {
   title: "Legal Info — Illinois Divorce | FreshStart-IL",
   description:
-    "Plain-English overviews of how Illinois divorce works — grounds, property division, child custody, and support — plus links to the full legal-info library.",
+    "Plain-English overviews of how Illinois divorce works — grounds, property division, child custody, and support calculations.",
   alternates: { canonical: "/legal" },
 };
 
@@ -36,17 +36,6 @@ const TOPICS: Array<{ href: string; title: string; body: string }> = [
   },
 ];
 
-const DEEP_LIBRARY = [
-  { href: "/legal-info", label: "Legal info library" },
-  { href: "/legal-info/process", label: "Illinois divorce process" },
-  { href: "/legal-info/requirements", label: "Filing requirements" },
-  { href: "/legal-info/court-forms", label: "Court forms" },
-  { href: "/legal-info/court-resources", label: "Court resources" },
-  { href: "/legal-info/cost-estimator", label: "Cost estimator" },
-  { href: "/legal-info/timeline-calculator", label: "Timeline calculator" },
-  { href: "/legal-info/glossary", label: "Glossary" },
-];
-
 export default function LegalIndexPage() {
   return (
     <V2PageShell
@@ -65,19 +54,6 @@ export default function LegalIndexPage() {
           </Link>
         ))}
       </div>
-
-      <h2>The full library</h2>
-      <p>
-        The pages above are summaries. The complete legal-info library has
-        deeper, citation-backed write-ups, calculators, and court forms.
-      </p>
-      <ul>
-        {DEEP_LIBRARY.map((l) => (
-          <li key={l.href}>
-            <Link href={l.href}>{l.label}</Link>
-          </li>
-        ))}
-      </ul>
 
       <h2>Need someone in your corner?</h2>
       <p>
