@@ -20,7 +20,7 @@ What this pass actually wired (safe-and-tested only):
 | `start-filing` | **WIRED → signup-first checkout intent** | `PricingTiers.tsx`, `PricingMobileStickyCTA.tsx`, `checkout-intent.ts`, `PricingCheckoutResume.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `lead-capture` | **WIRED → `/api/checklist`** (real endpoint) | `app/v2/_components/ChecklistCapture.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `orientation-call` | **WIRED → public Calendly anchor** | `app/v2/_components/OrientationCall.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
-| `add-on` | **BLOCKED** — no Stripe price IDs / product decision yet | n/a | n/a |
+| `add-on` | **UI SCOPED / PAYMENT BLOCKED** — launch UI shows Parenting Plan Worksheet + Refile Assistance only; checkout still waits on Stripe price IDs + persistence | `app/v2/_components/PricingAddons.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 
 Start-trial / start-filing are no longer stub-routed from v2 CTAs. They now
 store a checkout intent in `sessionStorage`, route unauthenticated users
@@ -71,9 +71,10 @@ detour.
    one-time Essential payment sessions. Regression coverage lives in
    `__tests__/v2/v2-real-endpoints.test.tsx`.
 
-7. **Add-ons (`/api/_stub/add-on`)**: blocked. Cannot wire until:
-   - the operator decides which add-ons ship (refile-assist, parenting
-     plan, etc.) and at what prices, AND
+7. **Add-ons (`/api/_stub/add-on`)**: product scope decided for launch:
+   Parenting Plan Worksheet ($29) and Refile Assistance ($49) remain in the
+   UI. Prenup Template and Mediation Referral are held for later to reduce
+   legal/ops surface area. Payment remains blocked until:
    - real Stripe Products + `*_PRICE_ID` env vars exist, AND
    - the existing `/api/stripe/create-checkout-session` route is extended
      to accept add-on line items (currently single-price-ID).
@@ -103,7 +104,7 @@ detour.
 | 4 | "Start my filing" (mobile sticky) | `PricingMobileStickyCTA` | `app/v2/_components/PricingMobileStickyCTA.tsx:56-62` | `start-filing` |
 | 5 | "Send my checklist" (email capture form) | `ChecklistCapture` | `app/v2/_components/ChecklistCapture.tsx:52-58` | `lead-capture` |
 | 6 | "Book a free 15-min call" | `OrientationCall` | `app/v2/_components/OrientationCall.tsx:43-45` | `orientation-call` |
-| 7 | "Add →" (4 a-la-carte add-ons) | `PricingAddons` | `app/v2/_components/PricingAddons.tsx:72-79` | `add-on` |
+| 7 | "Add →" (2 launch add-ons) | `PricingAddons` | `app/v2/_components/PricingAddons.tsx` | `add-on` |
 
 All five stubs in `app/api/_stub/*` exist and return `{ ok: true, mock: true, ... }`. Stub endpoint constants are exported from `app/v2/_components/tiers.ts:110-116`.
 
@@ -479,7 +480,7 @@ attribution data becomes important.
 ## Stub 5 — `add-on`
 
 ### CTA
-- **"Add →"** on each of 4 a-la-carte items (Prenup $79, Parenting plan worksheet $29, Mediation referral $49, Refile assistance $49) — `app/v2/_components/PricingAddons.tsx:72-79`, handler `onAdd` at lines 37-51. Items defined inline at `PricingAddons.tsx:7-32`.
+- **"Add →"** on each of 2 launch add-ons (Parenting Plan Worksheet $29, Refile Assistance $49) — `app/v2/_components/PricingAddons.tsx`. Prenup and Mediation Referral are intentionally held for later.
 
 ### Current stub
 `POST /api/_stub/add-on` — `app/api/_stub/add-on/route.ts:7-23`.
@@ -502,15 +503,14 @@ Or: add an optional `addons: string[]` array to the existing
 `/api/stripe/create-checkout-session` payload that is appended as
 additional Stripe `line_items`.
 
-Either way: each add-on needs its own Stripe Price ID env var
-(`PRENUP_PRICE_ID`, `PARENTING_PLAN_PRICE_ID`,
-`MEDIATION_PRICE_ID`, `REFILE_PRICE_ID`). None exist today.
+Either way: each launch add-on needs its own Stripe Price ID env var
+(`PARENTING_PLAN_PRICE_ID`, `REFILE_PRICE_ID`). Prenup/Mediation IDs should wait until those products return to launch scope.
 
 ### Required payload
 ```ts
 // Request
 {
-  addonKey: "prenup" | "parenting_plan" | "mediation" | "refile",
+  addonKey: "parenting_plan" | "refile",
   // OR: a richer cart shape if multi-add-on
   items: Array<{ priceId: string, quantity: number }>
 }
@@ -534,7 +534,7 @@ separately (perhaps a new `AddOnPurchase` table).
 
 ### Test-mode verification
 1. Create test-mode Stripe Products for each add-on.
-2. Add the four `*_PRICE_ID` env vars.
+2. Add the two launch `*_PRICE_ID` env vars.
 3. Sign in, click "Add" on one item → Stripe Checkout in
    `mode: payment` with the right line item → pay with `4242…` →
    verify the resulting DB row (`Payment`? new `AddOnPurchase`?) is
@@ -563,7 +563,7 @@ separately (perhaps a new `AddOnPurchase` table).
 ### Open questions for Alexy
 1. **Do add-ons exist as Stripe Products today, or are these aspirational?**
    No price IDs are documented in `FRESHSTART_SECRETS_AND_PRICES.md`
-   for them. All four need to be created in Stripe.
+   for them. The two launch IDs need to be created in Stripe.
 2. **Are add-ons stand-alone one-shot purchases**, or do they require
    an active Essential/Plus subscription first? The current copy
    doesn't make it explicit; the wiring depends on the answer

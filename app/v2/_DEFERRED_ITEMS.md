@@ -35,23 +35,27 @@ Still required before external prospects/production:
 
 ## Real backend wiring
 
-All in-body CTAs currently POST to `/api/_stub/*` handlers that return
-`{ ok: true, mock: true }`. None hit Stripe, Resend, Calendly, or the
-CRM. The following must be replaced before promotion:
+Most v2 CTAs have been wired off preview stubs. Remaining add-on purchase
+clicks intentionally stay on `/api/_stub/add-on` until Stripe add-on Price IDs
+and webhook persistence are approved.
 
-| Stub | Production target |
+| Stub | Current state |
 |---|---|
-| `POST /api/_stub/start-trial` | Stripe Checkout (7-day trial subscription) |
-| `POST /api/_stub/start-filing` | Stripe Checkout for Essential one-time or Plus annual |
-| `POST /api/_stub/lead-capture` | CRM lead create + transactional checklist email |
-| `POST /api/_stub/orientation-call` | Calendly / Cal.com booking link or webhook |
-| `POST /api/_stub/add-on` | Stripe add-on line item |
+| `POST /api/_stub/start-trial` | Replaced by signup-first Stripe checkout intent |
+| `POST /api/_stub/start-filing` | Replaced by signup-first Stripe checkout intent |
+| `POST /api/_stub/lead-capture` | Replaced by real `/api/checklist` |
+| `POST /api/_stub/orientation-call` | Replaced by public Calendly link |
+| `POST /api/_stub/add-on` | Still blocked pending add-on Price IDs + persistence path |
+
+Launch add-on UI is limited to Parenting Plan Worksheet ($29) and Refile
+Assistance ($49). Prenup and Mediation Referral are held for a later launch.
 
 ## Real analytics wiring
 
-`app/v2/_components/analytics.ts` exports a `track()` function that
-console.debugs and pushes the event onto `sessionStorage`. No SDK or
-credentials are present — by design, per brief.
+`app/v2/_components/analytics.ts` now bridges v2 events into the existing
+site-wide Google Analytics `window.gtag` surface while preserving the
+`console.debug` + `sessionStorage` trace for preview QA. No new SDK or
+credentials were added.
 
 Events currently dispatched:
 

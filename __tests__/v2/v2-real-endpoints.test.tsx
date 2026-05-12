@@ -17,6 +17,7 @@ import ReactDOMServer from "react-dom/server";
 import fs from "node:fs";
 import path from "node:path";
 
+import { PricingAddons } from "@/app/v2/_components/PricingAddons";
 import { ChecklistCapture } from "@/app/v2/_components/ChecklistCapture";
 import { buildSignupFirstCheckoutUrl, planForTier } from "@/app/v2/_components/checkout-intent";
 import {
@@ -143,5 +144,33 @@ describe("Essential access grant alignment", () => {
     expect(src).toMatch(/60 \* 24 \* 60 \* 60 \* 1000/);
     expect(src).not.toMatch(/ninetyDaysOut/);
     expect(src).not.toMatch(/grant 90 days of access/);
+  });
+});
+
+describe("v2 Google Analytics bridge", () => {
+  it("dispatches v2 analytics events to the existing window.gtag surface", () => {
+    const src = readSource("app/v2/_components/analytics.ts");
+    expect(src).toMatch(/gtag\("event", eventName, params\)/);
+    expect(src).toMatch(/select_content/);
+    expect(src).toMatch(/generate_lead/);
+    expect(src).toMatch(/add_to_cart/);
+    expect(src).toMatch(/fs-v2-analytics-trace/);
+    expect(src).not.toMatch(/Segment|RudderStack|posthog|new GoogleAnalytics/);
+  });
+});
+
+describe("v2 launch add-ons", () => {
+  it("ships only Parenting Plan Worksheet and Refile Assistance in the launch UI", () => {
+    const html = ssr(<PricingAddons />);
+    expect(html).toContain("Parenting plan worksheet");
+    expect(html).toContain("Refile assistance");
+    expect(html).not.toContain("Prenup template");
+    expect(html).not.toContain("Mediation referral");
+  });
+
+  it("keeps add-on purchase clicks on the existing stub until price IDs are approved", () => {
+    const src = readSource("app/v2/_components/PricingAddons.tsx");
+    expect(src).toMatch(/STUB_ENDPOINTS\.addOn/);
+    expect(src).not.toMatch(/create-checkout-session/);
   });
 });

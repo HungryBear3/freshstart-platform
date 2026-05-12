@@ -1,11 +1,8 @@
 // FreshStart-IL v2 — analytics dispatcher.
 //
-// Stub-only: every event lands on console.debug so we can verify wiring during
-// preview review without an analytics SDK. Replace `dispatch()` with the real
-// Segment / GA4 / RudderStack / posthog call once the destination is chosen.
-//
-// Brief explicitly forbids adding a new analytics SDK or credentials in this
-// pass, so this is the no-op surface. See _DEFERRED_ITEMS.md for follow-up.
+// Bridges v2-specific UI events into the existing site-wide Google Analytics
+// gtag installation while preserving the console/sessionStorage trace used by
+// preview QA. No new SDK or credentials are introduced here.
 
 export type AnalyticsPage = "homepage" | "pricing";
 
@@ -22,12 +19,47 @@ export type AnalyticsEvent =
 
 const STORAGE_KEY = "fs-v2-analytics-trace";
 
+function toGaEvent(event: AnalyticsEvent): [string, Record<string, string | number | undefined>] {
+  switch (event.name) {
+    case "page_view":
+      return ["page_view", { page_path: `/v2${event.page === "pricing" ? "/pricing" : ""}`, page_section: event.page, variant: event.variant }];
+    case "cta_click":
+      return ["select_content", { content_type: "cta", page_section: event.page, location: event.location, item_name: event.label, tier: event.tier }];
+    case "tier_select":
+      return ["select_item", { item_list_name: "v2_pricing_tiers", item_name: event.tier, page_section: event.page }];
+    case "addon_add_click":
+      return ["add_to_cart", { item_name: event.addon, price: event.price, page_section: event.page }];
+    case "orientation_cta_click":
+      return ["generate_lead", { lead_type: "orientation_call", page_section: event.page }];
+    case "email_capture_submit":
+      return ["generate_lead", { lead_type: "checklist", page_section: event.page }];
+    case "mobile_sticky_cta_click":
+      return ["select_content", { content_type: "cta", location: "mobile_sticky", page_section: event.page, tier: event.tier }];
+    case "faq_expand":
+      return ["select_content", { content_type: "faq", page_section: event.page, item_name: event.question, index: event.index }];
+    case "cost_band_view":
+      return ["view_item_list", { item_list_name: "cost_bands", page_section: event.page }];
+  }
+}
+
+function dispatchToGoogle(event: AnalyticsEvent) {
+  if (typeof window === "undefined") return;
+  const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+  if (typeof gtag !== "function") return;
+  const [eventName, params] = toGaEvent(event);
+  gtag("event", eventName, params);
+}
+
 function dispatch(event: AnalyticsEvent) {
   if (typeof window === "undefined") {
     // Server-side render: no-op. page_view fires from the client effect.
     return;
   }
-  // Preview-only console trace so QA can see every event in DevTools.
+
+  dispatchToGoogle(event);
+
+  // Preview QA trace: keep this even when Google Analytics is configured so
+  // reviewers can verify every v2 event locally without leaving the browser.
   // eslint-disable-next-line no-console
   console.debug("[fs-v2 analytics]", event.name, event);
   try {

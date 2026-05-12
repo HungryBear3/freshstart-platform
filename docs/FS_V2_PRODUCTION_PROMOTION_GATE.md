@@ -49,7 +49,9 @@ Close before production:
 
 ### 3. Real analytics wiring
 
-Current analytics are console/sessionStorage only.
+The analytics bridge is wired to existing Google `gtag`; before production,
+verify that the deployed environment has the correct public Google IDs and that
+Realtime/DebugView receives v2 events.
 
 Close before production:
 

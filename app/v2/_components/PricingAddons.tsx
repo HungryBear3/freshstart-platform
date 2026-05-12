@@ -6,27 +6,15 @@ import { STUB_ENDPOINTS } from "./tiers";
 
 const items = [
   {
-    name: "Prenup template",
-    price: "$79",
-    body: "Illinois UPAA-compliant prenup builder. Editable and exportable.",
-    ic: "♥",
-  },
-  {
     name: "Parenting plan worksheet",
     price: "$29",
-    body: "Standalone worksheet — printable, court-formatted. Included in Plus.",
+    body: "Standalone worksheet for parenting-time terms and schedules. Included in Plus.",
     ic: "👨‍👩‍👧",
-  },
-  {
-    name: "Mediation referral",
-    price: "$49",
-    body: "Vetted Illinois mediator match within 48 hours. Flat-fee mediators only.",
-    ic: "⚖",
   },
   {
     name: "Refile assistance",
     price: "$49",
-    body: "If your county rejects, we revise and you resubmit. Cook County common.",
+    body: "If your county rejects for a filing/format issue, send us the note and we help correct the packet for resubmission.",
     ic: "↻",
   },
 ];

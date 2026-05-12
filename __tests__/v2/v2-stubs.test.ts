@@ -45,7 +45,7 @@ describe("/api/_stub/* endpoints", () => {
     await assertMockOk(await orientationPost(makeReq({ page: "homepage" })), "orientation-call");
   });
   it("add-on returns mock 200", async () => {
-    await assertMockOk(await addOnPost(makeReq({ addon: "Prenup" })), "add-on");
+    await assertMockOk(await addOnPost(makeReq({ addon: "Refile assistance" })), "add-on");
   });
 
   it("none of the stub handlers import a provider SDK (no real side effects)", () => {
