@@ -3,6 +3,12 @@
 // Bridges v2-specific UI events into the existing site-wide Google Analytics
 // gtag installation while preserving the console/sessionStorage trace used by
 // preview QA. No new SDK or credentials are introduced here.
+//
+// The Google bridge is gated on `isLiveTrackingEnabled()` so Preview /
+// localhost / dev only ever see the console/sessionStorage trace. The trace
+// stays on in all environments — it's local-only.
+
+import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate";
 
 export type AnalyticsPage = "homepage" | "pricing";
 
@@ -44,6 +50,7 @@ function toGaEvent(event: AnalyticsEvent): [string, Record<string, string | numb
 
 function dispatchToGoogle(event: AnalyticsEvent) {
   if (typeof window === "undefined") return;
+  if (!isLiveTrackingEnabled()) return;
   const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
   if (typeof gtag !== "function") return;
   const [eventName, params] = toGaEvent(event);

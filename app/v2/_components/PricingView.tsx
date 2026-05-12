@@ -58,13 +58,13 @@ export function PricingView() {
       <PricingProductsJsonLd tiers={tiers} />
       <PageView page="pricing" variant={`pricing-${count}-tier`} />
       {/*
-        Header CTA on pricing is intentionally `Start Free Trial` per the
-        v2 root-preview locked values — the in-card CTA `Start my filing →`
-        is the conversion lever. We do NOT surface a `Free Checklist` link
+        Primary CTA across v2 is "Start my filing". Free-trial language is
+        kept as supporting microcopy (priceline + 30-day money-back band),
+        not as a button label. We do NOT surface a `Free Checklist` link
         or checklist capture above the tiers; the only checklist capture
         lives below the homepage FAQ.
       */}
-      <Header page="pricing" ctaLabel="Start Free Trial" />
+      <Header page="pricing" ctaLabel="Start my filing" />
       <main role="main">
         <PricingHero />
         <PricingTiers tiers={tiers} />

@@ -7,7 +7,15 @@ import { analytics } from "./analytics";
 // for /api/_stub/lead-capture per docs/FS_V2_CTA_BACKEND_WIRING_PLAN.md).
 // Payload is { email }; the route derives source from the Referer header and
 // handles rate-limiting, subscriber persistence, drip enrollment, and email.
+// In Vercel Preview / non-production environments the route returns a fast
+// 200 noop ({ mode: "preview_noop" }) so this UI must not hang on it.
 const LEAD_CAPTURE_ENDPOINT = "/api/checklist";
+
+// Defensive client-side timeout. The route should respond in well under
+// 2s; if it does not (cold start, dropped connection, hung downstream),
+// abort the request and surface an error so the button never sticks at
+// "Sending…".
+const CHECKLIST_TIMEOUT_MS = 2000;
 
 export function ChecklistCapture() {
   const [email, setEmail] = React.useState("");
@@ -18,15 +26,26 @@ export function ChecklistCapture() {
     if (!email) return;
     setStatus("submitting");
     analytics.track({ name: "email_capture_submit", page: "homepage" });
+
+    const controller =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller
+      ? setTimeout(() => controller.abort(), CHECKLIST_TIMEOUT_MS)
+      : null;
+
     try {
       const res = await fetch(LEAD_CAPTURE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
+        signal: controller?.signal,
       });
       setStatus(res.ok ? "done" : "error");
     } catch {
+      // AbortError (timeout) and any network/parse failure both land here.
       setStatus("error");
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   };
 

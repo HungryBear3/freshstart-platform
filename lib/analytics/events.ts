@@ -1,39 +1,50 @@
 /**
  * Analytics Event Tracking
- * 
- * Unified event tracking for GA4, Meta Pixel, and Google Ads
+ *
+ * Unified event tracking for GA4, Meta Pixel, and Google Ads.
+ *
+ * Every dispatch is wrapped by `isLiveTrackingEnabled()` from
+ * `lib/analytics/tracking-gate.ts` so that Vercel Preview, localhost, and
+ * any non-production host become a no-op. This is defense-in-depth on top
+ * of the AnalyticsProvider gate.
  */
 
 import { trackMetaEvent, trackMetaCustomEvent } from "@/components/analytics/meta-pixel"
 import { trackGoogleAdsConversion } from "@/components/analytics/google-analytics"
+import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate"
 
 // ============================================================
 // CORE EVENT TRACKING
 // ============================================================
 
 /**
- * Track an event to Google Analytics 4
+ * Track an event to Google Analytics 4. No-op when the production tracking
+ * gate is closed (Preview, localhost, dev, missing opt-in env var).
  */
 export function trackGA4Event(
   eventName: string,
   params?: Record<string, any>
 ): void {
+  if (!isLiveTrackingEnabled()) return
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('event', eventName, params)
   }
 }
 
 /**
- * Track an event to all configured platforms
+ * Track an event to all configured platforms. Same production-only gate
+ * as `trackGA4Event` — dev/preview still gets the console line so QA
+ * can verify the call site fired, but no live pixel/tag is touched.
  */
 export function trackEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
-  // GA4
-  trackGA4Event(eventName, params)
-  
-  // Log in development
+  if (isLiveTrackingEnabled()) {
+    trackGA4Event(eventName, params)
+  }
+
+  // Log in development (no live network call).
   if (process.env.NODE_ENV === 'development') {
     console.log('[Analytics]', eventName, params)
   }

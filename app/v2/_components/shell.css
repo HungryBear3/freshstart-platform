@@ -1,0 +1,272 @@
+/* V2 prose shell — used by informational + auth-wrapper pages.
+   Imports the v2 tokens from styles.css (loaded first) and adds the
+   article/prose surface. */
+
+.fs-doc {
+  padding: 64px 24px 96px;
+  color: var(--fs-text);
+  min-height: calc(100vh - 240px);
+}
+.fs-doc-inner {
+  max-width: 880px;
+  margin: 0 auto;
+}
+.fs-doc-article {
+  background: var(--fs-card);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-lg);
+  padding: 48px 40px;
+  box-shadow: var(--fs-shadow-card);
+}
+.fs-doc-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fs-purple);
+  background: var(--fs-grad-soft);
+  border: 1px solid var(--fs-border-hi);
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-bottom: 14px;
+}
+.fs-doc-title {
+  font-family: var(--fs-font);
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0 0 16px;
+}
+.fs-doc-lede {
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--fs-text-mid);
+  margin: 0 0 8px;
+}
+.fs-doc-meta {
+  font-size: 12px;
+  color: var(--fs-text-dim);
+  margin-top: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-doc-body {
+  padding-top: 24px;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--fs-text-mid);
+}
+.fs-doc-body h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin: 36px 0 14px;
+  letter-spacing: -0.005em;
+}
+.fs-doc-body h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  margin: 28px 0 10px;
+}
+.fs-doc-body p { margin: 0 0 14px; }
+.fs-doc-body ul,
+.fs-doc-body ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+.fs-doc-body li { margin: 6px 0; }
+.fs-doc-body a {
+  color: var(--fs-blue);
+  text-decoration: underline;
+  text-decoration-color: rgba(96, 165, 250, 0.38);
+  text-underline-offset: 3px;
+  transition: color 120ms, text-decoration-color 120ms;
+}
+.fs-doc-body a:hover {
+  color: #93c5fd;
+  text-decoration-color: rgba(147, 197, 253, 0.7);
+}
+.fs-doc-body strong { color: #fff; font-weight: 600; }
+.fs-doc-body hr {
+  border: none;
+  border-top: 1px solid var(--fs-border);
+  margin: 28px 0;
+}
+.fs-doc-body blockquote {
+  border-left: 3px solid var(--fs-purple);
+  margin: 20px 0;
+  padding: 4px 16px;
+  background: var(--fs-grad-soft);
+  border-radius: 0 8px 8px 0;
+  color: var(--fs-text);
+}
+
+.fs-doc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 20px 0 8px;
+}
+.fs-doc-card {
+  display: block;
+  padding: 20px;
+  background: var(--fs-card-hi);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius);
+  color: var(--fs-text);
+  transition: border-color 140ms, transform 140ms;
+}
+.fs-doc-card:hover {
+  border-color: var(--fs-border-hi);
+  transform: translateY(-1px);
+}
+.fs-doc-card-title {
+  font-weight: 600;
+  font-size: 15.5px;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.fs-doc-card-body {
+  font-size: 13.5px;
+  color: var(--fs-text-mid);
+  margin: 0;
+}
+
+.fs-doc-disclaimer {
+  margin-top: 32px;
+  padding: 16px 18px;
+  background: var(--fs-grad-soft);
+  border: 1px solid var(--fs-border-hi);
+  border-radius: var(--fs-radius);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fs-text-mid);
+}
+.fs-doc-disclaimer strong { color: #fff; }
+
+.fs-doc-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+
+/* Auth shell — narrower, single-card, no large article padding. */
+.fs-auth {
+  padding: 56px 24px 96px;
+  min-height: calc(100vh - 240px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fs-auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--fs-card);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-lg);
+  padding: 32px 28px;
+  box-shadow: var(--fs-shadow-card);
+}
+.fs-auth-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+  text-align: center;
+}
+.fs-auth-sub {
+  font-size: 13.5px;
+  color: var(--fs-text-mid);
+  text-align: center;
+  margin: 0 0 20px;
+}
+.fs-auth-sub a {
+  color: var(--fs-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fs-auth-slot { /* Where the existing auth form mounts. */ }
+
+/* Auth forms — used by /auth/signin and /auth/signup inside the V2 shell. */
+.fs-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 8px 0 0;
+}
+.fs-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fs-auth-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fs-text-mid);
+}
+.fs-auth-label-aux {
+  color: var(--fs-text-dim);
+  font-weight: 400;
+}
+.fs-auth-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--fs-card-hi);
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius-sm, 10px);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 140ms, box-shadow 140ms, background 140ms;
+}
+.fs-auth-input::placeholder { color: var(--fs-text-dim); }
+.fs-auth-input:focus {
+  border-color: var(--fs-border-hi);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.22);
+  background: rgba(28, 36, 82, 0.85);
+}
+.fs-auth-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(251, 113, 133, 0.10);
+  border: 1px solid rgba(251, 113, 133, 0.35);
+  color: #fecdd3;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.fs-auth-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+.fs-auth-alt {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--fs-text-mid);
+  text-align: center;
+}
+.fs-auth-alt a,
+.fs-auth-link {
+  color: var(--fs-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fs-auth-alt a:hover,
+.fs-auth-link:hover { color: #93c5fd; }
+.fs-auth-row-aux {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12.5px;
+}
+
+@media (max-width: 640px) {
+  .fs-doc { padding: 40px 16px 64px; }
+  .fs-doc-article { padding: 28px 22px; }
+  .fs-auth { padding: 40px 16px 64px; }
+  .fs-auth-card { padding: 24px 20px; }
+}

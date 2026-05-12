@@ -29,17 +29,16 @@ describe("root `/` renders the v2 redesigned homepage", () => {
     expect(html).toContain("without starting with hourly attorney fees.");
   });
 
-  it("renders the locked hero CTA `Start my free 7-day trial`", () => {
-    expect(html).toContain("Start my free 7-day trial");
+  it("renders the locked primary CTA `Start my filing` (with free-trial as microcopy)", () => {
+    // Primary v2 button copy is "Start my filing" everywhere; the
+    // 7-day free trial language survives in the priceline microcopy.
+    expect(html).toContain("Start my filing");
+    expect(html).toContain("7-day free trial");
   });
 
-  it("renders the v2 header CTA `Start Free Trial` (not `Free Checklist`)", () => {
-    // Header CTA button text — must be the trial CTA.
-    expect(html).toContain("Start Free Trial");
-    // Must NOT include the legacy "Free Checklist" CTA in the header on
-    // this path. (Allow it elsewhere in the bundle if a non-mounted
-    // module string is matched — we only care about rendered output.)
-    // The page-rendered HTML for root has no "Free Checklist" anywhere.
+  it("renders the v2 header CTA `Start my filing` (not `Free Checklist`)", () => {
+    // Header CTA button text — must be the unified primary CTA.
+    expect(html).toContain("Start my filing");
     expect(html).not.toMatch(/Free Checklist/);
   });
 
@@ -81,8 +80,8 @@ describe("root `/pricing` renders the v2 redesigned pricing page", () => {
     expect(html).toContain("Start my filing");
   });
 
-  it("uses `Start Free Trial` as the header CTA (no Free Checklist)", () => {
-    expect(html).toContain("Start Free Trial");
+  it("uses `Start my filing` as the header CTA (no Free Checklist)", () => {
+    expect(html).toContain("Start my filing");
     expect(html).not.toMatch(/Free Checklist/);
   });
 

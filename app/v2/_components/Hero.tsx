@@ -4,7 +4,9 @@ import * as React from "react";
 import { analytics } from "./analytics";
 import { beginSignupFirstCheckout } from "./checkout-intent";
 
-const HERO_CTA_LABEL = "Start my free 7-day trial";
+// Primary CTA copy is "Start my filing" across the v2 surface. The
+// 7-day free-trial language lives in the priceline microcopy below.
+const HERO_CTA_LABEL = "Start my filing";
 
 export function HomepageHero() {
   const onPrimary = () => {

@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate"
 
 interface GoogleAnalyticsProps {
   measurementId?: string
@@ -67,6 +68,7 @@ export function trackGoogleAdsConversion(
   conversionLabel: string,
   value?: number
 ): void {
+  if (!isLiveTrackingEnabled()) return
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', 'conversion', {
       send_to: `${conversionId}/${conversionLabel}`,

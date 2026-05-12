@@ -1171,13 +1171,18 @@
 @media (max-width: 768px) {
   .fs-pr-addons { padding: 16px 20px 56px; }
 }
+/* À la carte launch lineup is two add-ons (parenting plan, refile assist).
+   Use auto-fit so the row stays balanced even if a third is introduced —
+   never leaves a visible empty slot in the current 2-card config. */
 .fs-pr-addon-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
+  max-width: 880px;
+  margin: 0 auto;
 }
-@media (max-width: 900px) {
-  .fs-pr-addon-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 640px) {
+  .fs-pr-addon-grid { grid-template-columns: 1fr; gap: 10px; }
 }
 .fs-pr-addon {
   background: var(--fs-card);
@@ -1372,3 +1377,91 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   P1/P2 preview polish — appended 2026-05-12.
+   Sticky-header scroll-margin, mobile pricing typography, mobile drawer.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* 1) Sticky header is ~64–72px tall (varies by viewport). Anchor jumps
+      and `scroll-into-view` calls must clear it so the section heading
+      isn't hidden under the blurred top bar. Scope to the v2 page so
+      legacy /legal-info/* MainLayout isn't affected. */
+.fs-page :where(section, article, h1, h2, h3, .fs-section-head, .fs-pr-tier,
+  .fs-pr-addon, .fs-doc-article) {
+  scroll-margin-top: 88px;
+}
+.fs-page :where([id]) { scroll-margin-top: 88px; }
+@media (max-width: 768px) {
+  .fs-page :where(section, article, h1, h2, h3, .fs-section-head, .fs-pr-tier,
+    .fs-pr-addon, .fs-doc-article) { scroll-margin-top: 72px; }
+  .fs-page :where([id]) { scroll-margin-top: 72px; }
+}
+
+/* 2) Mobile pricing — the $149 / $299 tier amounts are 56px on desktop
+      and visibly clip against narrow viewports + the sticky CTA above
+      the safe-area. Step down progressively and add ample bottom margin
+      so the sticky strip never overlaps the price card content. */
+@media (max-width: 768px) {
+  .fs-pr-tier-amt { font-size: 44px; }
+  .fs-pr-tier-currency { font-size: 18px; top: -16px; }
+  .fs-pr-tiers { padding-bottom: 96px; } /* leave clearance for the sticky CTA */
+}
+@media (max-width: 480px) {
+  .fs-pr-tier-amt { font-size: 36px; letter-spacing: -0.03em; }
+  .fs-pr-tier-currency { font-size: 15px; top: -12px; }
+  .fs-pr-tier-period { font-size: 13px; }
+  .fs-pr-tier { padding: 22px 18px; } /* breathing room around the big number */
+}
+@media (max-width: 390px) {
+  .fs-pr-tier-amt { font-size: 32px; }
+  /* The sticky CTA stacks price + button vertically at very narrow widths
+     so the price line and the button both fit cleanly. */
+  .fs-pr-sticky {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  }
+  .fs-pr-sticky-btn { width: 100%; }
+}
+
+/* 3) Mobile header — the burger now toggles a real drawer of nav links.
+      Desktop layout is untouched. */
+.fs-hd-mobile {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  background: rgba(11, 16, 32, 0.96);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid var(--fs-border);
+}
+.fs-hd-mobile a {
+  padding: 14px 20px;
+  color: var(--fs-text);
+  font-size: 15px;
+  border-top: 1px solid var(--fs-border);
+}
+.fs-hd-mobile a:hover,
+.fs-hd-mobile a:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+}
+.fs-hd[data-menu-open="true"] .fs-hd-mobile { display: flex; }
+@media (min-width: 769px) {
+  .fs-hd-mobile { display: none !important; }
+}
+
+/* 4) Defensive guard against header overflow at very narrow widths. The
+      Logo wordmark + CTA + burger should always fit. Shrink the CTA's
+      horizontal padding on the smallest phones rather than letting the
+      header wrap or scroll horizontally. */
+@media (max-width: 390px) {
+  .fs-hd-inner { gap: 8px; padding: 10px 14px; }
+  .fs-hd-cta { padding: 0 10px; font-size: 12.5px; }
+  .fs-logo-wm { font-size: 16px; }
+}
+
+/* 5) Avoid horizontal overflow on the v2 page surface — useful belt-
+      and-suspenders against any flex child trying to escape. */
+.fs-page { overflow-x: hidden; }

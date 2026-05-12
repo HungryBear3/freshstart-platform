@@ -42,9 +42,12 @@ describe("v2 homepage hero", () => {
     expect(html).toContain("without starting with hourly attorney fees.");
   });
 
-  it("renders the locked free-trial CTA and a 'See how it works' secondary CTA", () => {
+  it("renders the locked primary CTA `Start my filing` and a 'See how it works' secondary CTA", () => {
     const html = ssr(<HomepageHero />);
-    expect(html).toContain("Start my free 7-day trial");
+    // Primary v2 CTA copy is now "Start my filing"; free-trial language
+    // lives in the supporting priceline microcopy below.
+    expect(html).toContain("Start my filing");
+    expect(html).toContain("7-day free trial");
     expect(html).toContain("See how it works");
   });
 
@@ -162,9 +165,10 @@ describe("v2 FAQ accordion", () => {
 
 describe("v2 header cross-page nav", () => {
   it("renders nav links to /v2/pricing and marks the active state on the pricing page", () => {
-    const home = ssr(<Header page="homepage" ctaLabel="Start Free Trial" />);
+    // Primary v2 CTA copy is now "Start my filing" on both pages.
+    const home = ssr(<Header page="homepage" ctaLabel="Start my filing" />);
     expect(home).toMatch(/href="\/v2\/pricing"/);
-    expect(home).toContain("Start Free Trial");
+    expect(home).toContain("Start my filing");
     expect(home).not.toMatch(/fs-nav-active[^"]*"[^>]*>Pricing/);
 
     const pricing = ssr(<Header page="pricing" ctaLabel="Start my filing" />);
@@ -173,7 +177,7 @@ describe("v2 header cross-page nav", () => {
   });
 
   it("links the approved document/sunrise logo back to /v2 from both pages", () => {
-    const home = ssr(<Header page="homepage" ctaLabel="Start Free Trial" />);
+    const home = ssr(<Header page="homepage" ctaLabel="Start my filing" />);
     const pricing = ssr(<Header page="pricing" ctaLabel="Start my filing" />);
     expect(home).toMatch(/href="\/v2"/);
     expect(pricing).toMatch(/href="\/v2"/);

@@ -28,26 +28,26 @@ export function Footer({ idSuffix }: { idSuffix: string }) {
           </div>
           <div className="fs-ft-col">
             <div className="fs-ft-h">Legal info</div>
-            <Link href="/v2#legal-info">Grounds for divorce</Link>
-            <Link href="/v2#legal-info">Property division</Link>
-            <Link href="/v2#legal-info">Child custody</Link>
-            <Link href="/v2#legal-info">Support calculations</Link>
+            <Link href="/grounds-for-divorce">Grounds for divorce</Link>
+            <Link href="/property-division">Property division</Link>
+            <Link href="/child-custody">Child custody</Link>
+            <Link href="/support-calculations">Support calculations</Link>
           </div>
           <div className="fs-ft-col">
             <div className="fs-ft-h">Company</div>
-            <Link href="/v2#about">About</Link>
-            <Link href="/v2#faq">FAQ</Link>
-            <Link href="/v2#contact">Contact</Link>
-            <a href="tel:+13125550142">(312) 555-0142</a>
+            <Link href="/about">About</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/legal">All legal topics</Link>
           </div>
         </div>
 
         <div className="fs-ft-bot">
           <div>© 2026 FreshStart-IL · Not a law firm. Not legal advice.</div>
           <div className="fs-ft-bot-r">
-            <Link href="/v2#privacy">Privacy</Link>
-            <Link href="/v2#terms">Terms</Link>
-            <Link href="/v2#disclaimer">Disclaimer</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/disclaimer">Disclaimer</Link>
           </div>
         </div>
       </div>

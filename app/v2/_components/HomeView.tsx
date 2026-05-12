@@ -44,7 +44,7 @@ export function HomeView() {
     <div className="fs-page" data-variant="price-forward">
       <OrganizationAndWebsiteJsonLd />
       <PageView page="homepage" variant="price-forward" />
-      <Header page="homepage" ctaLabel="Start Free Trial" />
+      <Header page="homepage" ctaLabel="Start my filing" />
       <main role="main">
         <HomepageHero />
         <CostBand page="homepage" eyebrow="The math is the message" />

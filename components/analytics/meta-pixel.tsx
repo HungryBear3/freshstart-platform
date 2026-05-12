@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate"
 
 interface MetaPixelProps {
   pixelId: string
@@ -67,6 +68,7 @@ export function trackMetaEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
+  if (!isLiveTrackingEnabled()) return
   if (typeof window !== 'undefined' && (window as any).fbq) {
     (window as any).fbq('track', eventName, params)
   }
@@ -82,6 +84,7 @@ export function trackMetaCustomEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
+  if (!isLiveTrackingEnabled()) return
   if (typeof window !== 'undefined' && (window as any).fbq) {
     (window as any).fbq('trackCustom', eventName, params)
   }
