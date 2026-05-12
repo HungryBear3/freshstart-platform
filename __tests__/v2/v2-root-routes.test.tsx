@@ -107,6 +107,32 @@ describe("root `/pricing` renders the v2 redesigned pricing page", () => {
   });
 });
 
+describe("root metadata is production-canonical and share-copy aligned", () => {
+  function read(rel: string) {
+    return readFileSync(join(process.cwd(), rel), "utf8");
+  }
+
+  const layout = read("app/layout.tsx");
+
+  it("defaults metadataBase/canonical to the production domain, not Vercel preview or auth URLs", () => {
+    expect(layout).toMatch(/NEXT_PUBLIC_SITE_URL\s*\|\|\s*"https:\/\/freshstart-il\.com"/);
+    expect(layout).toMatch(/metadataBase:\s*new URL\(siteUrl\)/);
+    expect(layout).toMatch(/canonical:\s*"\/"/);
+    expect(layout).not.toMatch(/metadataBase:[\s\S]*NEXTAUTH_URL/);
+    expect(layout).not.toMatch(/metadataBase:[\s\S]*VERCEL_URL/);
+  });
+
+  it("uses the homepage hook as the default document, OpenGraph, and Twitter title", () => {
+    expect(layout).toMatch(
+      /homepageTitle\s*=\s*"FreshStart-IL — Your Illinois divorce, filed right, from \$149"/,
+    );
+    expect(layout).toMatch(/default:\s*homepageTitle/);
+    expect(layout).toMatch(/openGraph:[\s\S]*title:\s*homepageTitle/);
+    expect(layout).toMatch(/twitter:[\s\S]*title:\s*homepageTitle/);
+    expect(layout).not.toMatch(/FreshStart IL - Divorce Guidance Platform/);
+  });
+});
+
 describe("redesigned root path has no VisitorCounter or legacy MainLayout import", () => {
   function read(rel: string) {
     return readFileSync(join(process.cwd(), rel), "utf8");

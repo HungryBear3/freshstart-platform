@@ -15,11 +15,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.freshstart-il.com"
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://freshstart-il.com"
+const homepageTitle = "FreshStart-IL — Your Illinois divorce, filed right, from $149"
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "FreshStart IL - Divorce Guidance Platform",
+    default: homepageTitle,
     template: "%s | FreshStart IL",
   },
   description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
@@ -28,18 +30,19 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: baseUrl,
+    url: "/",
     siteName: "FreshStart IL",
-    title: "FreshStart IL - Divorce Guidance Platform",
+    title: homepageTitle,
     description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FreshStart IL - Divorce Guidance Platform",
+    title: homepageTitle,
     description: "Simplify your Illinois divorce process with FreshStart's helpful tools and guidance.",
   },
   alternates: {
-    types: { "application/rss+xml": `${baseUrl}/rss.xml` },
+    canonical: "/",
+    types: { "application/rss+xml": "/rss.xml" },
   },
   robots: { index: true, follow: true },
   icons: {

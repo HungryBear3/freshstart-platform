@@ -21,9 +21,9 @@ export function Footer({ idSuffix }: { idSuffix: string }) {
           </div>
           <div className="fs-ft-col">
             <div className="fs-ft-h">Product</div>
-            <Link href="/v2#how-it-works">How it works</Link>
-            <Link href="/v2/pricing">Pricing</Link>
-            <Link href="/v2#capture">Free checklist</Link>
+            <Link href="/#how-it-works">How it works</Link>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/#capture">Free checklist</Link>
             <Link href="/auth/signin">Sign In</Link>
           </div>
           <div className="fs-ft-col">

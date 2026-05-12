@@ -163,9 +163,15 @@ describe("v2 Header/Footer point at the real continuity routes", () => {
     for (const href of expected) {
       expect(footer).toMatch(new RegExp(`href="${href}"`));
     }
-    // The anchors that used to dead-end on /v2 must be gone. (`/v2#how-it-works`
-    // and `/v2#capture` are still legit deep links into actual homepage sections.)
+    expect(footer).toContain('href="/#how-it-works"');
+    expect(footer).toContain('href="/pricing"');
+    expect(footer).toContain('href="/#capture"');
+
+    // The anchors that used to expose the internal /v2 namespace must be gone.
     const forbiddenAnchors = [
+      "/v2#how-it-works",
+      "/v2/pricing",
+      "/v2#capture",
       "/v2#legal-info",
       "/v2#faq",
       "/v2#about",
