@@ -1,4 +1,4 @@
-export type CheckoutPlan = "annual" | "one_time";
+export type CheckoutPlan = "annual" | "one_time" | "parenting_plan" | "refile_assistance";
 
 export interface CheckoutIntent {
   plan: CheckoutPlan;
@@ -31,9 +31,13 @@ export function beginSignupFirstCheckout(intent: CheckoutIntent) {
   window.location.href = buildSignupFirstCheckoutUrl(intent);
 }
 
+export function isCheckoutPlan(plan?: string | null): plan is CheckoutPlan {
+  return plan === "annual" || plan === "one_time" || plan === "parenting_plan" || plan === "refile_assistance";
+}
+
 export function markCheckoutResumeFromSearch(plan?: string | null, source?: string | null) {
   if (typeof window === "undefined") return;
-  const safePlan: CheckoutPlan = plan === "one_time" ? "one_time" : "annual";
+  const safePlan: CheckoutPlan = isCheckoutPlan(plan) ? plan : "annual";
   window.sessionStorage.setItem(PLAN_KEY, safePlan);
   window.sessionStorage.setItem(SOURCE_KEY, source || "auth_resume");
   window.sessionStorage.setItem(AUTO_KEY, "true");
@@ -48,7 +52,7 @@ export function getPendingCheckoutIntent(): CheckoutIntent | null {
 
   const storedPlan = window.sessionStorage.getItem(PLAN_KEY) ||
     window.sessionStorage.getItem("subscribe_plan");
-  const plan: CheckoutPlan = storedPlan === "one_time" ? "one_time" : "annual";
+  const plan: CheckoutPlan = isCheckoutPlan(storedPlan) ? storedPlan : "annual";
   return {
     plan,
     source: window.sessionStorage.getItem(SOURCE_KEY) || "pricing_resume",

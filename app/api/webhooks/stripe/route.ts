@@ -80,6 +80,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
+  // Add-on purchases are one-time payments, but they should not overwrite the
+  // user's core subscription/access window. Fulfillment is handled operationally
+  // from Stripe metadata until a dedicated add-on persistence table exists.
+  if (session.mode === "payment" && session.metadata?.kind === "addon") {
+    console.log("[Webhook] Add-on payment completed", {
+      userId,
+      addon: session.metadata?.addon,
+      sessionId: session.id,
+    })
+    return
+  }
+
   // One-time Essential payment: grant 60 days of access directly, matching v2 marketing copy.
   if (session.mode === "payment") {
     const { prisma } = await import("@/lib/db")

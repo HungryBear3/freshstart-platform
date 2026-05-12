@@ -2,16 +2,24 @@
 
 import * as React from "react";
 import { analytics } from "./analytics";
-import { STUB_ENDPOINTS } from "./tiers";
+import { beginSignupFirstCheckout, type CheckoutPlan } from "./checkout-intent";
 
-const items = [
+const items: Array<{
+  key: Extract<CheckoutPlan, "parenting_plan" | "refile_assistance">;
+  name: string;
+  price: string;
+  body: string;
+  ic: string;
+}> = [
   {
+    key: "parenting_plan",
     name: "Parenting plan worksheet",
     price: "$29",
     body: "Standalone worksheet for parenting-time terms and schedules. Included in Plus.",
     ic: "👨‍👩‍👧",
   },
   {
+    key: "refile_assistance",
     name: "Refile assistance",
     price: "$49",
     body: "If your county rejects for a filing/format issue, send us the note and we help correct the packet for resubmission.",
@@ -22,20 +30,10 @@ const items = [
 export function PricingAddons() {
   const [pending, setPending] = React.useState<string | null>(null);
 
-  const onAdd = async (name: string, price: string) => {
+  const onAdd = (key: Extract<CheckoutPlan, "parenting_plan" | "refile_assistance">, name: string, price: string) => {
     setPending(name);
     analytics.track({ name: "addon_add_click", page: "pricing", addon: name, price });
-    try {
-      await fetch(STUB_ENDPOINTS.addOn, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addon: name, price }),
-      });
-    } catch {
-      /* preview-only */
-    } finally {
-      setTimeout(() => setPending((cur) => (cur === name ? null : cur)), 800);
-    }
+    beginSignupFirstCheckout({ plan: key, source: `pricing_addon_${key}` });
   };
 
   return (
@@ -61,7 +59,7 @@ export function PricingAddons() {
                   type="button"
                   className="fs-pr-addon-add"
                   aria-label={`Add ${it.name} (${it.price})`}
-                  onClick={() => onAdd(it.name, it.price)}
+                  onClick={() => onAdd(it.key, it.name, it.price)}
                 >
                   {pending === it.name ? "Added ✓" : "Add →"}
                 </button>

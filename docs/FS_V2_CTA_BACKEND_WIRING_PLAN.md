@@ -20,7 +20,7 @@ What this pass actually wired (safe-and-tested only):
 | `start-filing` | **WIRED → signup-first checkout intent** | `PricingTiers.tsx`, `PricingMobileStickyCTA.tsx`, `checkout-intent.ts`, `PricingCheckoutResume.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `lead-capture` | **WIRED → `/api/checklist`** (real endpoint) | `app/v2/_components/ChecklistCapture.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 | `orientation-call` | **WIRED → public Calendly anchor** | `app/v2/_components/OrientationCall.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
-| `add-on` | **UI SCOPED / PAYMENT BLOCKED** — launch UI shows Parenting Plan Worksheet + Refile Assistance only; checkout still waits on Stripe price IDs + persistence | `app/v2/_components/PricingAddons.tsx` | `__tests__/v2/v2-real-endpoints.test.tsx` |
+| `add-on` | **TEST PREVIEW WIRED / LIVE HOLD** — launch UI shows Parenting Plan Worksheet + Refile Assistance only; checkout uses Stripe test prices in Preview/Development. Add live Production price IDs only after test checkout is verified. | `app/v2/_components/PricingAddons.tsx`, `app/api/stripe/create-checkout-session/route.ts`, `app/api/webhooks/stripe/route.ts` | `__tests__/v2/v2-real-endpoints.test.tsx` |
 
 Start-trial / start-filing are no longer stub-routed from v2 CTAs. They now
 store a checkout intent in `sessionStorage`, route unauthenticated users
@@ -71,15 +71,13 @@ detour.
    one-time Essential payment sessions. Regression coverage lives in
    `__tests__/v2/v2-real-endpoints.test.tsx`.
 
-7. **Add-ons (`/api/_stub/add-on`)**: product scope decided for launch:
-   Parenting Plan Worksheet ($29) and Refile Assistance ($49) remain in the
-   UI. Prenup Template and Mediation Referral are held for later to reduce
-   legal/ops surface area. Payment remains blocked until:
-   - real Stripe Products + `*_PRICE_ID` env vars exist, AND
-   - the existing `/api/stripe/create-checkout-session` route is extended
-     to accept add-on line items (currently single-price-ID).
-   Recommend keeping the stub until those decisions land — do not invent
-   placeholder price IDs.
+7. **Add-ons**: launch buttons no longer call the stub. Preview/Development
+   use test-mode Stripe prices for Parenting Plan Worksheet ($29) and Refile
+   Assistance ($49). The checkout route accepts the add-on plan keys, and the
+   webhook deliberately does not convert add-on payments into core subscription/
+   access grants; add-on fulfillment stays operational/manual until a dedicated
+   persistence model exists. Production/live price IDs remain on hold until test
+   checkout is verified.
 
 ### Open questions for Alexy (signup-first specifically)
 
@@ -116,7 +114,7 @@ All five stubs in `app/api/_stub/*` exist and return `{ ok: true, mock: true, ..
 | `POST /api/_stub/start-filing` | Real handler exists | `POST /api/stripe/create-checkout-session` with `{ plan: "one_time" }` for Essential, `{ plan: "annual" }` for Plus — `app/api/stripe/create-checkout-session/route.ts:23-26` |
 | `POST /api/_stub/lead-capture` | Real handler exists | `POST /api/checklist` — already persists subscriber + enrolls in `fs-checklist` drip + sends checklist email — `app/api/checklist/route.ts:41-82` |
 | `POST /api/_stub/orientation-call` | None — needs new route | Recommend an external Calendly link (no server route) OR a new `POST /api/orientation/book` lead capture. Current legacy banner uses a hard-coded Calendly link at `components/home/IntroCallBanner.tsx:30` |
-| `POST /api/_stub/add-on` | None — needs new route | New `POST /api/stripe/create-checkout-session-addon` OR generalize existing checkout route to accept arbitrary price IDs. No add-on price IDs exist in the codebase today |
+| `POST /api/_stub/add-on` | Replaced for v2 launch add-ons | v2 launch buttons use `POST /api/stripe/create-checkout-session` with `{ plan: "parenting_plan" }` or `{ plan: "refile_assistance" }`; Preview/Development envs have test-mode `PARENTING_PLAN_PRICE_ID` and `REFILE_PRICE_ID` |
 
 ---
 

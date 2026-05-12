@@ -168,9 +168,16 @@ describe("v2 launch add-ons", () => {
     expect(html).not.toContain("Mediation referral");
   });
 
-  it("keeps add-on purchase clicks on the existing stub until price IDs are approved", () => {
+  it("routes add-on purchase clicks through signup-first checkout once test price IDs exist", () => {
     const src = readSource("app/v2/_components/PricingAddons.tsx");
-    expect(src).toMatch(/STUB_ENDPOINTS\.addOn/);
-    expect(src).not.toMatch(/create-checkout-session/);
+    const checkoutRoute = readSource("app/api/stripe/create-checkout-session/route.ts");
+    const webhookRoute = readSource("app/api/webhooks/stripe/route.ts");
+    expect(src).toMatch(/beginSignupFirstCheckout/);
+    expect(src).toMatch(/parenting_plan/);
+    expect(src).toMatch(/refile_assistance/);
+    expect(src).not.toMatch(/STUB_ENDPOINTS\.addOn/);
+    expect(checkoutRoute).toMatch(/PARENTING_PLAN_PRICE_ID/);
+    expect(checkoutRoute).toMatch(/REFILE_PRICE_ID/);
+    expect(webhookRoute).toMatch(/kind === "addon"/);
   });
 });

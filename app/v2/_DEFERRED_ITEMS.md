@@ -35,9 +35,11 @@ Still required before external prospects/production:
 
 ## Real backend wiring
 
-Most v2 CTAs have been wired off preview stubs. Remaining add-on purchase
-clicks intentionally stay on `/api/_stub/add-on` until Stripe add-on Price IDs
-and webhook persistence are approved.
+Most v2 CTAs have been wired off preview stubs. Add-on purchase clicks now route
+through the authenticated Stripe checkout path for the two launch add-ons using
+`PARENTING_PLAN_PRICE_ID` and `REFILE_PRICE_ID`. Preview/Development currently
+use test-mode Stripe prices; Production price IDs should only be added after the
+test flow is verified. Remaining preview-only endpoints:
 
 | Stub | Current state |
 |---|---|
