@@ -56,6 +56,12 @@ describe("v2 homepage hero", () => {
     expect(html).toContain("30-day money-back guarantee");
     expect(html).toContain("256-bit encrypted");
   });
+
+  it("does not advertise held prenup support in the launch feature pills", () => {
+    const source = require("node:fs").readFileSync(require("node:path").join(process.cwd(), "app/v2/_components/FeaturePills.tsx"), "utf8");
+    expect(source).toContain("Refile Help");
+    expect(source).not.toMatch(/Prenup Support|UPAA framework/);
+  });
 });
 
 describe("v2 pricing hero", () => {

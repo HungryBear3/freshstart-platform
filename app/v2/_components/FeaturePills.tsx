@@ -12,9 +12,9 @@ const items = [
     body: "Auto-filled from Illinois court templates and county filing information. Edit and regenerate anytime.",
   },
   {
-    ic: "♥",
-    title: "Prenup Support",
-    body: "Optional prenup builder using the Illinois UPAA framework.",
+    ic: "↻",
+    title: "Refile Help",
+    body: "If a county rejects for a filing or format issue, optional refile assistance helps correct the packet for resubmission.",
   },
   {
     ic: "⏱",
