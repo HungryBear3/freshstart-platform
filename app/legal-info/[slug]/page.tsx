@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Disclaimer } from "@/components/legal/disclaimer"
 import { prisma } from "@/lib/db"
 import { format } from "date-fns"
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${content.title} | FreshStart IL`,
       description: description,
+    images: [DEFAULT_OG_IMAGE],
     },
   }
 }

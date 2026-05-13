@@ -3,6 +3,7 @@ import Link from "next/link"
 import { MainLayout } from "@/components/layouts/main-layout"
 import { ChecklistForm } from "@/components/lead-magnet/checklist-form"
 import { CheckCircle2, FileText, Clock, DollarSign, AlertTriangle, Laptop } from "lucide-react"
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Free Illinois Divorce Checklist | FreshStart IL",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     description:
       "Everything you need to file for divorce in Illinois — in one page. Required forms, county fees, deadlines, and what courts reject most often.",
     url: "https://www.freshstart-il.com/checklist",
+    images: [DEFAULT_OG_IMAGE],
   },
 }
 

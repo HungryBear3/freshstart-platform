@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Logo } from "@/components/navigation/Logo"
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata"
 import {
   ClipboardList,
   Rocket,
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
     title: "FreshStart IL — Illinois Divorce Guidance",
     description:
       "Illinois-specific divorce guidance. Free checklist, calculators, and auto-generated court forms.",
+    images: [DEFAULT_OG_IMAGE],
   },
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Parenting time & responsibilities (Illinois) | FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Illinois replaced 'custody' with parenting time and decision-making responsibilities. How the parenting plan works and what's required.",
     url: "/child-custody",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Parenting time & responsibilities in Illinois",
     description:
       "Parenting time, decision-making responsibilities, and the parenting plan — Illinois specifics.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

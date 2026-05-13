@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Grounds for divorce in Illinois | FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. How 'separate and apart' and the 6-month period work.",
     url: "/grounds-for-divorce",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Grounds for divorce in Illinois",
     description:
       "Irreconcilable differences, 'separate and apart,' and the 6-month period — explained.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

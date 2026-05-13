@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Contact — FreshStart-IL",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     title: "Contact | FreshStart-IL",
     description:
       "Email support@freshstart-il.com for questions, refund requests, or platform issues.",
+    images: [DEFAULT_OG_IMAGE],
   },
 };
 

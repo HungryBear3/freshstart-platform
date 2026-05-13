@@ -5,6 +5,7 @@
 // handlers per v2 preview rules.
 import type { Metadata } from "next";
 import { PricingView } from "../v2/_components/PricingView";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Pricing — FreshStart-IL · From $149 for an Illinois divorce filing",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pricing | FreshStart-IL",
     description: "Affordable Illinois divorce document preparation with a 7-day free trial.",
+    images: [DEFAULT_OG_IMAGE],
   },
 };
 

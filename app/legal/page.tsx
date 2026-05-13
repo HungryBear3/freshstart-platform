@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Legal Info — Illinois Divorce | FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Plain-English overviews of Illinois divorce: grounds, property division, parenting time, and support calculations. Not legal advice.",
     url: "/legal",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Illinois divorce — how it actually works",
     description:
       "Plain-English overviews of grounds, property division, parenting time, and support calculations.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

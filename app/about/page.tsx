@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "About — FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Why we built FreshStart-IL: Illinois-specific divorce form drafts and step-by-step filing guidance, built for residents — not a 50-state template.",
     url: "/about",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "About FreshStart-IL",
     description:
       "Why we built FreshStart-IL: Illinois-specific divorce form drafts and step-by-step filing guidance.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

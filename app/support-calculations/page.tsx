@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Child support & maintenance calculations (Illinois) | FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "How Illinois calculates child support (750 ILCS 5/505, income-shares) and spousal maintenance (750 ILCS 5/504, statutory formula).",
     url: "/support-calculations",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Child support & maintenance calculations (Illinois)",
     description:
       "Income-shares child support (750 ILCS 5/505) and statutory maintenance (750 ILCS 5/504) — Illinois specifics.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

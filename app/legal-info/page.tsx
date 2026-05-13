@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import { MainLayout } from "@/components/layouts/main-layout"
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata"
 
 export const metadata: Metadata = {
   title: "Legal Information & Resources",
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Legal Information | FreshStart IL",
     description: "Illinois divorce process, requirements, and court resources.",
+    images: [DEFAULT_OG_IMAGE],
   },
 }
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

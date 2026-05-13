@@ -9,6 +9,7 @@ import Link from "next/link"
 import { Calculator, DollarSign, Clock, TrendingDown, ArrowRight } from "lucide-react"
 
 import type { Metadata } from "next"
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Divorce Calculators",
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Divorce Calculators | FreshStart IL",
     description: "Free Illinois divorce calculators - child support, spousal maintenance, timeline, and cost estimates.",
+    images: [DEFAULT_OG_IMAGE],
   },
 }
 

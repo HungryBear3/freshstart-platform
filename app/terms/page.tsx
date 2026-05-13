@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Terms of Service — FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Plain-English summary of the FreshStart-IL Terms of Service — what we provide, what you pay, refunds, and disclaimers.",
     url: "/terms",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "FreshStart-IL Terms of Service",
     description:
       "Plain-English summary — what we provide, what you pay, refunds, and disclaimers.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

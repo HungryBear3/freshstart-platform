@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Disclaimer — FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "FreshStart-IL is software for Illinois divorce paperwork. It is not a law firm, not legal advice, and not legal representation.",
     url: "/disclaimer",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "FreshStart-IL Disclaimer",
     description:
       "FreshStart-IL is software for Illinois divorce paperwork — not a law firm.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

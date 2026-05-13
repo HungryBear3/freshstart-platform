@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "FAQ — FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "What FreshStart-IL is, what it costs, how refunds work, and how to handle an uncontested Illinois divorce without a law firm.",
     url: "/faq",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "FreshStart-IL FAQ",
     description:
       "Common questions about FreshStart-IL — pricing, refunds, support, and the Illinois divorce process.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 

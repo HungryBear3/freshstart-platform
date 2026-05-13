@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { V2PageShell } from "@/app/v2/_components/V2PageShell";
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Property division in an Illinois divorce | FreshStart-IL",
@@ -12,11 +13,13 @@ export const metadata: Metadata = {
     description:
       "Illinois uses equitable distribution — fair, not necessarily 50/50. How marital vs. non-marital property is sorted and what courts weigh.",
     url: "/property-division",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Property division in an Illinois divorce",
     description:
       "Equitable distribution: marital vs. non-marital property and the factors Illinois courts weigh.",
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 
