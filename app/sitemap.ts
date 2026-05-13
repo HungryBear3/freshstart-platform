@@ -1,62 +1,73 @@
 import type { MetadataRoute } from "next"
-import { prisma } from "@/lib/db"
-import { getAllPosts } from '@/lib/blog'
+import { getAllPosts } from "@/lib/blog"
 
-const baseUrl =
+// Canonical site URL. The production deploy is served from
+// https://freshstart-il.com — the apex domain — so the sitemap lives at
+// https://freshstart-il.com/sitemap.xml. Override via NEXT_PUBLIC_SITE_URL
+// for preview deploys when you want the sitemap pointing at the preview
+// host (rarely useful — most preview audits should still link at prod).
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.NEXTAUTH_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  "https://www.freshstart-il.com"
+  "https://freshstart-il.com"
+).replace(/\/$/, "")
 
 function url(path: string): string {
-  const base = baseUrl.replace(/\/$/, "")
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`
 }
 
+/**
+ * Public marketing + legal-information sitemap.
+ *
+ * Excluded by design:
+ *   - `/v2`, `/v2/pricing` — internal review aliases, NOT public surface.
+ *   - `/legal-info/*` — every public legal-info entry now permanent-301s
+ *     to `/legal` (see next.config.ts LEGAL_INFO_REDIRECTS); listing them
+ *     in the sitemap would tell crawlers we have indexable content there
+ *     when we don't.
+ *   - `/auth/*` — sign-in / sign-up surfaces, not marketing.
+ *   - `/dashboard/**`, `/api/**`, `/admin/**` — gated / internal; also
+ *     covered by robots.txt disallow rules.
+ *   - `/documents`, `/questionnaires/*` — auth-required.
+ *   - `/preview`, `/test-no-providers`, `/test-root` — dev-only routes.
+ */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: url("/"), lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
-    { url: url("/checklist"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.95 },
-    { url: url("/pricing"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
-    { url: url("/contact"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: url("/calculators"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
-    { url: url("/legal-info"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
-    { url: url("/start"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
-    { url: url("/auth/signin"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: url("/auth/signup"), lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    // v2 preview redesign — parallel route. Lower priority than the live
-    // /, /pricing pages until the v2 design is promoted to production.
-    { url: url("/v2"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
-    { url: url("/v2/pricing"), lastModified: new Date(), changeFrequency: "weekly", priority: 0.55 },
-  ]
+  const now = new Date()
 
-  let legalPages: MetadataRoute.Sitemap = []
-  try {
-    const articles = await prisma.legalContent.findMany({
-      where: { published: true },
-      select: { slug: true, updatedAt: true },
-    })
-    legalPages = articles.map((a) => ({
-      url: url(`/legal-info/${a.slug}`),
-      lastModified: a.updatedAt,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    }))
-  } catch {
-    // DB may not be available during build
-  }
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: url("/"), lastModified: now, changeFrequency: "weekly", priority: 1.0 },
+    { url: url("/pricing"), lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: url("/checklist"), lastModified: now, changeFrequency: "monthly", priority: 0.95 },
+    { url: url("/calculators"), lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: url("/legal"), lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: url("/faq"), lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: url("/about"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/grounds-for-divorce"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/child-custody"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/property-division"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/support-calculations"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/contact"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/blog"), lastModified: now, changeFrequency: "weekly", priority: 0.6 },
+    { url: url("/start"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: url("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
+    { url: url("/terms"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
+    { url: url("/disclaimer"), lastModified: now, changeFrequency: "yearly", priority: 0.4 },
+  ]
 
   let blogPages: MetadataRoute.Sitemap = []
   try {
     const blogPosts = getAllPosts()
-    blogPages = blogPosts.map(post => ({
+    blogPages = blogPosts.map((post) => ({
       url: url(`/blog/${post.slug}`),
       lastModified: new Date(post.date),
       changeFrequency: "monthly" as const,
-      priority: 0.7,
+      priority: 0.65,
     }))
   } catch {
-    // Handle getAllPosts failure silently
+    // /blog markdown source missing at build time — skip post entries
+    // rather than failing the whole sitemap.
   }
 
-  return [...staticPages, ...legalPages, ...blogPages]
+  return [...staticPages, ...blogPages]
 }

@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Illinois uses equitable distribution — fair, not necessarily 50/50. How marital vs. non-marital property is sorted and what courts weigh.",
   alternates: { canonical: "/property-division" },
+  openGraph: {
+    title: "Property division in an Illinois divorce",
+    description:
+      "Illinois uses equitable distribution — fair, not necessarily 50/50. How marital vs. non-marital property is sorted and what courts weigh.",
+    url: "/property-division",
+  },
+  twitter: {
+    title: "Property division in an Illinois divorce",
+    description:
+      "Equitable distribution: marital vs. non-marital property and the factors Illinois courts weigh.",
+  },
 };
 
 export default function PropertyDivisionPage() {

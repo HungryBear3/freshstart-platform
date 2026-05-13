@@ -18,6 +18,18 @@ const geistMono = Geist_Mono({
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://freshstart-il.com"
 const homepageTitle = "FreshStart-IL — Your Illinois divorce, filed right, from $149"
 
+// Site-wide default share image. The actual rendering lives at
+// app/opengraph-image.tsx (Next 14 file convention) — we re-state the URL
+// + dimensions here so per-page metadata.openGraph.images explicitly
+// inherits the default unless a page overrides it, and so twitter.images
+// picks up the same asset.
+const DEFAULT_OG_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "FreshStart-IL — Illinois divorce, filed right.",
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -34,11 +46,13 @@ export const metadata: Metadata = {
     siteName: "FreshStart IL",
     title: homepageTitle,
     description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: homepageTitle,
     description: "Simplify your Illinois divorce process with FreshStart's helpful tools and guidance.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
   alternates: {
     canonical: "/",

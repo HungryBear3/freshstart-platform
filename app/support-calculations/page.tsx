@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "How Illinois calculates child support (750 ILCS 5/505, income-shares) and spousal maintenance (750 ILCS 5/504, statutory formula).",
   alternates: { canonical: "/support-calculations" },
+  openGraph: {
+    title: "Child support & maintenance calculations (Illinois)",
+    description:
+      "How Illinois calculates child support (750 ILCS 5/505, income-shares) and spousal maintenance (750 ILCS 5/504, statutory formula).",
+    url: "/support-calculations",
+  },
+  twitter: {
+    title: "Child support & maintenance calculations (Illinois)",
+    description:
+      "Income-shares child support (750 ILCS 5/505) and statutory maintenance (750 ILCS 5/504) — Illinois specifics.",
+  },
 };
 
 export default function SupportCalculationsPage() {

@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Plain-English overviews of how Illinois divorce works — grounds, property division, child custody, and support calculations.",
   alternates: { canonical: "/legal" },
+  openGraph: {
+    title: "Illinois divorce — how it actually works | FreshStart-IL",
+    description:
+      "Plain-English overviews of Illinois divorce: grounds, property division, parenting time, and support calculations. Not legal advice.",
+    url: "/legal",
+  },
+  twitter: {
+    title: "Illinois divorce — how it actually works",
+    description:
+      "Plain-English overviews of grounds, property division, parenting time, and support calculations.",
+  },
 };
 
 const TOPICS: Array<{ href: string; title: string; body: string }> = [

@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "FreshStart-IL provides information and document preparation only. It is not a law firm, not legal advice, and not legal representation.",
   alternates: { canonical: "/disclaimer" },
+  openGraph: {
+    title: "FreshStart-IL Disclaimer",
+    description:
+      "FreshStart-IL is software for Illinois divorce paperwork. It is not a law firm, not legal advice, and not legal representation.",
+    url: "/disclaimer",
+  },
+  twitter: {
+    title: "FreshStart-IL Disclaimer",
+    description:
+      "FreshStart-IL is software for Illinois divorce paperwork — not a law firm.",
+  },
 };
 
 export default function DisclaimerPage() {

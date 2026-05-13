@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Who we are, why we built FreshStart-IL, and the principles that shape it. Illinois divorce form drafts and step-by-step filing guidance — without the attorney bill.",
   alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About FreshStart-IL",
+    description:
+      "Why we built FreshStart-IL: Illinois-specific divorce form drafts and step-by-step filing guidance, built for residents — not a 50-state template.",
+    url: "/about",
+  },
+  twitter: {
+    title: "About FreshStart-IL",
+    description:
+      "Why we built FreshStart-IL: Illinois-specific divorce form drafts and step-by-step filing guidance.",
+  },
 };
 
 const VALUES = [

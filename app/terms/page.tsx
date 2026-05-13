@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Plain-English summary of the FreshStart-IL Terms of Service. Full version at /legal-info/terms.",
   alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "FreshStart-IL Terms of Service",
+    description:
+      "Plain-English summary of the FreshStart-IL Terms of Service — what we provide, what you pay, refunds, and disclaimers.",
+    url: "/terms",
+  },
+  twitter: {
+    title: "FreshStart-IL Terms of Service",
+    description:
+      "Plain-English summary — what we provide, what you pay, refunds, and disclaimers.",
+  },
 };
 
 export default function TermsPage() {

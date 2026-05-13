@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Illinois replaced 'custody' with parenting time and decision-making responsibilities. How the parenting plan works and what's required.",
   alternates: { canonical: "/child-custody" },
+  openGraph: {
+    title: "Parenting time & responsibilities in Illinois",
+    description:
+      "Illinois replaced 'custody' with parenting time and decision-making responsibilities. How the parenting plan works and what's required.",
+    url: "/child-custody",
+  },
+  twitter: {
+    title: "Parenting time & responsibilities in Illinois",
+    description:
+      "Parenting time, decision-making responsibilities, and the parenting plan — Illinois specifics.",
+  },
 };
 
 export default function ChildCustodyPage() {

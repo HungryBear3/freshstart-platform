@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "What FreshStart-IL collects, how we use it, who we share it with, and the choices you have. Plain-English summary with a link to the full policy.",
   alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "FreshStart-IL Privacy",
+    description:
+      "What FreshStart-IL collects, how we use it, who we share it with, and the choices you have.",
+    url: "/privacy",
+  },
+  twitter: {
+    title: "FreshStart-IL Privacy",
+    description:
+      "What FreshStart-IL collects, how we use it, and the choices you have.",
+  },
 };
 
 export default function PrivacyPage() {

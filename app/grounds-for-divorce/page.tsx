@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. What 'separate and apart' means, and how the 6-month period works.",
   alternates: { canonical: "/grounds-for-divorce" },
+  openGraph: {
+    title: "Grounds for divorce in Illinois",
+    description:
+      "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. How 'separate and apart' and the 6-month period work.",
+    url: "/grounds-for-divorce",
+  },
+  twitter: {
+    title: "Grounds for divorce in Illinois",
+    description:
+      "Irreconcilable differences, 'separate and apart,' and the 6-month period — explained.",
+  },
 };
 
 export default function GroundsForDivorcePage() {

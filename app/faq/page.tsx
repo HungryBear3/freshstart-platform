@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   description:
     "Common questions about FreshStart-IL: what it is, what it costs, refunds, support, and where to read the full Illinois divorce information.",
   alternates: { canonical: "/faq" },
+  openGraph: {
+    title: "FreshStart-IL FAQ — Illinois divorce questions, answered",
+    description:
+      "What FreshStart-IL is, what it costs, how refunds work, and how to handle an uncontested Illinois divorce without a law firm.",
+    url: "/faq",
+  },
+  twitter: {
+    title: "FreshStart-IL FAQ",
+    description:
+      "Common questions about FreshStart-IL — pricing, refunds, support, and the Illinois divorce process.",
+  },
 };
 
 const FAQS: Array<{ q: string; a: React.ReactNode }> = [
