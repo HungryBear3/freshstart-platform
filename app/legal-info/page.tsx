@@ -179,25 +179,25 @@ export default function LegalInfoPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
-              href="/legal-info/grounds-for-divorce"
+              href="/grounds-for-divorce"
               className="text-blue-600 hover:text-blue-700 hover:underline"
             >
               → Grounds for Divorce in Illinois
             </Link>
             <Link
-              href="/legal-info/property-division"
+              href="/property-division"
               className="text-blue-600 hover:text-blue-700 hover:underline"
             >
               → Property Division Rules
             </Link>
             <Link
-              href="/legal-info/child-custody"
+              href="/child-custody"
               className="text-blue-600 hover:text-blue-700 hover:underline"
             >
               → Child Custody & Parenting Time
             </Link>
             <Link
-              href="/legal-info/spousal-maintenance"
+              href="/support-calculations"
               className="text-blue-600 hover:text-blue-700 hover:underline"
             >
               → Spousal Maintenance (Alimony)

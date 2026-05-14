@@ -82,8 +82,8 @@ export default function PropertyDivisionPage() {
       </p>
 
       <p>
-        <Link href="/legal-info/property-division">
-          Read the full write-up in the legal library →
+        <Link href="/legal">
+          Browse all legal topics →
         </Link>
       </p>
 

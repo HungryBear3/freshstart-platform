@@ -82,8 +82,8 @@ export default function GroundsForDivorcePage() {
       </ul>
 
       <p>
-        <Link href="/legal-info/grounds-for-divorce">
-          Read the full write-up in the legal library →
+        <Link href="/legal">
+          Browse all legal topics →
         </Link>
       </p>
 
