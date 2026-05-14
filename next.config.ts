@@ -27,6 +27,11 @@ const LEGACY_ROUTE_REDIRECTS = [
   { source: "/calculators/child-support", destination: "/support-calculations" },
   { source: "/calculators/maintenance", destination: "/support-calculations" },
   { source: "/auth/login", destination: "/auth/signin" },
+  // v2 was the pre-launch review alias; production lives at / and /pricing.
+  // Permanent 301 so any stale external link or cached crawl lands on the
+  // canonical surface instead of the now-internal /v2 paths.
+  { source: "/v2", destination: "/" },
+  { source: "/v2/pricing", destination: "/pricing" },
 ] as const;
 
 const nextConfig: NextConfig = {

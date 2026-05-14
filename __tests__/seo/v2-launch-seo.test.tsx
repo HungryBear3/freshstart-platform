@@ -146,6 +146,37 @@ describe("v2 SEO — next.config keeps the 8 /legal-info → /legal redirects", 
   });
 });
 
+// ── 2b. legacy /v2 marketing routes redirect to canonical production ─────────
+//
+// /v2 was the pre-launch review alias. Production lives at / and /pricing.
+// Permanent 301s on both so any stale external link or cached crawl resolves
+// to the canonical public surface instead of the now-internal /v2 paths.
+
+describe("v2 SEO — next.config keeps the /v2 → / and /v2/pricing → /pricing redirects", () => {
+  const src = readFileSync(
+    resolve(__dirname, "../../next.config.ts"),
+    "utf8",
+  );
+
+  const REQUIRED_V2_REDIRECTS = [
+    { source: "/v2", destination: "/" },
+    { source: "/v2/pricing", destination: "/pricing" },
+  ];
+
+  it.each(REQUIRED_V2_REDIRECTS)(
+    "declares $source → $destination",
+    ({ source, destination }) => {
+      // Same LEGACY_ROUTE_REDIRECTS shape used by the other legacy routes —
+      // `{ source: "...", destination: "..." }`. Match both quote styles
+      // so a linter swap stays accepted.
+      const pattern = new RegExp(
+        `source:\\s*["']${source.replace(/\//g, "\\/")}["']\\s*,\\s*destination:\\s*["']${destination.replace(/\//g, "\\/")}["']`,
+      );
+      expect(src).toMatch(pattern);
+    },
+  );
+});
+
 // ── 3. site-wide OG image wired in layout.tsx ────────────────────────────────
 
 describe("v2 SEO — site-wide OG image is wired up", () => {
