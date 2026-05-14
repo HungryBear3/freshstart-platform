@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { PricingTier } from "./tiers";
 
-const SITE_URL = "https://www.freshstart-il.com";
+const SITE_URL = "https://freshstart-il.com";
 
 export function OrganizationAndWebsiteJsonLd() {
   const blocks = [
@@ -46,7 +46,7 @@ export function PricingProductsJsonLd({ tiers }: { tiers: PricingTier[] }) {
       "@type": "Offer",
       priceCurrency: "USD",
       price: tier.priceNumber.toFixed(2),
-      url: `${SITE_URL}/v2/pricing`,
+      url: `${SITE_URL}/pricing`,
       availability: "https://schema.org/InStock",
       // Surface the 7-day free trial as a priceSpecification per the brief.
       priceSpecification: {

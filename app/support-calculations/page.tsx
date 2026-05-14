@@ -98,7 +98,7 @@ export default function SupportCalculationsPage() {
       </p>
 
       <div className="fs-doc-cta-row">
-        <Link href="/v2/pricing" className="fs-btn fs-btn-primary fs-btn-md">
+        <Link href="/pricing" className="fs-btn fs-btn-primary fs-btn-md">
           See pricing →
         </Link>
         <Link href="/calculators" className="fs-btn fs-btn-ghost fs-btn-md">

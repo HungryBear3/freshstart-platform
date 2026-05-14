@@ -6,20 +6,32 @@ export async function generateStaticParams() {
   return posts.map((post) => ({ slug: post.slug }))
 }
 
-const SITE_URL = "https://www.freshstart-il.com"
+type BlogPostPageParams = { params: Promise<{ slug: string }> }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = await getPostBySlug(params.slug)
+export async function generateMetadata({ params }: BlogPostPageParams) {
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
   if (!post) return {}
   return {
     title: `${post.title} | Fresh Start IL`,
     description: post.description,
-    alternates: { canonical: `${SITE_URL}/blog/${params.slug}` },
+    alternates: { canonical: `/blog/${slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      url: `/blog/${slug}`,
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "FreshStart-IL — Illinois divorce, filed right." }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ["/opengraph-image"],
+    },
   }
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getPostBySlug(params.slug)
+export default async function BlogPostPage({ params }: BlogPostPageParams) {
+  const { slug } = await params
+  const post = await getPostBySlug(slug)
   if (!post) notFound()
 
   const jsonLd = {
@@ -31,7 +43,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     publisher: {
       "@type": "Organization",
       name: "FreshStart IL",
-      url: "https://www.freshstart-il.com",
+      url: "https://freshstart-il.com",
     },
   }
 

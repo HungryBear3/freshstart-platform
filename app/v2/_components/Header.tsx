@@ -30,12 +30,12 @@ export function Header({ page, ctaLabel }: { page: AnalyticsPage; ctaLabel: stri
   return (
     <header className="fs-hd" role="banner" data-menu-open={menuOpen ? "true" : "false"}>
       <div className="fs-hd-inner">
-        <Link href="/v2" aria-label="FreshStart-IL home" onClick={closeMenu}>
+        <Link href="/" aria-label="FreshStart-IL home" onClick={closeMenu}>
           <Logo idSuffix={`hd-${page}`} />
         </Link>
         <nav className="fs-nav" aria-label="Primary">
-          <Link href="/v2#how-it-works">How it works</Link>
-          <Link href="/v2/pricing" className={page === "pricing" ? "fs-nav-active" : undefined}>
+          <Link href="/#how-it-works">How it works</Link>
+          <Link href="/pricing" className={page === "pricing" ? "fs-nav-active" : undefined}>
             Pricing
           </Link>
           <Link href="/legal">Legal Info</Link>
@@ -70,11 +70,11 @@ export function Header({ page, ctaLabel }: { page: AnalyticsPage; ctaLabel: stri
         aria-label="Mobile primary"
         hidden={!menuOpen}
       >
-        <Link href="/v2#how-it-works" onClick={closeMenu}>
+        <Link href="/#how-it-works" onClick={closeMenu}>
           How it works
         </Link>
         <Link
-          href="/v2/pricing"
+          href="/pricing"
           className={page === "pricing" ? "fs-nav-active" : undefined}
           onClick={closeMenu}
         >

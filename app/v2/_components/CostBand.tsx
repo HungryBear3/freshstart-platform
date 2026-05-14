@@ -51,7 +51,7 @@ export function CostBand({
             Illinois form drafts and filing steps without the hourly meter running.
           </p>
           {variant !== "pricing" && (
-            <a className="fs-link-arrow" href="/v2/pricing">
+            <a className="fs-link-arrow" href="/pricing">
               Compare to hiring an attorney →
             </a>
           )}

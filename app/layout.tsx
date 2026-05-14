@@ -18,6 +18,23 @@ const geistMono = Geist_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://freshstart-il.com"
 const homepageTitle = "FreshStart-IL — Your Illinois divorce, filed right, from $149"
+const organizationAndWebsiteJsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "FreshStart IL",
+    url: siteUrl,
+    logo: `${siteUrl}/logo.png`,
+    description:
+      "FreshStart IL guides Illinois residents through uncontested divorce form preparation and filing steps.",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "FreshStart IL",
+    url: siteUrl,
+  },
+]
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,6 +78,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationAndWebsiteJsonLd) }}
+        />
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
         </Providers>

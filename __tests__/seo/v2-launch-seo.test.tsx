@@ -227,6 +227,123 @@ describe("v2 SEO — homepage SSR HTML contains JSON-LD", () => {
   });
 
   it("Organization references the canonical site URL", () => {
-    expect(html).toMatch(/"url":"https:\/\/www\.freshstart-il\.com"/);
+    expect(html).toMatch(/"url":"https:\/\/freshstart-il\.com"/);
+  });
+});
+
+// ── 6. canonical regression — every named public page is self-canonical ─────
+//
+// Preview audit found 20 of 33 sitemap pages with canonical pointing at the
+// root domain instead of their own path. The metadata.alternates.canonical
+// for each page must be a /<own-path> string, NOT "/" and NOT the bare
+// origin.
+
+const SELF_CANONICAL_PAGES = [
+  { rel: "app/about/page.tsx", canonical: "/about" },
+  { rel: "app/faq/page.tsx", canonical: "/faq" },
+  { rel: "app/legal/page.tsx", canonical: "/legal" },
+  { rel: "app/privacy/page.tsx", canonical: "/privacy" },
+  { rel: "app/terms/page.tsx", canonical: "/terms" },
+  { rel: "app/disclaimer/page.tsx", canonical: "/disclaimer" },
+  { rel: "app/grounds-for-divorce/page.tsx", canonical: "/grounds-for-divorce" },
+  { rel: "app/child-custody/page.tsx", canonical: "/child-custody" },
+  { rel: "app/property-division/page.tsx", canonical: "/property-division" },
+  { rel: "app/support-calculations/page.tsx", canonical: "/support-calculations" },
+  { rel: "app/pricing/page.tsx", canonical: "/pricing" },
+  { rel: "app/checklist/page.tsx", canonical: "/checklist" },
+  { rel: "app/calculators/page.tsx", canonical: "/calculators" },
+  { rel: "app/start/page.tsx", canonical: "/start" },
+  { rel: "app/blog/page.tsx", canonical: "/blog" },
+];
+
+describe("v2 SEO — every named public page is self-canonical (not root)", () => {
+  it.each(SELF_CANONICAL_PAGES)(
+    "$canonical declares alternates.canonical = $canonical",
+    ({ rel, canonical }) => {
+      const m = loadPageMetadata(rel);
+      const alts = m.alternates as { canonical?: string } | undefined;
+      if (!alts || !alts.canonical) {
+        throw new Error(`${rel} must declare alternates.canonical`);
+      }
+      const c = alts.canonical;
+      // Accept the bare path or the absolute apex URL form. What we reject
+      // is the root "/" / apex root / no-path forms that triggered the
+      // preview regression.
+      const validForms = [
+        canonical,
+        `https://freshstart-il.com${canonical}`,
+        `https://www.freshstart-il.com${canonical}`,
+      ];
+      expect(validForms).toContain(c);
+      expect(c).not.toBe("/");
+      expect(c).not.toBe("https://freshstart-il.com");
+      expect(c).not.toBe("https://freshstart-il.com/");
+    },
+  );
+});
+
+// ── 7. OG image coverage — every named public page resolves to a 1200x630 ───
+
+describe("v2 SEO — every named public page has an OG image", () => {
+  it.each(SELF_CANONICAL_PAGES)(
+    "$canonical openGraph.images is non-empty (page-set or layout-inherited)",
+    ({ rel }) => {
+      const m = loadPageMetadata(rel);
+      const og = m.openGraph as { images?: unknown } | undefined;
+      const layoutImages = (rootMetadata.openGraph as { images?: unknown })?.images;
+      // Page-set images win; otherwise the layout default must be present.
+      const effective = og?.images ?? layoutImages;
+      expect(effective).toBeDefined();
+      if (Array.isArray(effective)) {
+        expect(effective.length).toBeGreaterThan(0);
+      } else {
+        expect(Boolean(effective)).toBe(true);
+      }
+    },
+  );
+});
+
+// ── 8. /blog index has a blog-specific og:title (not the homepage title) ────
+
+describe("v2 SEO — /blog index has a blog-specific og:title", () => {
+  it("openGraph.title is a Blog-scoped string, not the layout default", () => {
+    const m = loadPageMetadata("app/blog/page.tsx");
+    const og = m.openGraph as { title?: string } | undefined;
+    expect(og?.title).toBeDefined();
+    expect(String(og!.title)).toMatch(/blog/i);
+    const layoutOgTitle = (rootMetadata.openGraph as { title?: string })?.title;
+    if (layoutOgTitle) {
+      expect(og!.title).not.toBe(layoutOgTitle);
+    }
+  });
+});
+
+// ── 9. Homepage SSR contains zero /v2 hrefs ─────────────────────────────────
+//
+// /v2 is the internal review alias. No client-rendered nav / hero / cost
+// band should link to it from the public homepage — those links were
+// caught on the 2s4205u1z preview as logo /v2, desktop+mobile nav
+// /v2#how-it-works + /v2/pricing, and the cost-comparison "Compare to
+// hiring an attorney" CTA.
+
+describe("v2 SEO — homepage SSR has zero rendered /v2 hrefs", () => {
+  const html = ssr(<HomePage />);
+
+  it("no href=\"/v2...\" anywhere in the rendered HTML", () => {
+    // Capture every href value so the test failure points at the offender.
+    const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g)).map((m) => m[1]);
+    const v2Hrefs = hrefs.filter((h) => /^\/v2(\/|#|$)/.test(h));
+    if (v2Hrefs.length > 0) {
+      throw new Error(
+        `expected zero /v2 hrefs in rendered home, found:\n  ${v2Hrefs.join("\n  ")}`,
+      );
+    }
+  });
+
+  it("the rendered logo / nav points at production routes (no /v2)", () => {
+    // Spot-check the canonical pricing CTA target.
+    const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g)).map((m) => m[1]);
+    // We expect at least one /pricing href in the rendered home.
+    expect(hrefs.some((h) => h === "/pricing" || /^\/pricing(\?|#|$)/.test(h))).toBe(true);
   });
 });

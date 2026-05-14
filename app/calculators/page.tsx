@@ -14,6 +14,7 @@ import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 export const metadata: Metadata = {
   title: "Divorce Calculators",
   description: "Free Illinois divorce calculators for child support, spousal maintenance, timeline estimates, and cost estimation. Based on official Illinois guidelines.",
+  alternates: { canonical: "/calculators" },
   openGraph: {
     title: "Divorce Calculators | FreshStart IL",
     description: "Free Illinois divorce calculators - child support, spousal maintenance, timeline, and cost estimates.",

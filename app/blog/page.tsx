@@ -1,9 +1,21 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getAllPosts } from '@/lib/blog'
 
-export const metadata = {
-  title: 'Blog | Fresh Start IL',
+export const metadata: Metadata = {
+  title: 'Blog | FreshStart IL',
   description: 'Guides and resources for navigating divorce in Illinois.',
+  alternates: { canonical: '/blog' },
+  openGraph: {
+    title: 'Blog | FreshStart IL',
+    description: 'Guides and resources for navigating divorce in Illinois.',
+    url: '/blog',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'FreshStart-IL — Illinois divorce, filed right.' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/opengraph-image'],
+  },
 }
 
 export default function BlogPage() {

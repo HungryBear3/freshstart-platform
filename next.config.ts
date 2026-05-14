@@ -22,6 +22,13 @@ const LEGAL_INFO_REDIRECTS = [
   "/legal-info/glossary",
 ] as const;
 
+const LEGACY_ROUTE_REDIRECTS = [
+  { source: "/how-it-works", destination: "/#how-it-works" },
+  { source: "/calculators/child-support", destination: "/support-calculations" },
+  { source: "/calculators/maintenance", destination: "/support-calculations" },
+  { source: "/auth/login", destination: "/auth/signin" },
+] as const;
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -33,11 +40,18 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return LEGAL_INFO_REDIRECTS.map((source) => ({
-      source,
-      destination: "/legal",
-      permanent: true,
-    }));
+    return [
+      ...LEGAL_INFO_REDIRECTS.map((source) => ({
+        source,
+        destination: "/legal",
+        permanent: true,
+      })),
+      ...LEGACY_ROUTE_REDIRECTS.map(({ source, destination }) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
+    ];
   },
   async headers() {
     return [

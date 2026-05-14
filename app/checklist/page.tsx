@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Free Illinois Divorce Checklist | FreshStart IL",
   description:
     "Download the free Illinois Divorce Checklist — required forms, county filing fees, key deadlines, and e-filing instructions. Instant delivery to your inbox.",
+  alternates: { canonical: "/checklist" },
   openGraph: {
     title: "Free Illinois Divorce Checklist | FreshStart IL",
     description:

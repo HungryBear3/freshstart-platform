@@ -78,7 +78,7 @@ export default function AboutPage() {
       <h2>Where to start</h2>
       <ul>
         <li>
-          <Link href="/v2/pricing">See pricing →</Link>
+          <Link href="/pricing">See pricing →</Link>
         </li>
         <li>
           <Link href="/legal">Browse the legal-info library →</Link>
