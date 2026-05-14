@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Parenting time & responsibilities (Illinois) | FreshStart-IL",
+  title: "Parenting time & responsibilities (Illinois)",
   description:
     "Illinois replaced 'custody' with parenting time and decision-making responsibilities. How the parenting plan works and what's required.",
   alternates: { canonical: "/child-custody" },

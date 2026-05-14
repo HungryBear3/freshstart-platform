@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Child support & maintenance calculations (Illinois) | FreshStart-IL",
+  title: "Child support & maintenance calculations (Illinois)",
   description:
     "How Illinois calculates child support (750 ILCS 5/505, income-shares) and spousal maintenance (750 ILCS 5/504, statutory formula).",
   alternates: { canonical: "/support-calculations" },

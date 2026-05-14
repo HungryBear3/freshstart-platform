@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Grounds for divorce in Illinois | FreshStart-IL",
+  title: "Grounds for divorce in Illinois",
   description:
     "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. What 'separate and apart' means, and how the 6-month period works.",
   alternates: { canonical: "/grounds-for-divorce" },

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { getAllPosts } from '@/lib/blog'
 
 export const metadata: Metadata = {
-  title: 'Blog | FreshStart IL',
+  title: 'Blog',
   description: 'Guides and resources for navigating divorce in Illinois.',
   alternates: { canonical: '/blog' },
   openGraph: {

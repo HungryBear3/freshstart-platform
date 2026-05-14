@@ -6,7 +6,7 @@ import { CheckCircle2, FileText, Clock, DollarSign, AlertTriangle, Laptop } from
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Free Illinois Divorce Checklist | FreshStart IL",
+  title: "Free Illinois Divorce Checklist",
   description:
     "Download the free Illinois Divorce Checklist — required forms, county filing fees, key deadlines, and e-filing instructions. Instant delivery to your inbox.",
   alternates: { canonical: "/checklist" },

@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "FAQ — FreshStart-IL",
+  title: "FAQ",
   description:
     "Common questions about FreshStart-IL: what it is, what it costs, refunds, support, and where to read the full Illinois divorce information.",
   alternates: { canonical: "/faq" },

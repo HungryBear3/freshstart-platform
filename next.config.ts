@@ -32,6 +32,17 @@ const LEGACY_ROUTE_REDIRECTS = [
   // canonical surface instead of the now-internal /v2 paths.
   { source: "/v2", destination: "/" },
   { source: "/v2/pricing", destination: "/pricing" },
+  // /legal-info/* article pages — preview audit found these still serving
+  // 200 with root-canonical even though /legal-info itself redirects.
+  // Map duplicates to their v2 topic page, and the thinner stubs to /legal.
+  { source: "/legal-info/grounds-for-divorce", destination: "/grounds-for-divorce" },
+  { source: "/legal-info/property-division", destination: "/property-division" },
+  { source: "/legal-info/child-custody", destination: "/child-custody" },
+  { source: "/legal-info/spousal-maintenance", destination: "/support-calculations" },
+  { source: "/legal-info/divorce-basics", destination: "/legal" },
+  { source: "/legal-info/child-support", destination: "/legal" },
+  { source: "/legal-info/court-procedures", destination: "/legal" },
+  { source: "/legal-info/legal-rights", destination: "/legal" },
 ] as const;
 
 const nextConfig: NextConfig = {

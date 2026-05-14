@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "FreshStart IL — Illinois Divorce Guidance",
+  title: "Illinois Divorce Guidance",
   description:
     "Illinois divorce forms, checklists, and calculators. Get started with FreshStart IL — your guide through the Illinois divorce process.",
   alternates: { canonical: "/start" },

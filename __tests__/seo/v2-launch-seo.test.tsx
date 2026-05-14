@@ -177,6 +177,42 @@ describe("v2 SEO — next.config keeps the /v2 → / and /v2/pricing → /pricin
   );
 });
 
+// ── 2c. legacy /legal-info article pages redirect to canonical destinations ─
+//
+// /legal-info index already 301s to /legal, but the article-level pages
+// (e.g. /legal-info/grounds-for-divorce) were still serving 200 with a
+// root canonical on the aviklrs4t preview. Map the four canonical-topic
+// duplicates onto their v2 topic page, and the four thinner stubs onto
+// the /legal hub.
+
+describe("v2 SEO — next.config redirects legacy /legal-info article pages", () => {
+  const src = readFileSync(
+    resolve(__dirname, "../../next.config.ts"),
+    "utf8",
+  );
+
+  const REQUIRED_ARTICLE_REDIRECTS = [
+    { source: "/legal-info/grounds-for-divorce", destination: "/grounds-for-divorce" },
+    { source: "/legal-info/property-division", destination: "/property-division" },
+    { source: "/legal-info/child-custody", destination: "/child-custody" },
+    { source: "/legal-info/spousal-maintenance", destination: "/support-calculations" },
+    { source: "/legal-info/divorce-basics", destination: "/legal" },
+    { source: "/legal-info/child-support", destination: "/legal" },
+    { source: "/legal-info/court-procedures", destination: "/legal" },
+    { source: "/legal-info/legal-rights", destination: "/legal" },
+  ];
+
+  it.each(REQUIRED_ARTICLE_REDIRECTS)(
+    "declares $source → $destination",
+    ({ source, destination }) => {
+      const pattern = new RegExp(
+        `source:\\s*["']${source.replace(/\//g, "\\/")}["']\\s*,\\s*destination:\\s*["']${destination.replace(/\//g, "\\/")}["']`,
+      );
+      expect(src).toMatch(pattern);
+    },
+  );
+});
+
 // ── 3. site-wide OG image wired in layout.tsx ────────────────────────────────
 
 describe("v2 SEO — site-wide OG image is wired up", () => {
@@ -376,5 +412,60 @@ describe("v2 SEO — homepage SSR has zero rendered /v2 hrefs", () => {
     const hrefs = Array.from(html.matchAll(/href="([^"]+)"/g)).map((m) => m[1]);
     // We expect at least one /pricing href in the rendered home.
     expect(hrefs.some((h) => h === "/pricing" || /^\/pricing(\?|#|$)/.test(h))).toBe(true);
+  });
+});
+
+// ── 10. metadata.title does not duplicate brand after template ──────────────
+//
+// app/layout.tsx declares title.template = "%s | FreshStart IL". Any page
+// that bakes the brand into its own metadata.title (e.g. "Foo | FreshStart
+// IL") renders as "Foo | FreshStart IL | FreshStart IL" once the template
+// wraps it. The aviklrs4t preview surfaced this on /checklist; scanning
+// the rest of the public pages exposed the same shape everywhere with a
+// brand suffix baked in.
+//
+// Invariant: every page-set metadata.title must NOT contain the substring
+// "FreshStart" (case-insensitive). The layout template owns brand
+// placement; pages own the scoped name.
+
+const TITLE_DEDUPE_PAGES = [
+  "app/about/page.tsx",
+  "app/faq/page.tsx",
+  "app/legal/page.tsx",
+  "app/privacy/page.tsx",
+  "app/terms/page.tsx",
+  "app/disclaimer/page.tsx",
+  "app/grounds-for-divorce/page.tsx",
+  "app/child-custody/page.tsx",
+  "app/property-division/page.tsx",
+  "app/support-calculations/page.tsx",
+  "app/pricing/page.tsx",
+  "app/checklist/page.tsx",
+  "app/calculators/page.tsx",
+  "app/start/page.tsx",
+  "app/blog/page.tsx",
+];
+
+describe("v2 SEO — page-level metadata.title never bakes in the brand suffix", () => {
+  it.each(TITLE_DEDUPE_PAGES)(
+    "%s metadata.title is scoped (no FreshStart in the string)",
+    (rel) => {
+      const m = loadPageMetadata(rel);
+      const title = m.title;
+      // Pages must export a plain string title (the layout template
+      // wraps it). title-as-object is allowed for the layout itself,
+      // not for individual pages here.
+      expect(typeof title === "string" || typeof title === "undefined").toBe(true);
+      if (typeof title === "string") {
+        // Case-insensitive substring check — catches "FreshStart",
+        // "FreshStart IL", and "FreshStart-IL" forms.
+        expect(title.toLowerCase()).not.toContain("freshstart");
+      }
+    },
+  );
+
+  it("the layout template still owns brand placement", () => {
+    const tplObj = rootMetadata.title as { template?: string } | undefined;
+    expect(tplObj?.template).toBe("%s | FreshStart IL");
   });
 });

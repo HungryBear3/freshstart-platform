@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "About — FreshStart-IL",
+  title: "About",
   description:
     "Who we are, why we built FreshStart-IL, and the principles that shape it. Illinois divorce form drafts and step-by-step filing guidance — without the attorney bill.",
   alternates: { canonical: "/about" },

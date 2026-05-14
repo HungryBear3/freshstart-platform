@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Property division in an Illinois divorce | FreshStart-IL",
+  title: "Property division in an Illinois divorce",
   description:
     "Illinois uses equitable distribution — fair, not necessarily 50/50. How marital vs. non-marital property is sorted and what courts weigh.",
   alternates: { canonical: "/property-division" },

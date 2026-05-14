@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Disclaimer — FreshStart-IL",
+  title: "Disclaimer",
   description:
     "FreshStart-IL provides information and document preparation only. It is not a law firm, not legal advice, and not legal representation.",
   alternates: { canonical: "/disclaimer" },

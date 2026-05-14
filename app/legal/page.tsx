@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Legal Info — Illinois Divorce | FreshStart-IL",
+  title: "Legal Info — Illinois Divorce",
   description:
     "Plain-English overviews of how Illinois divorce works — grounds, property division, child custody, and support calculations.",
   alternates: { canonical: "/legal" },

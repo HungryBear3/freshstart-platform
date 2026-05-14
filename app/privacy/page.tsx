@@ -4,7 +4,7 @@ import { V2PageShell } from "@/app/v2/_components/V2PageShell";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Privacy — FreshStart-IL",
+  title: "Privacy",
   description:
     "What FreshStart-IL collects, how we use it, who we share it with, and the choices you have. Plain-English summary with a link to the full policy.",
   alternates: { canonical: "/privacy" },
