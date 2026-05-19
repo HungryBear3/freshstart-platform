@@ -102,12 +102,12 @@ const INFO_ROUTES: Array<{ label: string; render: () => string; expects: string[
   {
     label: "/about",
     render: () => ssr(<AboutPage />),
-    expects: ["FreshStart-IL", "Illinois", "30-day"],
+    expects: ["FreshStart IL", "Illinois", "30-day"],
   },
   {
     label: "/contact",
     render: () => ssr(<ContactPage />),
-    expects: ["support@freshstart-il.com", "FreshStart-IL", "not a law firm"],
+    expects: ["support@freshstart-il.com", "FreshStart IL", "not a law firm"],
   },
 ];
 

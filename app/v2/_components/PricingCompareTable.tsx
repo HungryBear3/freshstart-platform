@@ -40,7 +40,7 @@ export function PricingCompareTable({
         </div>
         <div className="fs-pr-compare-wrap">
           <table className="fs-pr-table">
-            <caption className="fs-sr">FreshStart-IL tier comparison</caption>
+            <caption className="fs-sr">FreshStart IL tier comparison</caption>
             <thead>
               <tr>
                 <th scope="col" className="fs-pr-table-feat">

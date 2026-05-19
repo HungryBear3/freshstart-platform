@@ -1,84 +1,74 @@
 "use client"
 
 import Link from "next/link"
-import { MainLayout } from "@/components/layouts/main-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Home, ArrowLeft, Search, FileText, HelpCircle } from "lucide-react"
+import { Header } from "@/app/v2/_components/Header"
+import { Footer } from "@/app/v2/_components/Footer"
+import { OrganizationAndWebsiteJsonLd } from "@/app/v2/_components/JsonLd"
+import { ArrowLeft, FileText, HelpCircle, Home, Search } from "lucide-react"
+import "@/app/v2/_components/styles.css"
 
 export default function NotFound() {
   return (
-    <MainLayout>
-      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
-        <div className="text-center max-w-2xl">
-          {/* 404 Illustration */}
-          <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-blue-100 mb-4">
-              <Search className="h-12 w-12 text-blue-600" />
-            </div>
-            <h1 className="text-6xl font-bold text-gray-900 mb-2">404</h1>
-            <h2 className="text-2xl font-semibold text-gray-700 mb-4">Page Not Found</h2>
-            <p className="text-gray-600 text-lg">
-              Sorry, we couldn't find the page you're looking for. 
-              It may have been moved or doesn't exist.
-            </p>
+    <div className="fs-page" data-variant="not-found">
+      <OrganizationAndWebsiteJsonLd />
+      <Header page="not_found" ctaLabel="Start my filing" />
+      <main role="main" className="relative overflow-hidden px-5 py-16 sm:px-8 sm:py-24">
+        <div className="fs-hero-bg" aria-hidden="true" />
+        <div className="relative z-[1] mx-auto max-w-4xl text-center">
+          <div className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--fs-border-hi)] bg-white/[0.05] shadow-[var(--fs-shadow-card)]">
+            <Search className="h-9 w-9 text-[var(--fs-cyan)]" />
           </div>
+          <p className="fs-eyebrow mb-6">
+            <span className="fs-eyebrow-dot" />
+            Page not found
+          </p>
+          <h1 className="text-[48px] font-extrabold leading-[1.02] tracking-[-0.05em] text-[var(--fs-text)] sm:text-[72px]">
+            This page moved, but your filing path did not.
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[var(--fs-text-mid)]">
+            We could not find that URL. Head back to the FreshStart IL homepage,
+            compare pricing, or jump into the legal info library.
+          </p>
 
-          {/* Quick Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/">
-              <Button size="lg" className="w-full sm:w-auto">
-                <Home className="mr-2 h-5 w-5" />
-                Go to Homepage
-              </Button>
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/" className="fs-btn fs-btn-primary fs-btn-lg">
+              <Home className="h-4 w-4" />
+              Go to homepage
             </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full sm:w-auto"
+            <button
+              type="button"
+              className="fs-btn fs-btn-ghost fs-btn-lg"
               onClick={() => window.history.back()}
             >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              Go Back
-            </Button>
+              <ArrowLeft className="h-4 w-4" />
+              Go back
+            </button>
           </div>
 
-          {/* Helpful Links */}
-          <Card className="bg-gray-50">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Looking for something specific?</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                <Link 
-                  href="/legal-info" 
-                  className="flex items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors"
-                >
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Legal Information</span>
-                </Link>
-                <Link 
-                  href="/questionnaires" 
-                  className="flex items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors"
-                >
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Questionnaires</span>
-                </Link>
-                <Link 
-                  href="/legal-info/faq" 
-                  className="flex items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors"
-                >
-                  <HelpCircle className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">FAQ</span>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mt-12 grid grid-cols-1 gap-4 text-left md:grid-cols-3">
+            <Link href="/legal" className="rounded-[18px] border border-[var(--fs-border)] bg-[var(--fs-card)] p-5 shadow-[var(--fs-shadow-card)] transition hover:border-[var(--fs-border-hi)]">
+              <FileText className="mb-4 h-6 w-6 text-[var(--fs-cyan)]" />
+              <h2 className="font-semibold text-[var(--fs-text)]">Legal Info</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--fs-text-mid)]">Illinois divorce topics, forms, and filing basics.</p>
+            </Link>
+            <Link href="/pricing" className="rounded-[18px] border border-[var(--fs-border)] bg-[var(--fs-card)] p-5 shadow-[var(--fs-shadow-card)] transition hover:border-[var(--fs-border-hi)]">
+              <Home className="mb-4 h-6 w-6 text-[var(--fs-purple)]" />
+              <h2 className="font-semibold text-[var(--fs-text)]">Pricing</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--fs-text-mid)]">See the Essential and Plus filing plans.</p>
+            </Link>
+            <Link href="/faq" className="rounded-[18px] border border-[var(--fs-border)] bg-[var(--fs-card)] p-5 shadow-[var(--fs-shadow-card)] transition hover:border-[var(--fs-border-hi)]">
+              <HelpCircle className="mb-4 h-6 w-6 text-[var(--fs-green)]" />
+              <h2 className="font-semibold text-[var(--fs-text)]">FAQ</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--fs-text-mid)]">Answers before you start the process.</p>
+            </Link>
+          </div>
 
-          {/* Contact Support */}
-          <p className="mt-8 text-sm text-gray-500">
-            Need help? <Link href="/contact" className="text-blue-600 hover:underline">Contact our support team</Link>
+          <p className="mt-8 text-sm text-[var(--fs-text-dim)]">
+            Need help? <Link href="/contact" className="underline decoration-white/30 underline-offset-4 hover:text-[var(--fs-text)]">Contact support</Link>
           </p>
         </div>
-      </div>
-    </MainLayout>
+      </main>
+      <Footer idSuffix="not-found" />
+    </div>
   )
 }

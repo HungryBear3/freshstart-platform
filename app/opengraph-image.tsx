@@ -9,7 +9,7 @@ import { ImageResponse } from "next/og"
 // Pure SSR generation — no runtime dependencies, no static asset pipeline.
 // The build embeds this as a static-ish endpoint per route.
 export const runtime = "edge"
-export const alt = "FreshStart-IL — Illinois divorce, filed right."
+export const alt = "FreshStart IL — Illinois divorce, filed right."
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -52,7 +52,7 @@ export default function OpengraphImage() {
               boxShadow: "0 8px 24px rgba(99, 102, 241, 0.45)",
             }}
           />
-          FreshStart-IL
+          FreshStart IL
         </div>
         <div
           style={{

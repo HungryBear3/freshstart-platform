@@ -30,7 +30,7 @@ export function Header({ page, ctaLabel }: { page: AnalyticsPage; ctaLabel: stri
   return (
     <header className="fs-hd" role="banner" data-menu-open={menuOpen ? "true" : "false"}>
       <div className="fs-hd-inner">
-        <Link href="/" aria-label="FreshStart-IL home" onClick={closeMenu}>
+        <Link href="/" aria-label="FreshStart IL home" onClick={closeMenu}>
           <Logo idSuffix={`hd-${page}`} />
         </Link>
         <nav className="fs-nav" aria-label="Primary">

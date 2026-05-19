@@ -124,7 +124,7 @@ describe("root metadata is production-canonical and share-copy aligned", () => {
 
   it("uses the homepage hook as the default document, OpenGraph, and Twitter title", () => {
     expect(layout).toMatch(
-      /homepageTitle\s*=\s*"FreshStart-IL — Your Illinois divorce, filed right, from \$149"/,
+      /homepageTitle\s*=\s*"FreshStart IL — Your Illinois divorce, filed right, from \$149"/,
     );
     expect(layout).toMatch(/default:\s*homepageTitle/);
     expect(layout).toMatch(/openGraph:[\s\S]*title:\s*homepageTitle/);

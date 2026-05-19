@@ -73,7 +73,7 @@ export function CostBand({
             ↓
           </div>
           <div className="fs-cost-card fs-cost-card-fs">
-            <div className="fs-cost-card-lbl">FreshStart-IL</div>
+            <div className="fs-cost-card-lbl">FreshStart IL</div>
             <div className="fs-cost-card-fig">
               <span className="fs-cost-card-currency">$</span>
               <span className="fs-cost-card-amt">149</span>

@@ -10,7 +10,7 @@
 
 import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate";
 
-export type AnalyticsPage = "homepage" | "pricing";
+export type AnalyticsPage = "homepage" | "pricing" | "checklist" | "not_found";
 
 export type AnalyticsEvent =
   | { name: "page_view"; page: AnalyticsPage; variant?: string }

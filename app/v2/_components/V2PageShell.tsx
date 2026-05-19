@@ -62,7 +62,7 @@ export interface V2PageShellProps {
 
 const DEFAULT_DISCLAIMER = (
   <>
-    <strong>Not legal advice.</strong> FreshStart-IL is not a law firm and
+    <strong>Not legal advice.</strong> FreshStart IL is not a law firm and
     doesn&apos;t represent you. This page is general information about
     Illinois divorce. For advice on your specific situation, consult a
     licensed Illinois attorney.

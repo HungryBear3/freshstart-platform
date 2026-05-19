@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://freshstart-il.com"
-const homepageTitle = "FreshStart-IL — Your Illinois divorce, filed right, from $149"
+const homepageTitle = "FreshStart IL — Your Illinois divorce, filed right, from $149"
 const organizationAndWebsiteJsonLd = [
   {
     "@context": "https://schema.org",

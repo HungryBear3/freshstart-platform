@@ -43,7 +43,7 @@ export function Footer({ idSuffix }: { idSuffix: string }) {
         </div>
 
         <div className="fs-ft-bot">
-          <div>© 2026 FreshStart-IL · Not a law firm. Not legal advice.</div>
+          <div>© 2026 FreshStart IL · Not a law firm. Not legal advice.</div>
           <div className="fs-ft-bot-r">
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

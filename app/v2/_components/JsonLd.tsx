@@ -8,17 +8,17 @@ export function OrganizationAndWebsiteJsonLd() {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "FreshStart-IL",
+      name: "FreshStart IL",
       url: SITE_URL,
       logo: `${SITE_URL}/logo.png`,
       sameAs: [SITE_URL],
       description:
-        "FreshStart-IL guides Illinois residents through uncontested divorce form preparation and filing steps.",
+        "FreshStart IL guides Illinois residents through uncontested divorce form preparation and filing steps.",
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "FreshStart-IL",
+      name: "FreshStart IL",
       url: SITE_URL,
       potentialAction: {
         "@type": "SearchAction",
@@ -44,9 +44,9 @@ export function PricingProductsJsonLd({ tiers }: { tiers: PricingTier[] }) {
   const blocks = tiers.map((tier) => ({
     "@context": "https://schema.org",
     "@type": "Product",
-    name: `FreshStart-IL — ${tier.name}`,
+    name: `FreshStart IL — ${tier.name}`,
     description: tier.tagline,
-    brand: { "@type": "Brand", name: "FreshStart-IL" },
+    brand: { "@type": "Brand", name: "FreshStart IL" },
     offers: {
       "@type": "Offer",
       priceCurrency: "USD",
