@@ -293,6 +293,20 @@ describe("v2 SEO — homepage SSR HTML contains JSON-LD", () => {
     expect(html).toMatch(/"@type":"WebSite"/);
   });
 
+  it("emits each JSON-LD payload as an object with @context, never one array script", () => {
+    const payloads = Array.from(
+      html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g),
+      (match) => JSON.parse(match[1]),
+    );
+
+    expect(payloads.length).toBeGreaterThanOrEqual(2);
+    for (const payload of payloads) {
+      expect(Array.isArray(payload)).toBe(false);
+      expect(typeof payload["@context"]).toBe("string");
+      expect(payload["@context"].toLowerCase()).toBe("https://schema.org");
+    }
+  });
+
   it("Organization references the canonical site URL", () => {
     expect(html).toMatch(/"url":"https:\/\/freshstart-il\.com"/);
   });

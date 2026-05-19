@@ -28,10 +28,15 @@ export function OrganizationAndWebsiteJsonLd() {
     },
   ];
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(blocks) }}
-    />
+    <>
+      {blocks.map((block) => (
+        <script
+          key={block["@type"]}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }}
+        />
+      ))}
+    </>
   );
 }
 
@@ -64,9 +69,14 @@ export function PricingProductsJsonLd({ tiers }: { tiers: PricingTier[] }) {
     },
   }));
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(blocks) }}
-    />
+    <>
+      {blocks.map((block) => (
+        <script
+          key={block.name}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }}
+        />
+      ))}
+    </>
   );
 }

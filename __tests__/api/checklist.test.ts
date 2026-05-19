@@ -88,7 +88,7 @@ describe("POST /api/checklist", () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data).toEqual({ success: true })
+    expect(data).toEqual({ success: true, mode: "production" })
     expect(mockSendChecklistEmail).toHaveBeenCalledWith("lead@example.com")
     expect(mockAfter).toHaveBeenCalledTimes(1)
 
@@ -118,7 +118,7 @@ describe("POST /api/checklist", () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data).toEqual({ success: true })
+    expect(data).toEqual({ success: true, mode: "production" })
 
     await mockAfterCallbacks[0]()
 

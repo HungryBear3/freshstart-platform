@@ -78,10 +78,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationAndWebsiteJsonLd) }}
-        />
+        {organizationAndWebsiteJsonLd.map((jsonLd) => (
+          <script
+            key={jsonLd["@type"]}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        ))}
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
         </Providers>
