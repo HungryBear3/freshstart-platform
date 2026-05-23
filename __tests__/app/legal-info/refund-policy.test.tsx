@@ -24,7 +24,7 @@ describe("/legal-info/refund-policy", () => {
 
   it("renders the canonical refund-policy headline", () => {
     expect(html).toContain("Refund Policy");
-    expect(html).toContain("30-day money-back guarantee");
+    expect(html).toContain("30-day refund policy");
   });
 
   it("uses support@freshstart-il.com, never refund@", () => {

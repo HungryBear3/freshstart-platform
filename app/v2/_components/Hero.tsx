@@ -56,7 +56,7 @@ export function HomepageHero() {
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>30-day money-back guarantee</span>
+          <span>30-day refund policy</span>
         </div>
         <div className="fs-cta-row">
           <button type="button" className="fs-btn fs-btn-primary fs-btn-lg" onClick={onPrimary}>

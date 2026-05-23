@@ -135,7 +135,7 @@ const faqCategories = [
       },
       {
         question: "Do you offer refunds?",
-        answer: "Yes — FreshStart-IL offers a 30-day money-back guarantee on plan purchases and subscriptions if the product isn't right for you or there's a service/platform issue on our side. Refund eligibility is not tied to spouse contestation, court outcomes, or county/clerk delays. Email support@freshstart-il.com to request one. See the full Refund Policy at /legal-info/refund-policy.",
+        answer: "Yes — FreshStart-IL publishes a 30-day refund policy for plan purchases and subscriptions if the product isn't right for you or there's a service/platform issue on our side. Refund eligibility is not tied to spouse contestation, court outcomes, or county/clerk delays. Email support@freshstart-il.com to request a review. See the full Refund Policy at /legal-info/refund-policy.",
       },
     ],
   },

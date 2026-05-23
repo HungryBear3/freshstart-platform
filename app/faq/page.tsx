@@ -59,7 +59,7 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "Do you offer refunds?",
     a: (
       <>
-        Yes — a 30-day money-back guarantee on plan purchases if
+        Yes — plan purchases are covered by our published 30-day refund policy if
         FreshStart-IL isn&apos;t the right fit or if there&apos;s a
         service issue on our side. Refund eligibility is not tied to
         spouse contestation, court outcomes, or county delays. See the{" "}

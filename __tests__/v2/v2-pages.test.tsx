@@ -56,7 +56,7 @@ describe("v2 homepage hero", () => {
     expect(html).toContain("$149 one-time");
     expect(html).toContain("$299/yr");
     expect(html).toContain("7-day free trial");
-    expect(html).toContain("30-day money-back guarantee");
+    expect(html).toContain("30-day refund policy");
     expect(html).toContain("256-bit encrypted");
   });
 

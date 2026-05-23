@@ -25,7 +25,7 @@ export function PricingHero() {
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>30-day money-back guarantee</span>
+          <span>30-day refund policy</span>
         </div>
       </div>
     </section>

@@ -7,7 +7,7 @@ import { Disclaimer } from "@/components/legal/disclaimer"
 export const metadata: Metadata = {
   title: "Refund Policy — FreshStart-IL",
   description:
-    "FreshStart-IL 30-day money-back guarantee, what it covers, what it doesn't, and how to request a refund.",
+    "FreshStart-IL 30-day refund policy, what it covers, what it doesn't, and how to request a refund.",
   alternates: { canonical: "/legal-info/refund-policy" },
 }
 
@@ -39,23 +39,23 @@ export default function RefundPolicyPage() {
               <div className="article-content space-y-6">
                 <section>
                   <p className="text-lg text-gray-700 leading-relaxed">
-                    FreshStart-IL offers a 30-day money-back guarantee on
+                    FreshStart-IL publishes a 30-day refund policy for
                     purchases and subscriptions. This page explains what that
-                    means, what it doesn&apos;t mean, and how to request a
-                    refund.
+                    covers, what it doesn&apos;t cover, and how to request a
+                    refund review.
                   </p>
                 </section>
 
                 <section>
                   <h2 className="text-3xl font-bold text-gray-900 mb-4 mt-8">
-                    30-day money-back guarantee
+                    30-day refund policy
                   </h2>
                   <p>
                     If FreshStart-IL isn&apos;t the right fit for you, or if
                     you experience a service or platform issue on our side,
-                    you can request a refund within 30 days of your purchase
-                    or subscription start date. We will process eligible
-                    refunds without a retention call.
+                    you can request a refund review within 30 days of your purchase
+                    or subscription start date. Eligible refunds are processed
+                    without a retention call.
                   </p>
                   <p className="mt-4">
                     Refunds apply to FreshStart-IL plan purchases — currently{" "}

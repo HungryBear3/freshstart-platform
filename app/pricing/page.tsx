@@ -10,7 +10,7 @@ import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 export const metadata: Metadata = {
   title: "Pricing — From $149 for an Illinois divorce filing",
   description:
-    "Essential ($149 one-time) and Plus ($299/yr) FreshStart IL plans for Illinois divorce filings. 7-day free trial, 30-day money-back guarantee, all 102 Illinois counties.",
+    "Essential ($149 one-time) and Plus ($299/yr) FreshStart IL plans for Illinois divorce filings. 7-day free trial, 30-day refund policy, all 102 Illinois counties.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing | FreshStart IL",

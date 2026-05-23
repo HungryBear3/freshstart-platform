@@ -7,7 +7,7 @@ export function Footer({ idSuffix }: { idSuffix: string }) {
     <footer className="fs-ft" role="contentinfo">
       <div className="fs-ft-inner">
         <div className="fs-ft-trust">
-          Available in all 102 Illinois counties · 30-day money-back guarantee ·
+          Available in all 102 Illinois counties · 30-day refund policy ·
           Built around Illinois court forms and filing steps
         </div>
 
