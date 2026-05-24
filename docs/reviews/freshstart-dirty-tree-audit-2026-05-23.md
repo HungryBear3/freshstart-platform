@@ -64,3 +64,15 @@ Risks:
 ## Current Rex action
 
 Rex only documented and isolated the drift. No revert, no deploy, no staging of the premium redesign files.
+
+## Resolution (2026-05-23, preview branch)
+
+Branch `fs-premium-homepage-audit-2026-05-23`. No deploy, no push.
+
+- **Wiring:** the dirty `components/home/*` premium sections were orphaned (nothing imported them); `/` and `/v2` render the v2 `HomeView`. Rather than repoint production `/` (which would risk shipping the redesign on merge), the premium design is now mounted at a dedicated preview route: `app/preview/premium-homepage/page.tsx` → **`/preview/premium-homepage`**. Production `/` is unchanged.
+- **Nav:** added a backward-compatible `forceHomeVariant` prop to `components/navigation/header.tsx` so the dark premium shell renders on the preview route (which is not at `/`). Layout callers are unaffected.
+- **Excluded from the composition:** `AttorneyEndorsementBand` ("Erin Birt" attorney quote / "Attorney-Reviewed Platform") and the duplicate pre-call card — matching the safer trust posture.
+- **Legal copy fix:** the homepage test asserted `"Court-Ready Forms"` (a court-acceptance-flavored claim) and a nonexistent `"View All Legal Resources"` CTA. Tests realigned to the shipped legally-safe copy (`"Reviewable Form Drafts"`, `"Why FreshStart IL"`) and repointed at the preview composition.
+- **Excluded from commit:** `tmp_design_bundle/` (design mockups/chat exports — not app source); added to `.gitignore`.
+- **Checks:** targeted Jest suite (homepage-premium + v2-pages + refund-policy) = 28 passed; `npm run build` compiled and prerendered 126 routes including `/preview/premium-homepage`.
+- **Open product questions for go/no-go:** the hero CTA "Get My Free Checklist" links to `/auth/signup` (intentional gate vs. mismatch?); Calendly orientation-call CTAs remain. Both are funnel decisions, left as-is.

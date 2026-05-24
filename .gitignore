@@ -56,3 +56,6 @@ Thumbs.db
 # graphify
 /graphify-out/
 .graphify_detect.json
+
+# local design reference bundle (mockups/chat exports — not app source)
+/tmp_design_bundle/
