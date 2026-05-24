@@ -76,3 +76,13 @@ Branch `fs-premium-homepage-audit-2026-05-23`. No deploy, no push.
 - **Excluded from commit:** `tmp_design_bundle/` (design mockups/chat exports — not app source); added to `.gitignore`.
 - **Checks:** targeted Jest suite (homepage-premium + v2-pages + refund-policy) = 28 passed; `npm run build` compiled and prerendered 126 routes including `/preview/premium-homepage`.
 - **Open product questions for go/no-go:** the hero CTA "Get My Free Checklist" links to `/auth/signup` (intentional gate vs. mismatch?); Calendly orientation-call CTAs remain. Both are funnel decisions, left as-is.
+
+### Follow-up (2026-05-24) — checklist-first conversion decisions applied
+
+Alexy's decisions, applied to the preview branch/route only (production `/` still untouched):
+
+1. **Hero primary CTA → `/checklist`** (was `/auth/signup`) in `HeroSection.tsx`.
+2. **Forms-first, not consult-first.** `StatsBar.tsx`: the "Free intro call" card (with the Calendly booking button) is replaced by a checklist-first secondary card linking to `/checklist`; no scheduling link remains in StatsBar. `IntroCallBanner.tsx`: reframed so the **checklist is the primary action** (violet button → `/checklist`); the free orientation call survives only as a **secondary text link** ("Or book a free orientation call →"), never a primary conversion button.
+3. **Tests:** added a "checklist-first conversion" block locking the hero→`/checklist` route, StatsBar having no Calendly/intro-call CTA, and the IntroCallBanner demotion. Targeted suite now 31 passed.
+
+Both open product questions above are now resolved in the preview. Copy remains legal-safe (no law firm / no legal advice / no court-acceptance promises). Build OK; `/preview/premium-homepage` still prerenders static.

@@ -1,3 +1,4 @@
+import * as React from "react"
 import ReactDOMServer from "react-dom/server"
 
 // The premium homepage redesign is mounted at the preview route, NOT at "/".
@@ -5,6 +6,11 @@ import ReactDOMServer from "react-dom/server"
 // ship the redesign. We render the preview composition directly here.
 import PremiumHomepagePreview from "@/app/preview/premium-homepage/page"
 import { Header } from "@/components/navigation/header"
+import { HeroSection } from "@/components/home/HeroSection"
+import { StatsBar } from "@/components/home/StatsBar"
+import { IntroCallBanner } from "@/components/home/IntroCallBanner"
+
+const ssr = (node: React.ReactElement) => ReactDOMServer.renderToStaticMarkup(node)
 
 jest.mock("@/components/help/help-sidebar", () => ({
   HelpSidebar: () => null,
@@ -51,5 +57,33 @@ describe("FreshStart premium homepage refresh", () => {
 
     expect(html).toContain("bg-slate-950")
     expect(html).toContain("bg-amber-300")
+  })
+})
+
+describe("FreshStart premium homepage — checklist-first conversion", () => {
+  it("routes the hero primary CTA to the free checklist, not signup", () => {
+    const html = ssr(<HeroSection />)
+
+    expect(html).toContain("Get My Free Checklist")
+    expect(html).toMatch(/href="\/checklist"/)
+    expect(html).not.toContain("/auth/signup")
+  })
+
+  it("keeps StatsBar checklist-first with no orientation-call booking CTA", () => {
+    const html = ssr(<StatsBar />)
+
+    expect(html).not.toContain("calendly.com")
+    expect(html).not.toMatch(/intro call/i)
+    expect(html).toMatch(/href="\/checklist"/)
+  })
+
+  it("demotes the orientation call to a secondary option behind the checklist", () => {
+    const html = ssr(<IntroCallBanner />)
+
+    // Checklist is the primary action in the banner now.
+    expect(html).toMatch(/href="\/checklist"/)
+    // A scheduling link may remain, but only as a secondary text link —
+    // never the primary "Book a Free Call" homepage conversion action.
+    expect(html).not.toContain("Book a Free Call")
   })
 })

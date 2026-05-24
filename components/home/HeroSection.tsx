@@ -40,7 +40,7 @@ export function HeroSection() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/auth/signup"
+              href="/checklist"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-6 py-3 text-base font-semibold text-white shadow-[0_14px_40px_rgba(99,102,241,0.45)] transition hover:scale-[1.01] hover:from-violet-400 hover:to-indigo-400"
             >
               Get My Free Checklist

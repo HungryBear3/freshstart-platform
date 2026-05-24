@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export function StatsBar() {
   return (
     <section className="max-w-7xl mx-auto overflow-hidden rounded-[28px] border border-white/10 bg-slate-900/95 shadow-[0_24px_80px_rgba(15,23,42,0.45)] backdrop-blur">
@@ -16,23 +18,21 @@ export function StatsBar() {
         </div>
         <div className="rounded-[24px] border border-white/10 bg-white/5 p-6 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-300">
-            Free intro call
+            Start free
           </p>
           <p className="mt-3 text-xl font-semibold text-white">
-            Need a gut check before you start?
+            Not ready to commit? Start with the free checklist.
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            We&apos;ll help you understand whether FreshStart IL is the right fit and point you to the
-            next step — no pitch, just clarity.
+            See exactly what an Illinois uncontested divorce filing involves — the forms, the steps,
+            and county details — before you pay anything.
           </p>
-          <a
-            href="https://calendly.com/il-support/30min"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/checklist"
             className="mt-6 inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
           >
-            Book a free 15-min intro call →
-          </a>
+            Get the free checklist →
+          </Link>
         </div>
       </div>
     </section>

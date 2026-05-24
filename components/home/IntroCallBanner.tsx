@@ -1,4 +1,5 @@
-import { Phone } from "lucide-react"
+import Link from "next/link"
+import { ClipboardList } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function IntroCallBanner() {
@@ -7,30 +8,36 @@ export function IntroCallBanner() {
       <div className="flex flex-col gap-4 max-w-5xl mx-auto sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
-            <Phone className="h-5 w-5 text-sky-300" />
+            <ClipboardList className="h-5 w-5 text-sky-300" />
           </div>
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Free orientation call
+              Start free
             </p>
             <p className="mt-2 text-xl font-semibold text-white">
-              Not sure where to start?
+              Most people just start with the free checklist.
             </p>
             <p className="text-slate-300 text-sm mt-1.5 leading-6 max-w-2xl">
-              We offer a free 15-minute orientation call to point you in the right direction — no
-              pitch, just clarity.
+              See what your Illinois filing involves, step by step. Prefer to talk it through first? A
+              free 15-minute orientation call is available too — no pitch, just clarity.
             </p>
           </div>
         </div>
-        <div className="sm:flex-shrink-0">
+        <div className="flex flex-col gap-3 sm:flex-shrink-0 sm:items-end">
           <Button
             asChild
-            className="w-full rounded-full bg-white px-5 text-slate-950 hover:bg-slate-100 sm:w-auto"
+            className="w-full rounded-full bg-violet-500 px-5 text-white hover:bg-violet-400 sm:w-auto"
           >
-            <a href="https://calendly.com/il-support/30min" target="_blank" rel="noopener noreferrer">
-              Book a Free Call
-            </a>
+            <Link href="/checklist">Get the free checklist</Link>
           </Button>
+          <a
+            href="https://calendly.com/il-support/30min"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-slate-300 underline-offset-4 transition hover:text-white hover:underline"
+          >
+            Or book a free orientation call →
+          </a>
         </div>
       </div>
     </section>
