@@ -10,6 +10,7 @@ import { OrientationCall } from "./OrientationCall";
 import { PageView } from "./PageView";
 import { PricingHero } from "./PricingHero";
 import { PricingTiers } from "./PricingTiers";
+import { PricingValueOverFree } from "./PricingValueOverFree";
 import { PricingCompareTable } from "./PricingCompareTable";
 import { PricingAddons } from "./PricingAddons";
 import { PricingGuaranteeBand } from "./PricingGuaranteeBand";
@@ -68,6 +69,7 @@ export function PricingView() {
       <main role="main">
         <PricingHero />
         <PricingTiers tiers={tiers} />
+        <PricingValueOverFree />
         <PricingCompareTable threeTier={count === 3} recommended="plus" />
         <PricingAddons />
         <PricingGuaranteeBand />
