@@ -1,3 +1,4 @@
+import { filterKnownSentryNoise } from "@/lib/monitoring/sentry-filters"
 import * as Sentry from "@sentry/nextjs"
 
 Sentry.init({
@@ -11,7 +12,8 @@ Sentry.init({
     if (process.env.NODE_ENV === "development") {
       return null
     }
-    return event
+
+    return filterKnownSentryNoise(event)
   },
 })
 
