@@ -11,7 +11,7 @@ export function OrganizationAndWebsiteJsonLd() {
       "@type": "Organization",
       name: "FreshStart IL",
       url: SITE_URL,
-      logo: `${SITE_URL}/logo.png`,
+      logo: `${SITE_URL}/icon.svg`,
       sameAs: [SITE_URL],
       description:
         "FreshStart IL guides Illinois residents through uncontested divorce form preparation and filing steps.",

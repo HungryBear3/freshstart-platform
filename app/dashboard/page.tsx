@@ -298,7 +298,7 @@ export default async function DashboardPage() {
                       Complete Your Subscription
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Start your 7-day free trial to access all FreshStart IL features
+                      Choose a plan when you are ready to access FreshStart IL features
                     </p>
                   </div>
                 </div>

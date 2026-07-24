@@ -75,8 +75,7 @@ export default function OpengraphImage() {
             maxWidth: "880px",
           }}
         >
-          Illinois divorce form drafts and step-by-step filing guidance — from $149,
-          7-day free trial.
+          Illinois divorce form drafts and step-by-step filing guidance — plans start at $149.
         </div>
       </div>
     ),

@@ -9,7 +9,7 @@
  *
  * Coverage requested by the brief:
  *   - homepage hero renders correct headline variant
- *   - homepage hero CTA renders the locked free-trial copy
+ *   - homepage hero CTA renders the approved no-trial copy
  *   - pricing hero renders "from $149"
  *   - pricing cards render 2-tier default
  *   - PRICING_TIERS=3 flag flips to render Concierge
@@ -44,10 +44,10 @@ describe("v2 homepage hero", () => {
 
   it("renders the locked primary CTA `Start my filing` and a 'See how it works' secondary CTA", () => {
     const html = ssr(<HomepageHero />);
-    // Primary v2 CTA copy is now "Start my filing"; free-trial language
-    // lives in the supporting priceline microcopy below.
+    // Primary v2 CTA copy is now "Start my filing"; the supporting
+    // priceline states the current no-trial policy.
     expect(html).toContain("Start my filing");
-    expect(html).toContain("7-day free trial");
+    expect(html).toContain("No free trial");
     expect(html).toContain("See how it works");
   });
 
@@ -55,7 +55,7 @@ describe("v2 homepage hero", () => {
     const html = ssr(<HomepageHero />);
     expect(html).toContain("$149 one-time");
     expect(html).toContain("$299/yr");
-    expect(html).toContain("7-day free trial");
+    expect(html).toContain("No free trial");
     expect(html).toContain("30-day money-back guarantee");
     expect(html).toContain("256-bit encrypted");
   });

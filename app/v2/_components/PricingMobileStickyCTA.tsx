@@ -43,7 +43,7 @@ export function PricingMobileStickyCTA() {
         <div className="fs-pr-sticky-price">
           $149<span className="fs-pr-sticky-or"> or $299/yr</span>
         </div>
-        <div className="fs-pr-sticky-meta">7-day free trial · No card</div>
+        <div className="fs-pr-sticky-meta">No free trial · Choose when ready</div>
       </div>
       <button
         type="button"

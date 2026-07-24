@@ -29,11 +29,10 @@ describe("root `/` renders the v2 redesigned homepage", () => {
     expect(html).toContain("without starting with hourly attorney fees.");
   });
 
-  it("renders the locked primary CTA `Start my filing` (with free-trial as microcopy)", () => {
-    // Primary v2 button copy is "Start my filing" everywhere; the
-    // 7-day free trial language survives in the priceline microcopy.
+  it("renders the locked primary CTA `Start my filing` with accurate no-trial microcopy", () => {
+    // Primary v2 button copy is "Start my filing" everywhere.
     expect(html).toContain("Start my filing");
-    expect(html).toContain("7-day free trial");
+    expect(html).toContain("No free trial");
   });
 
   it("renders the v2 header CTA `Start my filing` (not `Free Checklist`)", () => {

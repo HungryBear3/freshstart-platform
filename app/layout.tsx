@@ -24,7 +24,7 @@ const organizationAndWebsiteJsonLd = [
     "@type": "Organization",
     name: "FreshStart IL",
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/icon.svg`,
     description:
       "FreshStart IL guides Illinois residents through uncontested divorce form preparation and filing steps.",
   },

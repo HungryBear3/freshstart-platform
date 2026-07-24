@@ -52,7 +52,7 @@ export function HomepageHero() {
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>7-day free trial</span>
+          <span>No free trial</span>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>

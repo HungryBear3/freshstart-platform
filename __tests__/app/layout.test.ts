@@ -1,4 +1,4 @@
-import { readFileSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import { join } from "path"
 import { metadata } from "../../app/layout"
 
@@ -20,6 +20,10 @@ describe("Homepage metadata", () => {
       ]),
     )
     expect(icons?.some(({ url }) => url.startsWith("data:"))).toBe(false)
+    expect(existsSync(join(process.cwd(), "public/icon.svg"))).toBe(true)
+    expect(readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8")).toContain(
+      'logo: `${siteUrl}/icon.svg`',
+    )
   })
 
   it("renders root JSON-LD as individual objects with @context, not one array payload", () => {
