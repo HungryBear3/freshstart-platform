@@ -34,8 +34,8 @@ const links = [
   {
     href: "/auth/signup",
     icon: Rocket,
-    label: "Start Free 7-Day Trial",
-    sublabel: "Generate all 4 required court forms · $299/year after trial",
+    label: "View Filing Plans",
+    sublabel: "Essential $149 one-time · Plus $299/year",
     primary: false,
   },
   {

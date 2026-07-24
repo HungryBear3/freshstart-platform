@@ -3,7 +3,7 @@
  */
 import * as React from "react"
 import ReactDOMServer from "react-dom/server"
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { PricingProductsJsonLd } from "@/app/v2/_components/JsonLd"
 import { PricingGuaranteeBand } from "@/app/v2/_components/PricingGuaranteeBand"
@@ -53,20 +53,21 @@ describe("pricing Product structured data", () => {
     expect(html).not.toContain("Explore the full product with no card")
   })
 
-  it("contains no positive free-trial claim in rendered or metadata/image sources", () => {
-    const files = [
-      "app/page.tsx",
-      "app/pricing/page.tsx",
-      "app/v2/page.tsx",
-      "app/v2/pricing/page.tsx",
-      "app/dashboard/page.tsx",
-      "app/opengraph-image.tsx",
-      "app/v2/_components/Hero.tsx",
-      "app/v2/_components/PricingHero.tsx",
-      "app/v2/_components/PricingMobileStickyCTA.tsx",
-      "app/v2/_components/HomeView.tsx",
-    ]
-    const source = files.map((file) => readFileSync(join(process.cwd(), file), "utf8")).join("\n")
-    expect(source).not.toMatch(/7-day free trial|explore everything risk-free/i)
+  it("contains no positive free-trial claim anywhere in app source", () => {
+    function sourceFiles(directory: string): string[] {
+      return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const path = join(directory, entry.name)
+        if (entry.isDirectory()) return sourceFiles(path)
+        if (!/\.(ts|tsx)$/.test(entry.name)) return []
+        return [path]
+      })
+    }
+
+    const source = sourceFiles(join(process.cwd(), "app"))
+      .map((file) => readFileSync(file, "utf8"))
+      .join("\n")
+    expect(source).not.toMatch(
+      /7-day free trial|start.{0,20}free trial|after trial|explore everything risk-free/i,
+    )
   })
 })

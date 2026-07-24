@@ -164,10 +164,10 @@ describe("v2 FAQ accordion", () => {
 });
 
 describe("v2 header cross-page nav", () => {
-  it("renders nav links to /v2/pricing and marks the active state on the pricing page", () => {
+  it("renders nav links to canonical /pricing and marks the active state on the pricing page", () => {
     // Primary v2 CTA copy is now "Start my filing" on both pages.
     const home = ssr(<Header page="homepage" ctaLabel="Start my filing" />);
-    expect(home).toMatch(/href="\/v2\/pricing"/);
+    expect(home).toMatch(/href="\/pricing"/);
     expect(home).toContain("Start my filing");
     expect(home).not.toMatch(/fs-nav-active[^"]*"[^>]*>Pricing/);
 
@@ -176,11 +176,11 @@ describe("v2 header cross-page nav", () => {
     expect(pricing).toContain("Start my filing");
   });
 
-  it("links the approved document/sunrise logo back to /v2 from both pages", () => {
+  it("links the approved document/sunrise logo back to / from both pages", () => {
     const home = ssr(<Header page="homepage" ctaLabel="Start my filing" />);
     const pricing = ssr(<Header page="pricing" ctaLabel="Start my filing" />);
-    expect(home).toMatch(/href="\/v2"/);
-    expect(pricing).toMatch(/href="\/v2"/);
+    expect(home).toMatch(/href="\/"/);
+    expect(pricing).toMatch(/href="\/"/);
     expect(home).toContain("FreshStart");
     expect(home).toContain("IL</span>");
     expect(home).toContain("A4.9 4.9 0 0 1");
