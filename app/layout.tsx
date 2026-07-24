@@ -3,8 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { FAVICON_DATA_URL } from "@/lib/favicon-base64"
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata"
+import { SITE_URL } from "@/lib/site-url"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://freshstart-il.com"
+const siteUrl = SITE_URL
 const homepageTitle = "FreshStart IL — Your Illinois divorce, filed right, from $149"
 const organizationAndWebsiteJsonLd = [
   {
@@ -66,7 +66,11 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   icons: {
-    icon: { url: FAVICON_DATA_URL, type: "image/png", sizes: "32x32" },
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
   },
 }
 

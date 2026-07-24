@@ -1,10 +1,11 @@
 import { getAllPosts } from '@/lib/blog'
+import { SITE_URL } from '@/lib/site-url'
 
 export const dynamic = 'force-static'
 
 export function GET() {
   const posts = getAllPosts()
-  const siteUrl = 'https://freshstart-il.com'
+  const siteUrl = SITE_URL
 
   const items = posts
     .map(

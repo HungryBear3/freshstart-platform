@@ -1,7 +1,8 @@
 import * as React from "react";
+import { SITE_URL } from "@/lib/site-url";
 import type { PricingTier } from "./tiers";
 
-const SITE_URL = "https://freshstart-il.com";
+const PRODUCT_IMAGE_URL = `${SITE_URL}/opengraph-image`;
 
 export function OrganizationAndWebsiteJsonLd() {
   const blocks = [
@@ -47,25 +48,13 @@ export function PricingProductsJsonLd({ tiers }: { tiers: PricingTier[] }) {
     name: `FreshStart IL — ${tier.name}`,
     description: tier.tagline,
     brand: { "@type": "Brand", name: "FreshStart IL" },
+    image: PRODUCT_IMAGE_URL,
     offers: {
       "@type": "Offer",
       priceCurrency: "USD",
       price: tier.priceNumber.toFixed(2),
       url: `${SITE_URL}/pricing`,
       availability: "https://schema.org/InStock",
-      // Surface the 7-day free trial as a priceSpecification per the brief.
-      priceSpecification: {
-        "@type": "UnitPriceSpecification",
-        price: tier.priceNumber.toFixed(2),
-        priceCurrency: "USD",
-        unitText: tier.period,
-        referenceQuantity: {
-          "@type": "QuantitativeValue",
-          value: 7,
-          unitCode: "DAY",
-          name: "Free trial period",
-        },
-      },
     },
   }));
   return (

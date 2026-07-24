@@ -36,9 +36,8 @@ dirEntry.writeUInt32LE(pngData.length, 8)
 dirEntry.writeUInt32LE(22, 12)
 
 // Write ONLY to public/ - do NOT write app/favicon.ico.
-// app/favicon.ico causes Next.js to unshift it to metadata.icons, emitting
-// /favicon.ico?favicon.HASH.ico which overrides our base64 icon. Keeping only
-// metadata.icons (base64 in layout) + public/favicon.ico for /favicon.ico requests.
+// The root metadata publishes this stable public URL alongside the SVG and PNG
+// variants, while avoiding Next.js's hashed app/favicon.ico metadata URL.
 const publicDir = path.join(__dirname, "..", "public")
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true })
 const publicFaviconPath = path.join(publicDir, "favicon.ico")

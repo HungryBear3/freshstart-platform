@@ -1,18 +1,9 @@
 import type { MetadataRoute } from "next"
 import { getAllPosts } from "@/lib/blog"
+import { SITE_URL } from "@/lib/site-url"
 
-// Canonical site URL. The production deploy is served from
-// https://freshstart-il.com — the apex domain — so the sitemap lives at
-// https://freshstart-il.com/sitemap.xml. Override via NEXT_PUBLIC_SITE_URL
-// for preview deploys when you want the sitemap pointing at the preview
-// host (rarely useful — most preview audits should still link at prod).
-const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  "https://freshstart-il.com"
-).replace(/\/$/, "")
-
+// Search engines should see one stable production host even when this route is
+// rendered during a preview build.
 function url(path: string): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`
 }
