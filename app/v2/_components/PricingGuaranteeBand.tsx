@@ -14,10 +14,10 @@ const items = [
     body: "FreshStart is available for Illinois residents in all 102 counties.",
   },
   {
-    num: "7",
-    unit: "days",
-    title: "Free trial",
-    body: "Explore the full product with no card. Decide after, not before.",
+    num: "No",
+    unit: "trial",
+    title: "Pay when ready",
+    body: "There is no free trial. Choose a plan only when you are ready to move forward.",
   },
 ];
 

@@ -1,4 +1,5 @@
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
+import { SITE_URL } from '@/lib/site-url'
 import { notFound } from 'next/navigation'
 
 export async function generateStaticParams() {
@@ -43,7 +44,7 @@ export default async function BlogPostPage({ params }: BlogPostPageParams) {
     publisher: {
       "@type": "Organization",
       name: "FreshStart IL",
-      url: "https://freshstart-il.com",
+      url: SITE_URL,
     },
   }
 

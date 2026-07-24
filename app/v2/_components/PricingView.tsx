@@ -58,9 +58,8 @@ export function PricingView() {
       <PricingProductsJsonLd tiers={tiers} />
       <PageView page="pricing" variant={`pricing-${count}-tier`} />
       {/*
-        Primary CTA across v2 is "Start my filing". Free-trial language is
-        kept as supporting microcopy (priceline + 30-day money-back band),
-        not as a button label. We do NOT surface a `Free Checklist` link
+        Primary CTA across v2 is "Start my filing". The no-trial policy is
+        kept as supporting microcopy, not as a button label. We do NOT surface a `Free Checklist` link
         or checklist capture above the tiers; the only checklist capture
         lives below the homepage FAQ.
       */}

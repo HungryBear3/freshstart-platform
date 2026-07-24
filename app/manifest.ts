@@ -1,9 +1,7 @@
 import type { MetadataRoute } from "next"
+import { SITE_URL } from "@/lib/site-url"
 
-const baseUrl =
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  "https://www.freshstart-il.com"
+const baseUrl = SITE_URL
 
 export default function manifest(): MetadataRoute.Manifest {
   return {

@@ -5,7 +5,7 @@ import { analytics } from "./analytics";
 import { beginSignupFirstCheckout } from "./checkout-intent";
 
 // Primary CTA copy is "Start my filing" across the v2 surface. The
-// 7-day free-trial language lives in the priceline microcopy below.
+// priceline states the current no-trial policy.
 const HERO_CTA_LABEL = "Start my filing";
 
 export function HomepageHero() {
@@ -52,7 +52,7 @@ export function HomepageHero() {
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>7-day free trial</span>
+          <span>No free trial</span>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>

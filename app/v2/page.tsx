@@ -6,7 +6,7 @@ import { HomeView } from "./_components/HomeView";
 export const metadata: Metadata = {
   title: "FreshStart IL — Your Illinois divorce, filed right, from $149",
   description:
-    "Illinois divorce form drafts and step-by-step filing guidance available in all 102 counties. 7-day free trial, 30-day money-back guarantee.",
+    "Illinois divorce form drafts and step-by-step filing guidance available in all 102 counties. Plans start at $149.",
   alternates: { canonical: "/" },
 };
 

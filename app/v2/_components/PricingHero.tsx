@@ -17,11 +17,11 @@ export function PricingHero() {
           your case is moving.
         </p>
         <div className="fs-priceline" aria-label="Plan benefits">
-          <strong>7-day free trial</strong>
+          <strong>No free trial</strong>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>No card required</span>
+          <span>Choose a plan when ready</span>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>

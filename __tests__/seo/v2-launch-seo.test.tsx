@@ -107,9 +107,9 @@ describe("v2 SEO — sitemap excludes preview / redirected routes", () => {
     }
   });
 
-  it("uses the canonical apex domain (freshstart-il.com, not www.)", () => {
+  it("uses only the canonical www domain", () => {
     for (const u of urls) {
-      expect(u).toMatch(/^https:\/\/(?:www\.)?freshstart-il\.com(?:\/.*)?$/);
+      expect(u).toMatch(/^https:\/\/www\.freshstart-il\.com(?:\/.*)?$/);
     }
   });
 });
@@ -308,7 +308,7 @@ describe("v2 SEO — homepage SSR HTML contains JSON-LD", () => {
   });
 
   it("Organization references the canonical site URL", () => {
-    expect(html).toMatch(/"url":"https:\/\/freshstart-il\.com"/);
+    expect(html).toMatch(/"url":"https:\/\/www\.freshstart-il\.com"/);
   });
 });
 

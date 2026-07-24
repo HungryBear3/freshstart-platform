@@ -35,7 +35,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What if I don't finish?",
-    a: "Your progress is saved automatically. The 7-day free trial lets you explore everything risk-free. The 30-day money-back guarantee means if it's not right for you, you get a full refund.",
+    a: "Your progress is saved automatically. There is no free trial; choose a plan only when you are ready to move forward. Refund requests are handled under our published refund policy.",
   },
 ];
 

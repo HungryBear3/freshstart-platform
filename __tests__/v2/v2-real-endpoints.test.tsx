@@ -105,6 +105,14 @@ describe("signup-first checkout intent", () => {
     expect(planForTier("concierge")).toBe("annual");
   });
 
+  it("keeps annual checkout as a subscription without creating a free trial", () => {
+    const src = readSource("app/api/stripe/create-checkout-session/route.ts");
+    expect(src).toMatch(/isSubscription\s*=\s*plan === "annual"/);
+    expect(src).toMatch(/mode:\s*isSubscription \? "subscription" : "payment"/);
+    expect(src).toMatch(/sessionParams\.subscription_data\s*=/);
+    expect(src).not.toMatch(/trial_period_days/);
+  });
+
   it("builds a signup URL that preserves plan and source without hitting Stripe", () => {
     const url = buildSignupFirstCheckoutUrl({ plan: "one_time", source: "pricing_tier_essential" });
     expect(url).toContain("/auth/signup?");

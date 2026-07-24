@@ -29,11 +29,10 @@ describe("root `/` renders the v2 redesigned homepage", () => {
     expect(html).toContain("without starting with hourly attorney fees.");
   });
 
-  it("renders the locked primary CTA `Start my filing` (with free-trial as microcopy)", () => {
-    // Primary v2 button copy is "Start my filing" everywhere; the
-    // 7-day free trial language survives in the priceline microcopy.
+  it("renders the locked primary CTA `Start my filing` with accurate no-trial microcopy", () => {
+    // Primary v2 button copy is "Start my filing" everywhere.
     expect(html).toContain("Start my filing");
-    expect(html).toContain("7-day free trial");
+    expect(html).toContain("No free trial");
   });
 
   it("renders the v2 header CTA `Start my filing` (not `Free Checklist`)", () => {
@@ -115,7 +114,7 @@ describe("root metadata is production-canonical and share-copy aligned", () => {
   const layout = read("app/layout.tsx");
 
   it("defaults metadataBase/canonical to the production domain, not Vercel preview or auth URLs", () => {
-    expect(layout).toMatch(/NEXT_PUBLIC_SITE_URL\s*\|\|\s*"https:\/\/freshstart-il\.com"/);
+    expect(layout).toMatch(/siteUrl\s*=\s*SITE_URL/);
     expect(layout).toMatch(/metadataBase:\s*new URL\(siteUrl\)/);
     expect(layout).toMatch(/canonical:\s*"\/"/);
     expect(layout).not.toMatch(/metadataBase:[\s\S]*NEXTAUTH_URL/);

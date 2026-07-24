@@ -231,7 +231,7 @@ export default async function DashboardPage() {
   const getNextAction = () => {
     if (!hasActiveSubscription) {
       return { 
-        title: 'Start Your Free Trial', 
+        title: 'Choose a Filing Plan',
         description: 'Subscribe to access all features',
         href: '/pricing',
         icon: CreditCard,
@@ -298,13 +298,13 @@ export default async function DashboardPage() {
                       Complete Your Subscription
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Start your 7-day free trial to access all FreshStart IL features
+                      Choose a plan when you are ready to access FreshStart IL features
                     </p>
                   </div>
                 </div>
                 <Link href="/pricing">
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                    Start Free Trial
+                    View Plans
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
