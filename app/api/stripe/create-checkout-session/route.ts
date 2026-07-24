@@ -89,7 +89,6 @@ export async function POST(request: NextRequest) {
 
       if (isSubscription) {
         sessionParams.subscription_data = {
-          trial_period_days: 7,
           metadata,
         }
       }

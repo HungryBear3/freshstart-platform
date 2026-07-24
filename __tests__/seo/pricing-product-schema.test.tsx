@@ -67,7 +67,7 @@ describe("pricing Product structured data", () => {
       .map((file) => readFileSync(file, "utf8"))
       .join("\n")
     expect(source).not.toMatch(
-      /7-day free trial|start.{0,20}free trial|after trial|explore everything risk-free/i,
+      /7-day free trial|start.{0,20}free trial|after trial|explore everything risk-free|trial_period_days/i,
     )
   })
 })
