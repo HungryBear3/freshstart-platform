@@ -136,11 +136,12 @@ export default function CourtFormsLibraryPage() {
         
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <Scale className="h-8 w-8 text-primary" />
-          Illinois Court Forms Library
+          Illinois Divorce Forms Library
         </h1>
         <p className="text-muted-foreground text-lg">
-          Official Illinois Supreme Court approved standardized divorce and family law forms. 
-          These forms are required to be accepted by all Illinois Circuit Courts.
+          Official forms used in Illinois divorce and family-law workflows. Most are Illinois Supreme Court
+          approved standardized forms; federal companion forms are labeled separately. Filing requirements
+          depend on the form, case, and court.
         </p>
       </div>
 
@@ -279,10 +280,11 @@ export default function CourtFormsLibraryPage() {
               <ExternalLink className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Official Source</h3>
+              <h3 className="font-semibold mb-1">Official Sources</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                All forms are sourced from the Illinois Courts website. For the most up-to-date 
-                versions and additional forms, visit the official site.
+                Each form card links to its official source. Most forms come from Illinois Courts; the federal
+                Income Withholding for Support companion comes from HHS/OCSS. Check the applicable source for
+                current versions and filing requirements.
               </p>
               <Button variant="outline" asChild>
                 <a 
@@ -349,10 +351,25 @@ function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProp
                 All Cases
               </span>
             )}
+            {form.conditionalUse && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">
+                Conditional use
+              </span>
+            )}
+            {form.sourceAuthority === 'federal-hhs' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-sky-100 text-sky-800">
+                Federal HHS/OCSS source
+              </span>
+            )}
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
               v{form.version}
             </span>
           </div>
+          {form.conditionalUse && (
+            <p className="mt-2 text-sm font-medium text-amber-800">
+              Use only when the case-specific support conditions apply; this is not a universal divorce-packet form.
+            </p>
+          )}
 
           {/* Questionnaire Link */}
           {hasQuestionnaire && (
