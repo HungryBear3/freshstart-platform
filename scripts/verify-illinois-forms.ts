@@ -24,6 +24,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { ILLINOIS_COURT_FORMS } from "../lib/forms/illinois-court-forms";
 
@@ -37,6 +38,11 @@ export interface CatalogEntry {
   officialUrl: string;
   version: string;
   lastUpdated: string;
+  sourceAuthority?: "illinois-courts" | "federal-hhs";
+  artifactSha256?: string;
+  artifactSizeBytes?: number;
+  expiresOn?: string;
+  conditionalUse?: boolean;
 }
 
 export interface ManifestVerification {
@@ -56,6 +62,11 @@ export interface ManifestEntry {
   catalogVersion: string;
   catalogLastUpdated: string;
   verification: ManifestVerification | null;
+  sourceAuthority?: "illinois-courts" | "federal-hhs";
+  artifactSha256?: string;
+  artifactSizeBytes?: number;
+  expiresOn?: string;
+  conditionalUse?: boolean;
 }
 
 export interface Manifest {
@@ -82,6 +93,11 @@ export interface DiffResult {
     catalogUrl: string;
     manifestUrl: string;
   }>;
+  provenanceMismatches: Array<{
+    id: string;
+    catalog: Record<string, unknown>;
+    manifest: Record<string, unknown>;
+  }>;
   ok: boolean;
 }
 
@@ -96,7 +112,61 @@ export function catalogFromForms(): CatalogEntry[] {
     officialUrl: f.officialUrl,
     version: f.version,
     lastUpdated: f.lastUpdated,
+    sourceAuthority: f.sourceAuthority,
+    artifactSha256: f.artifactSha256,
+    artifactSizeBytes: f.artifactSizeBytes,
+    expiresOn: f.expiresOn,
+    conditionalUse: f.conditionalUse,
   }));
+}
+
+export interface ArtifactCheckResult {
+  id: string;
+  ok: boolean;
+  errors: string[];
+}
+
+const FORM_EXPIRATION_TIME_ZONE = "America/Chicago";
+
+function calendarDateInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export function verifyPinnedArtifactBytes(
+  entry: CatalogEntry,
+  bytes: Buffer,
+  asOf: Date = new Date(),
+): ArtifactCheckResult {
+  const errors: string[] = [];
+  if (!entry.artifactSha256 || entry.artifactSizeBytes === undefined) {
+    errors.push("artifact is not SHA/size pinned");
+  } else {
+    if (bytes.length !== entry.artifactSizeBytes) {
+      errors.push(`size mismatch: expected ${entry.artifactSizeBytes}, got ${bytes.length}`);
+    }
+    const actualSha = crypto.createHash("sha256").update(bytes).digest("hex");
+    if (actualSha !== entry.artifactSha256) {
+      errors.push(`SHA-256 mismatch: expected ${entry.artifactSha256}, got ${actualSha}`);
+    }
+  }
+  if (!bytes.subarray(0, 5).equals(Buffer.from("%PDF-"))) {
+    errors.push("artifact does not have a PDF signature");
+  }
+  if (
+    entry.expiresOn &&
+    calendarDateInTimeZone(asOf, FORM_EXPIRATION_TIME_ZONE) > entry.expiresOn
+  ) {
+    errors.push(`artifact expired on ${entry.expiresOn}`);
+  }
+  return { id: entry.id, ok: errors.length === 0, errors };
 }
 
 export function diffCatalogVsManifest(
@@ -110,6 +180,7 @@ export function diffCatalogVsManifest(
   const removedFromCatalog: ManifestEntry[] = [];
   const versionMismatches: DiffResult["versionMismatches"] = [];
   const urlMismatches: DiffResult["urlMismatches"] = [];
+  const provenanceMismatches: DiffResult["provenanceMismatches"] = [];
 
   for (const c of catalog) {
     const m = manifestById.get(c.id);
@@ -134,6 +205,27 @@ export function diffCatalogVsManifest(
         manifestUrl: m.officialUrl,
       });
     }
+    const catalogProvenance = {
+      sourceAuthority: c.sourceAuthority,
+      artifactSha256: c.artifactSha256,
+      artifactSizeBytes: c.artifactSizeBytes,
+      expiresOn: c.expiresOn,
+      conditionalUse: c.conditionalUse,
+    };
+    const manifestProvenance = {
+      sourceAuthority: m.sourceAuthority,
+      artifactSha256: m.artifactSha256,
+      artifactSizeBytes: m.artifactSizeBytes,
+      expiresOn: m.expiresOn,
+      conditionalUse: m.conditionalUse,
+    };
+    if (JSON.stringify(catalogProvenance) !== JSON.stringify(manifestProvenance)) {
+      provenanceMismatches.push({
+        id: c.id,
+        catalog: catalogProvenance,
+        manifest: manifestProvenance,
+      });
+    }
   }
   for (const m of manifest.forms) {
     if (!catalogById.has(m.id)) {
@@ -146,11 +238,13 @@ export function diffCatalogVsManifest(
     removedFromCatalog,
     versionMismatches,
     urlMismatches,
+    provenanceMismatches,
     ok:
       addedInCatalog.length === 0 &&
       removedFromCatalog.length === 0 &&
       versionMismatches.length === 0 &&
-      urlMismatches.length === 0,
+      urlMismatches.length === 0 &&
+      provenanceMismatches.length === 0,
   };
 }
 
@@ -186,6 +280,12 @@ export function formatDiffReport(diff: DiffResult): string {
       lines.push(`  ~ ${u.id}`);
       lines.push(`      catalog : ${u.catalogUrl}`);
       lines.push(`      manifest: ${u.manifestUrl}`);
+    }
+  }
+  if (diff.provenanceMismatches.length) {
+    lines.push(`Pinned provenance drift (${diff.provenanceMismatches.length}):`);
+    for (const p of diff.provenanceMismatches) {
+      lines.push(`  ~ ${p.id}`);
     }
   }
   return lines.join("\n");
@@ -241,19 +341,40 @@ interface FetchResult {
   notes: string | null;
 }
 
+export function isAcceptableOfficialResponse(
+  url: string,
+  status: number,
+  contentType: string | null,
+  wafAction: string | null,
+): boolean {
+  if (status < 200 || status >= 300 || wafAction) return false;
+  if (/\.pdf(?:$|[?#])/i.test(url)) {
+    return contentType?.toLowerCase().includes("application/pdf") ?? false;
+  }
+  return true;
+}
+
 async function fetchUrlHead(url: string): Promise<FetchResult> {
   try {
     const res = await fetch(url, { method: "HEAD", redirect: "follow" });
     const ct = res.headers.get("content-type");
     const lm = res.headers.get("last-modified");
     const et = res.headers.get("etag");
+    const wafAction = res.headers.get("x-amzn-waf-action");
+    const reachable = isAcceptableOfficialResponse(url, res.status, ct, wafAction);
     return {
       httpStatus: res.status,
       contentType: ct,
       lastModified: lm,
       etag: et,
-      reachable: res.ok,
-      notes: res.ok ? null : `HEAD returned ${res.status}`,
+      reachable,
+      notes: reachable
+        ? null
+        : wafAction
+          ? `HEAD returned WAF action ${wafAction}`
+          : /\.pdf(?:$|[?#])/i.test(url) && !ct?.toLowerCase().includes("application/pdf")
+            ? `HEAD did not return a PDF (${res.status} ${ct ?? "no content-type"})`
+            : `HEAD returned ${res.status}`,
     };
   } catch (err) {
     return {
@@ -306,6 +427,12 @@ function renderFreshnessReport(manifest: Manifest, diff: DiffResult): string {
         lines.push(`  - \`${u.id}\` — catalog \`${u.catalogUrl}\` vs manifest \`${u.manifestUrl}\``);
       }
     }
+    if (diff.provenanceMismatches.length) {
+      lines.push(`- ⚠️ ${diff.provenanceMismatches.length} pinned-provenance drifts:`);
+      for (const p of diff.provenanceMismatches) {
+        lines.push(`  - \`${p.id}\``);
+      }
+    }
   }
   lines.push("");
   lines.push("## Per-form verification");
@@ -349,6 +476,29 @@ function parseArgv(argv: string[]): CliFlags {
   };
 }
 
+export function verifyPinnedArtifactsOnDisk(
+  formsDir: string,
+  asOf: Date = new Date(),
+): ArtifactCheckResult[] {
+  const catalog = catalogFromForms();
+  return ILLINOIS_COURT_FORMS.filter((form) => form.artifactSha256).map((form) => {
+    const entry = catalog.find((candidate) => candidate.id === form.id)!;
+    try {
+      return verifyPinnedArtifactBytes(
+        entry,
+        fs.readFileSync(path.join(formsDir, form.filename)),
+        asOf,
+      );
+    } catch (error) {
+      return {
+        id: form.id,
+        ok: false,
+        errors: [`artifact read failed: ${(error as Error).message}`],
+      };
+    }
+  });
+}
+
 async function main() {
   const flags = parseArgv(process.argv.slice(2));
   if (flags.help) {
@@ -359,19 +509,28 @@ async function main() {
   const catalog = catalogFromForms();
   const manifest = readManifest();
   const diff = diffCatalogVsManifest(catalog, manifest);
+  const artifactChecks = verifyPinnedArtifactsOnDisk(path.join(REPO_ROOT, "public", "forms"));
+  const artifactsOk = artifactChecks.every((check) => check.ok);
 
   console.log("Illinois court forms verifier");
   console.log(`  catalog : ${catalog.length} forms (lib/forms/illinois-court-forms.ts)`);
   console.log(`  manifest: ${manifest.forms.length} forms (docs/legal-audit/illinois-court-forms-manifest.json)`);
   console.log("");
   console.log(formatDiffReport(diff));
+  if (artifactChecks.length) {
+    console.log("");
+    console.log("Pinned local artifacts:");
+    for (const check of artifactChecks) {
+      console.log(`  ${check.ok ? "✅" : "❌"} ${check.id}${check.errors.length ? ` — ${check.errors.join("; ")}` : ""}`);
+    }
+  }
 
   if (!flags.fetch) {
-    if (!diff.ok) {
+    if (!diff.ok || !artifactsOk) {
       console.log("");
-      console.log("Offline mode found drift. Review the items above and either:");
-      console.log("  1) update lib/forms/illinois-court-forms.ts after verifying against illinoiscourts.gov, or");
-      console.log("  2) update docs/legal-audit/illinois-court-forms-manifest.json after operator sign-off.");
+      console.log("Offline mode found catalog/manifest drift or invalid pinned artifacts. Review the items above and either:");
+      console.log("  1) update the catalog only after official-source verification, or");
+      console.log("  2) update the manifest/pinned artifact only after operator sign-off.");
       process.exit(1);
     }
     process.exit(0);
@@ -406,6 +565,7 @@ async function main() {
     forms: updatedForms,
   };
   const nextDiff = diffCatalogVsManifest(catalog, nextManifest);
+  const sourcesOk = updatedForms.every((entry) => entry.verification?.reachable);
 
   if (!flags.reportOnly) {
     writeManifest(nextManifest);
@@ -418,7 +578,7 @@ async function main() {
     console.log("--report-only: skipped writing manifest/report.");
   }
 
-  process.exit(nextDiff.ok ? 0 : 1);
+  process.exit(nextDiff.ok && artifactsOk && sourcesOk ? 0 : 1);
 }
 
 // Only run when executed as a script (not when imported by tests).

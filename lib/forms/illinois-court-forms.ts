@@ -19,6 +19,11 @@ export interface CourtForm {
   requiredFor: ('with_children' | 'no_children' | 'both')[]
   instructions?: string
   relatedQuestionnaires: string[]
+  sourceAuthority?: 'illinois-courts' | 'federal-hhs'
+  artifactSha256?: string
+  artifactSizeBytes?: number
+  expiresOn?: string
+  conditionalUse?: boolean
 }
 
 export type FormCategory = 
@@ -335,15 +340,20 @@ export const ILLINOIS_COURT_FORMS: CourtForm[] = [
   },
   {
     id: 'income-withholding-order',
-    name: 'Income Withholding for Support Order',
-    description: 'Order directing employer to withhold support from wages.',
+    name: 'Income Withholding for Support',
+    description: 'Federal notice used to direct an employer or other income withholder to withhold support.',
     category: 'support',
     filename: 'income-withholding-order.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Required in most cases where support is ordered.',
+    officialUrl: 'https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf',
+    version: 'OMB 0970-0154',
+    lastUpdated: '2025-04-25',
+    requiredFor: [],
+    instructions: 'Conditional companion used after a signed support order when the person paying support is employed and the employer is known. Do not use for maintenance-only cases.',
+    sourceAuthority: 'federal-hhs',
+    artifactSha256: '2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551',
+    artifactSizeBytes: 505412,
+    expiresOn: '2026-08-31',
+    conditionalUse: true,
     relatedQuestionnaires: ['financial-information']
   }
 ]
@@ -425,7 +435,11 @@ Required files:
 - judgment-dissolution-with-children.pdf
 - marital-settlement-agreement.pdf
 - child-support-order.pdf
-- income-withholding-order.pdf
+
+## Federal Income Withholding Form
+Download from: https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf
+
+- income-withholding-order.pdf (OMB 0970-0154; conditional use; verify pinned SHA-256 and expiration)
 
 ## Financial Affidavit Forms
 Download from: https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/

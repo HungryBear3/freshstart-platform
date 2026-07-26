@@ -1,11 +1,12 @@
 {
   "$schema": "./illinois-court-forms-manifest.schema (informal)",
-  "description": "Verified snapshot of the Illinois Supreme Court approved standardized forms catalog used by FreshStart. Compared against lib/forms/illinois-court-forms.ts by scripts/verify-illinois-forms.ts. The `verification` block per form is updated only by `--fetch` mode (operator-run). Catalog values (version/lastUpdated) are NEVER auto-rewritten by the script; mismatches are flagged for human review.",
+  "description": "Verified snapshot of the official form catalog used by FreshStart. Most entries are Illinois Supreme Court approved standardized forms; federal companion forms identify their separate authority. Compared against lib/forms/illinois-court-forms.ts by scripts/verify-illinois-forms.ts. The `verification` block per form is updated only by `--fetch` mode (operator-run). Catalog values (version/lastUpdated) are NEVER auto-rewritten by the script; mismatches are flagged for human review.",
   "lastFetchedAt": null,
   "lastFetchedBy": null,
   "officialSources": [
     "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
-    "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/"
+    "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/",
+    "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf"
   ],
   "forms": [
     {
@@ -170,10 +171,15 @@
     },
     {
       "id": "income-withholding-order",
-      "name": "Income Withholding for Support Order",
-      "officialUrl": "https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/",
-      "catalogVersion": "2024",
-      "catalogLastUpdated": "2024-01-01",
+      "name": "Income Withholding for Support",
+      "officialUrl": "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+      "catalogVersion": "OMB 0970-0154",
+      "catalogLastUpdated": "2025-04-25",
+      "sourceAuthority": "federal-hhs",
+      "artifactSha256": "2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551",
+      "artifactSizeBytes": 505412,
+      "expiresOn": "2026-08-31",
+      "conditionalUse": true,
       "verification": null
     }
   ]
