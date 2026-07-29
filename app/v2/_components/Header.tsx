@@ -11,7 +11,7 @@ export function Header({ page, ctaLabel }: { page: AnalyticsPage; ctaLabel: stri
 
   const onCta = () => {
     analytics.track({ name: "cta_click", page, location: "header", label: ctaLabel });
-    beginSignupFirstCheckout({ plan: "annual", source: `${page}_header` });
+    beginSignupFirstCheckout({ plan: "one_time", source: `${page}_header` });
   };
 
   const onBurger = () => setMenuOpen((v) => !v);

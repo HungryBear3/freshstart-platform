@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: BlogPostPageParams) {
       title: post.title,
       description: post.description,
       url: `/blog/${slug}`,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "FreshStart-IL — Illinois divorce, filed right." }],
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "FreshStart-IL — Illinois divorce form preparation." }],
     },
     twitter: {
       card: "summary_large_image",

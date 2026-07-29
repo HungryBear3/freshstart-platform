@@ -9,7 +9,7 @@ import { ImageResponse } from "next/og"
 // Pure SSR generation — no runtime dependencies, no static asset pipeline.
 // The build embeds this as a static-ish endpoint per route.
 export const runtime = "edge"
-export const alt = "FreshStart IL — Illinois divorce, filed right."
+export const alt = "FreshStart IL — Illinois divorce form preparation."
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -64,7 +64,7 @@ export default function OpengraphImage() {
             letterSpacing: "-0.02em",
           }}
         >
-          Your Illinois divorce, filed right.
+          We prepare your forms. You file them.
         </div>
         <div
           style={{
@@ -75,7 +75,8 @@ export default function OpengraphImage() {
             maxWidth: "880px",
           }}
         >
-          Illinois divorce form drafts and step-by-step filing guidance — plans start at $149.
+          Illinois uncontested-divorce form drafts and filing guidance — $149 one-time,
+          no subscription.
         </div>
       </div>
     ),

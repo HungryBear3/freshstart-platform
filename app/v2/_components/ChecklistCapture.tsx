@@ -54,11 +54,11 @@ export function ChecklistCapture() {
       <div className="fs-cap-inner">
         <div className="fs-cap-tag">Free download</div>
         <h3 id="cap-title" className="fs-cap-title">
-          The Illinois Divorce Checklist — county-specific.
+          A general Illinois divorce checklist.
         </h3>
         <p className="fs-cap-sub">
-          A printable, county-aware checklist so you know exactly what to gather before filing. No
-          commitment.
+          A printable overview of common documents and filing checkpoints. Verify current
+          requirements with your circuit clerk before filing. No commitment.
         </p>
         <form className="fs-cap-form" onSubmit={onSubmit} noValidate>
           <label className="fs-sr" htmlFor="checklist-email">

@@ -28,8 +28,8 @@ export function PricingMobileStickyCTA() {
   }, []);
 
   const onClick = () => {
-    analytics.track({ name: "mobile_sticky_cta_click", page: "pricing", tier: "plus" });
-    beginSignupFirstCheckout({ plan: "annual", source: "pricing_mobile_sticky" });
+    analytics.track({ name: "mobile_sticky_cta_click", page: "pricing", tier: "essential" });
+    beginSignupFirstCheckout({ plan: "one_time", source: "pricing_mobile_sticky" });
   };
 
   return (
@@ -41,9 +41,9 @@ export function PricingMobileStickyCTA() {
     >
       <div className="fs-pr-sticky-l">
         <div className="fs-pr-sticky-price">
-          $149<span className="fs-pr-sticky-or"> or $299/yr</span>
+          $149<span className="fs-pr-sticky-or"> one-time</span>
         </div>
-        <div className="fs-pr-sticky-meta">No free trial · Choose when ready</div>
+        <div className="fs-pr-sticky-meta">No subscription · 30-day refund policy</div>
       </div>
       <button
         type="button"

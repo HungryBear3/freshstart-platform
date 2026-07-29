@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FreshStart IL — Illinois Divorce Guidance",
     description:
-      "Illinois-specific divorce guidance. Free checklist, calculators, and auto-generated court forms.",
+      "Illinois-specific divorce guidance, a general checklist, calculators, and supported form drafts.",
     images: [DEFAULT_OG_IMAGE],
   },
 }
@@ -28,14 +28,14 @@ const links = [
     href: "/checklist",
     icon: ClipboardList,
     label: "Free Illinois Divorce Checklist",
-    sublabel: "Required forms, fees, deadlines — instant email delivery",
+    sublabel: "Common documents and filing checkpoints — instant email delivery",
     primary: true,
   },
   {
-    href: "/auth/signup",
+    href: "/pricing",
     icon: Rocket,
-    label: "View Filing Plans",
-    sublabel: "Essential $149 one-time · Plus $299/year",
+    label: "View Filing Option",
+    sublabel: "$149 one-time · No subscription",
     primary: false,
   },
   {

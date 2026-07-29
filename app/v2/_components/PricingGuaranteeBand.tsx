@@ -2,16 +2,16 @@ import * as React from "react";
 
 const items = [
   {
-    num: "30",
-    unit: "days",
-    title: "Money-back guarantee",
-    body: "Full refund within 30 days, no questions, no recovery emails.",
+    num: "$149",
+    unit: "one-time",
+    title: "No subscription",
+    body: "One simple price. No subscription and no recurring billing — you pay once.",
   },
   {
-    num: "102",
-    unit: "counties",
-    title: "Available statewide",
-    body: "FreshStart is available for Illinois residents in all 102 counties.",
+    num: "IL",
+    unit: "focused",
+    title: "Illinois workflow",
+    body: "Built for straightforward uncontested Illinois divorce paperwork and filing guidance.",
   },
   {
     num: "No",
@@ -23,7 +23,7 @@ const items = [
 
 export function PricingGuaranteeBand() {
   return (
-    <section className="fs-pr-guarantee" aria-label="Guarantees">
+    <section className="fs-pr-guarantee" aria-label="Pricing and scope details">
       <div className="fs-section-inner">
         <div className="fs-pr-guarantee-grid">
           {items.map((it) => (

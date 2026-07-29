@@ -4,9 +4,9 @@ import { metadata } from "../../app/layout"
 
 describe("Homepage metadata", () => {
   it("has user-focused description texts", () => {
-    expect(metadata.description).toContain("Simplify")
-    expect((metadata.openGraph as { description?: string }).description).toContain("Simplify")
-    expect((metadata.twitter as { description?: string }).description).toContain("Simplify")
+    expect(metadata.description).toContain("supported Illinois uncontested-divorce form drafts")
+    expect((metadata.openGraph as { description?: string }).description).toContain("supported Illinois uncontested-divorce form drafts")
+    expect((metadata.twitter as { description?: string }).description).toContain("Supported Illinois uncontested-divorce form drafts")
   })
 
   it("uses the canonical www host and publishes crawlable favicon URLs", () => {

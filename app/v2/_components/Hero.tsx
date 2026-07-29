@@ -5,7 +5,7 @@ import { analytics } from "./analytics";
 import { beginSignupFirstCheckout } from "./checkout-intent";
 
 // Primary CTA copy is "Start my filing" across the v2 surface. The
-// priceline states the current no-trial policy.
+// priceline states the current one-time, no-subscription policy.
 const HERO_CTA_LABEL = "Start my filing";
 
 export function HomepageHero() {
@@ -16,7 +16,7 @@ export function HomepageHero() {
       location: "hero",
       label: HERO_CTA_LABEL,
     });
-    beginSignupFirstCheckout({ plan: "annual", source: "homepage_hero" });
+    beginSignupFirstCheckout({ plan: "one_time", source: "homepage_hero" });
   };
   const onSecondary = () => {
     analytics.track({
@@ -34,29 +34,25 @@ export function HomepageHero() {
       <div className="fs-hero-inner">
         <div className="fs-eyebrow">
           <span className="fs-eyebrow-dot" aria-hidden="true" />
-          Available in all 102 Illinois counties
+          For straightforward uncontested Illinois divorces
         </div>
         <h1 id="hero-h1" className="fs-h1">
-          Your Illinois divorce, filed right —{" "}
-          <span className="fs-h1-accent">without starting with hourly attorney fees.</span>
+          We prepare your forms. <span className="fs-h1-accent">You file them.</span>
         </h1>
         <p className="fs-sub">
-          Illinois form drafts, step-by-step guidance, and a filing roadmap. Straightforward
-          uncontested cases can often complete a first draft in one focused session when their
-          information is ready.
+          FreshStart IL turns your answers into Illinois uncontested-divorce form drafts and a
+          filing roadmap. You review the drafts, pay court fees separately, and file them yourself.
         </p>
         <div className="fs-priceline" aria-label="Pricing summary">
           <strong>$149 one-time</strong>
-          <span className="fs-priceline-sep">or</span>
-          <strong>$299/yr</strong>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>No free trial</span>
+          <span>No subscription</span>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>
-          <span>30-day money-back guarantee</span>
+          <span>30-day refund policy</span>
         </div>
         <div className="fs-cta-row">
           <button type="button" className="fs-btn fs-btn-primary fs-btn-lg" onClick={onPrimary}>
@@ -77,7 +73,7 @@ export function HomepageHero() {
             <span className="fs-tick" aria-hidden="true">✓</span> Illinois form drafts
           </span>
           <span>
-            <span className="fs-tick" aria-hidden="true">✓</span> Cancel anytime
+            <span className="fs-tick" aria-hidden="true">✓</span> No subscription
           </span>
         </div>
       </div>

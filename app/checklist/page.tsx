@@ -11,12 +11,12 @@ import "@/app/v2/_components/styles.css"
 export const metadata: Metadata = {
   title: "Free Illinois Divorce Checklist",
   description:
-    "Download the free Illinois Divorce Checklist — required forms, county filing fees, key deadlines, and e-filing instructions. Instant delivery to your inbox.",
+    "Download a general Illinois divorce checklist covering common documents, filing-fee checks, timing questions, and e-filing checkpoints.",
   alternates: { canonical: "/checklist" },
   openGraph: {
     title: "Free Illinois Divorce Checklist | FreshStart IL",
     description:
-      "Everything you need to file for divorce in Illinois — in one page. Required forms, county fees, deadlines, and what courts reject most often.",
+      "A general Illinois divorce filing overview: common documents, fee checks, timing questions, and e-filing checkpoints.",
     url: "https://www.freshstart-il.com/checklist",
     images: [DEFAULT_OG_IMAGE],
   },
@@ -25,52 +25,52 @@ export const metadata: Metadata = {
 const checklistSections = [
   {
     icon: FileText,
-    title: "4 Required Court Forms",
+    title: "Common Illinois divorce documents",
     items: [
       "Petition for Dissolution of Marriage",
-      "Financial Affidavit (short or long form)",
-      "Parenting Plan (if you have children)",
-      "Marital Settlement Agreement",
+      "Financial affidavit or financial disclosures, when required",
+      "Parenting forms, when children are involved",
+      "Settlement and judgment documents that fit your case",
     ],
   },
   {
     icon: DollarSign,
-    title: "County Filing Fees",
+    title: "Filing-fee checks",
     items: [
-      "Cook County: $388",
-      "DuPage County: $349",
-      "Will County: ~$299",
-      "Lake & Kane Counties: $280–$350",
+      "Check your circuit clerk's current filing fee",
+      "Confirm whether e-filing or service charges are separate",
+      "Review payment methods before submission",
+      "Ask the clerk about fee-waiver forms if needed",
     ],
   },
   {
     icon: Clock,
-    title: "Deadlines You Can't Miss",
+    title: "Timing checkpoints to verify",
     items: [
-      "90-day Illinois residency before filing",
-      "30 days to serve your spouse after filing",
-      "30-day response window for your spouse",
-      "Parenting class before final hearing",
+      "Confirm current Illinois residency requirements",
+      "Review service and response instructions for your case",
+      "Check whether parenting education applies",
+      "Confirm hearing and county-specific timing with the clerk",
     ],
   },
   {
     icon: AlertTriangle,
-    title: "Top Reasons Courts Reject Filings",
+    title: "Common clerical issues to review",
     items: [
-      "Financial Affidavit not notarized",
-      "Wrong county heading on documents",
-      "Missing required Parenting Plan provisions",
-      "Incorrect case number format",
+      "Missing signatures or incomplete fields",
+      "Wrong county, case caption, or case number",
+      "Using an outdated form version",
+      "Missing an attachment identified by current instructions",
     ],
   },
   {
     icon: Laptop,
-    title: "E-Filing by County",
+    title: "E-filing checkpoints",
     items: [
-      "Cook, DuPage, Lake: e-filing required",
-      "Will, Kane: e-filing available",
-      "System: e-fileIL.com (Tyler Technologies)",
-      "County clerk reviews within 1–3 business days",
+      "Review Illinois eFile instructions before submitting",
+      "Verify your circuit clerk's current e-filing rules",
+      "Read clerk notices and correct returned submissions",
+      "Expect processing times to vary by clerk and filing",
     ],
   },
 ]
@@ -93,12 +93,12 @@ export default function ChecklistPage() {
                 The Illinois divorce checklist, without the legal fog.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--fs-text-mid)]">
-                Required forms, county filing fees, key deadlines, e-filing steps, and the
-                mistakes Illinois courts reject most often. Instant delivery to your inbox.
+                Common documents, filing-fee checks, timing questions, and e-filing checkpoints.
+                Instant delivery to your inbox.
               </p>
               <div className="mt-8 flex flex-col gap-3 text-sm text-[var(--fs-text-mid)] sm:flex-row sm:flex-wrap">
-                <span className="rounded-full border border-[var(--fs-border)] bg-white/[0.04] px-4 py-2">Updated for 2026</span>
-                <span className="rounded-full border border-[var(--fs-border)] bg-white/[0.04] px-4 py-2">All 102 Illinois counties</span>
+                <span className="rounded-full border border-[var(--fs-border)] bg-white/[0.04] px-4 py-2">Illinois-specific overview</span>
+                <span className="rounded-full border border-[var(--fs-border)] bg-white/[0.04] px-4 py-2">Verify current clerk instructions</span>
                 <span className="rounded-full border border-[var(--fs-border)] bg-white/[0.04] px-4 py-2">Plain-English next steps</span>
               </div>
             </div>
@@ -108,6 +108,9 @@ export default function ChecklistPage() {
               <h2 className="mb-3 text-2xl font-bold tracking-[-0.03em] text-[var(--fs-text)]">Send it to my inbox</h2>
               <p className="mb-5 text-sm leading-6 text-[var(--fs-text-mid)]">
                 No account needed. Use it first, then move into guided filing when you are ready.
+              </p>
+              <p className="mb-5 text-xs leading-5 text-[var(--fs-text-dim)]">
+                General information, not legal advice. Verify current requirements with your circuit clerk before filing.
               </p>
               <div className="rounded-2xl border border-white/10 bg-white p-5 text-slate-950">
                 <ChecklistForm variant="page" />
@@ -122,7 +125,7 @@ export default function ChecklistPage() {
               <p className="fs-section-eyebrow">What is inside</p>
               <h2 className="fs-h2">A filing roadmap you can actually use.</h2>
               <p className="mx-auto mt-4 max-w-2xl text-[var(--fs-text-mid)]">
-                Illinois-specific. Court-focused. Built to help you avoid the common rejections before you start.
+                Illinois-specific general information to help you organize questions before filing.
               </p>
             </div>
 
@@ -152,10 +155,10 @@ export default function ChecklistPage() {
 
             <div className="mt-10 rounded-[22px] border border-[var(--fs-border-hi)] bg-[var(--fs-grad-soft)] p-8 text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--fs-cyan)]">Ready to go further?</p>
-              <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--fs-text)]">Generate your Illinois court forms automatically.</h3>
+              <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--fs-text)]">Prepare your Illinois form drafts.</h3>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[var(--fs-text-mid)]">
-                FreshStart IL turns plain-English answers into your divorce packet — petition,
-                financial affidavit, parenting plan, and filing instructions.
+                FreshStart IL turns plain-English answers into supported Illinois divorce form
+                drafts and a filing roadmap that you review before filing.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link href="/auth/signup" className="fs-btn fs-btn-primary fs-btn-lg">

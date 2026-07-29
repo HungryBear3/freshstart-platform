@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: 'Blog | FreshStart IL',
     description: 'Guides and resources for navigating divorce in Illinois.',
     url: '/blog',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'FreshStart-IL — Illinois divorce, filed right.' }],
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'FreshStart-IL — Illinois divorce form preparation.' }],
   },
   twitter: {
     card: 'summary_large_image',

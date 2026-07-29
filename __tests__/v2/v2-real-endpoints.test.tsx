@@ -99,10 +99,10 @@ describe("OrientationCall → public Calendly link", () => {
 });
 
 describe("signup-first checkout intent", () => {
-  it("maps Essential to one-time checkout and Plus/unknown tiers to annual checkout", () => {
+  it("maps all public tier selections to one-time checkout", () => {
     expect(planForTier("essential")).toBe("one_time");
-    expect(planForTier("plus")).toBe("annual");
-    expect(planForTier("concierge")).toBe("annual");
+    expect(planForTier("plus")).toBe("one_time");
+    expect(planForTier("concierge")).toBe("one_time");
   });
 
   it("keeps annual checkout as a subscription without creating a free trial", () => {

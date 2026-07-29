@@ -26,14 +26,18 @@ export function PricingTiers({ tiers }: { tiers: PricingTier[] }) {
   return (
     <section className="fs-pr-tiers" aria-label="Pricing tiers">
       <div className="fs-section-inner">
-        <div className={`fs-pr-tier-grid ${tiers.length === 3 ? "is-three" : "is-two"}`}>
+        <div
+          className={`fs-pr-tier-grid ${
+            tiers.length === 1 ? "is-one" : tiers.length === 3 ? "is-three" : "is-two"
+          }`}
+        >
           {tiers.map((tier) => (
             <article
               key={tier.key}
-              className={`fs-pr-tier ${tier.recommended ? "is-rec" : ""}`}
-              aria-label={`${tier.name} plan${tier.recommended ? ", recommended" : ""}`}
+              className={`fs-pr-tier ${tier.recommended && tiers.length > 1 ? "is-rec" : ""}`}
+              aria-label={`${tier.name} plan${tier.recommended && tiers.length > 1 ? ", recommended" : ""}`}
             >
-              {tier.recommended && (
+              {tier.recommended && tiers.length > 1 && (
                 <div className="fs-pr-tier-ribbon" aria-hidden="true">
                   Recommended
                 </div>
@@ -54,7 +58,7 @@ export function PricingTiers({ tiers }: { tiers: PricingTier[] }) {
                 } fs-btn-md fs-pr-tier-cta`}
                 onClick={() => onCta(tier)}
               >
-                {tier.key === "concierge" ? "Book intake call" : PRIMARY_CTA}{" "}
+                {PRIMARY_CTA}{" "}
                 <span className="fs-arrow" aria-hidden="true">
                   →
                 </span>

@@ -27,7 +27,7 @@ const VALUES = [
   {
     title: "Built for Illinois, specifically.",
     body:
-      "Every form, calculator, and county note is built around Illinois law and Illinois Supreme Court approved standardized forms — not a generic 50-state template.",
+      "Our supported form drafts and filing notes focus on Illinois uncontested-divorce workflows rather than a generic 50-state template.",
   },
   {
     title: "Honest about what we are.",
@@ -37,12 +37,12 @@ const VALUES = [
   {
     title: "Step-by-step, not just a stack of PDFs.",
     body:
-      "The questionnaire turns your situation into a packet with the right boxes ticked, the right schedules attached, and a county-aware filing checklist.",
+      "The questionnaire organizes your answers into supported form drafts and a filing checklist that you review before filing.",
   },
   {
     title: "Plain pricing.",
     body:
-      "$149 one-time for Essential or $299/year for Plus. 30-day money-back if the product isn't right for you or there's a service issue on our side.",
+      "$149 one-time, with no subscription. Refund requests are reviewed under the published 30-day refund policy.",
   },
 ];
 
@@ -52,7 +52,7 @@ export default function AboutPage() {
       idSuffix="about"
       eyebrow="About"
       title="The Illinois divorce process, finally written like software."
-      lede="FreshStart-IL exists because Illinois divorce paperwork shouldn't require a $15,000 retainer for an uncontested case. We turn the same standardized forms an attorney would file into a guided, county-aware questionnaire you can finish in one focused session."
+      lede="FreshStart-IL organizes answers into supported Illinois uncontested-divorce form drafts and a filing roadmap. You review the drafts, pay court fees separately, and file them yourself."
     >
       <h2>How we think about the work</h2>
       {VALUES.map((v) => (
@@ -64,9 +64,9 @@ export default function AboutPage() {
 
       <h2>When to use FreshStart-IL — and when not to</h2>
       <p>
-        Most Illinois divorces are uncontested. If you and your spouse can
-        agree on the broad strokes, FreshStart-IL can save you thousands
-        in attorney fees and produce a clean, court-ready packet.
+        FreshStart-IL is designed for straightforward uncontested cases where
+        both spouses agree on the basics. It prepares supported form drafts
+        and filing guidance; it does not promise court acceptance or an outcome.
       </p>
       <p>
         If your case is contested, involves a complicated business, a

@@ -4,22 +4,22 @@ const items = [
   {
     ic: "IL",
     title: "Illinois-Specific",
-    body: "Built around the Illinois Compiled Statutes and county-level filing rules.",
+    body: "Focused on straightforward Illinois uncontested-divorce paperwork and filing guidance.",
   },
   {
     ic: "⚖",
     title: "Illinois Form Drafts",
-    body: "Auto-filled from Illinois court templates and county filing information. Edit and regenerate anytime.",
+    body: "Supported drafts are organized from your answers. Review, edit, and regenerate them as needed.",
   },
   {
     ic: "↻",
     title: "Refile Help",
-    body: "If a county rejects for a filing or format issue, optional refile assistance helps correct the packet for resubmission.",
+    body: "If a clerk returns a submission, optional help can review common clerical or formatting issues before you resubmit.",
   },
   {
     ic: "⏱",
-    title: "Often Under 2 Hours",
-    body: "Straightforward uncontested cases can often complete a first draft in one focused session when their information is ready.",
+    title: "Save and resume",
+    body: "Work through the questionnaire at your pace and return when you have the information you need.",
   },
 ];
 

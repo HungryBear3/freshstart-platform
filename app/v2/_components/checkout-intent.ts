@@ -10,7 +10,7 @@ const SOURCE_KEY = "fs_checkout_source";
 const AUTO_KEY = "fs_auto_checkout";
 
 export function planForTier(tier: string): CheckoutPlan {
-  return tier === "essential" ? "one_time" : "annual";
+  return "one_time";
 }
 
 export function buildSignupFirstCheckoutUrl(intent: CheckoutIntent): string {
@@ -37,7 +37,7 @@ export function isCheckoutPlan(plan?: string | null): plan is CheckoutPlan {
 
 export function markCheckoutResumeFromSearch(plan?: string | null, source?: string | null) {
   if (typeof window === "undefined") return;
-  const safePlan: CheckoutPlan = isCheckoutPlan(plan) ? plan : "annual";
+  const safePlan: CheckoutPlan = isCheckoutPlan(plan) ? plan : "one_time";
   window.sessionStorage.setItem(PLAN_KEY, safePlan);
   window.sessionStorage.setItem(SOURCE_KEY, source || "auth_resume");
   window.sessionStorage.setItem(AUTO_KEY, "true");
@@ -52,7 +52,7 @@ export function getPendingCheckoutIntent(): CheckoutIntent | null {
 
   const storedPlan = window.sessionStorage.getItem(PLAN_KEY) ||
     window.sessionStorage.getItem("subscribe_plan");
-  const plan: CheckoutPlan = isCheckoutPlan(storedPlan) ? storedPlan : "annual";
+  const plan: CheckoutPlan = isCheckoutPlan(storedPlan) ? storedPlan : "one_time";
   return {
     plan,
     source: window.sessionStorage.getItem(SOURCE_KEY) || "pricing_resume",

@@ -25,7 +25,7 @@ import ReactDOMServer from "react-dom/server";
 import { HomepageHero } from "@/app/v2/_components/Hero";
 import { PricingHero } from "@/app/v2/_components/PricingHero";
 import { PricingTiers } from "@/app/v2/_components/PricingTiers";
-import { PricingCompareTable } from "@/app/v2/_components/PricingCompareTable";
+
 import { PricingMobileStickyCTA } from "@/app/v2/_components/PricingMobileStickyCTA";
 import { FAQ } from "@/app/v2/_components/FAQ";
 import { Header } from "@/app/v2/_components/Header";
@@ -36,27 +36,28 @@ function ssr(node: React.ReactElement): string {
 }
 
 describe("v2 homepage hero", () => {
-  it("renders the price-forward headline variant", () => {
+  it("renders the document-preparation division of labor", () => {
     const html = ssr(<HomepageHero />);
-    expect(html).toContain("Your Illinois divorce, filed right");
-    expect(html).toContain("without starting with hourly attorney fees.");
+    expect(html).toMatch(/We prepare your forms\.[\s\S]*You file them\./);
+    expect(html).toContain("uncontested-divorce form drafts");
+    expect(html).not.toMatch(/filed right|nothing gets rejected/i);
   });
 
   it("renders the locked primary CTA `Start my filing` and a 'See how it works' secondary CTA", () => {
     const html = ssr(<HomepageHero />);
-    // Primary v2 CTA copy is now "Start my filing"; the supporting
-    // priceline states the current no-trial policy.
+    // Price/supporting policy copy is visible next to the primary CTA.
     expect(html).toContain("Start my filing");
-    expect(html).toContain("No free trial");
+    expect(html).toContain("No subscription");
     expect(html).toContain("See how it works");
   });
 
-  it("renders the locked price line ($149 / $299) and trust strip", () => {
+  it("renders one-time pricing, refund-policy language, and the trust strip", () => {
     const html = ssr(<HomepageHero />);
     expect(html).toContain("$149 one-time");
-    expect(html).toContain("$299/yr");
-    expect(html).toContain("No free trial");
-    expect(html).toContain("30-day money-back guarantee");
+    expect(html).not.toContain("$299/yr");
+    expect(html).toContain("No subscription");
+    expect(html).toContain("30-day refund policy");
+    expect(html).not.toMatch(/money-back guarantee/i);
     expect(html).toContain("256-bit encrypted");
   });
 
@@ -68,69 +69,52 @@ describe("v2 homepage hero", () => {
 });
 
 describe("v2 pricing hero", () => {
-  it('renders the "from $149" hero copy', () => {
+  it('renders the "$149 flat" hero copy', () => {
     const html = ssr(<PricingHero />);
-    expect(html).toMatch(/from \$149/i);
-    expect(html).toContain("Pricing · Illinois divorce, end to end");
+    expect(html).toMatch(/\$149 flat/i);
+    expect(html).toContain("Pricing · Document preparation and filing guidance");
     // The pre-replacement "Pay once at $149, or get ongoing updates" copy MUST be gone.
     expect(html).not.toMatch(/Pay once at \$149, or get ongoing updates/);
   });
 });
 
 describe("v2 pricing tiers", () => {
-  it("renders 2 tiers by default and marks Plus as recommended", () => {
-    const tiers = getTiers({ count: 2, recommendedTier: "plus" });
-    expect(tiers).toHaveLength(2);
-    expect(tiers.map((t) => t.key)).toEqual(["essential", "plus"]);
+  it("renders one Essential tier by default with no subscription upsell", () => {
+    const tiers = getTiers({ count: 1, recommendedTier: "essential" });
+    expect(tiers).toHaveLength(1);
+    expect(tiers.map((t) => t.key)).toEqual(["essential"]);
     const html = ssr(<PricingTiers tiers={tiers} />);
+    expect(html).toContain("fs-pr-tier-grid is-one");
     expect(html).toContain(">Essential<");
-    expect(html).toContain(">Plus<");
+    expect(html).not.toContain(">Plus<");
     expect(html).not.toContain(">Concierge<");
-    expect(html).toContain("Recommended");
+    expect(html).not.toContain("Recommended");
   });
 
-  it("renders Concierge when the 3-tier flag is on", () => {
-    const tiers = getTiers({ count: 3, recommendedTier: "plus" });
-    expect(tiers).toHaveLength(3);
-    expect(tiers.map((t) => t.key)).toEqual(["essential", "plus", "concierge"]);
+  it("does not re-enable legacy Plus or Concierge tiers through the old flag", () => {
+    const tiers = getTiers({ count: 3 });
+    expect(tiers).toHaveLength(1);
+    expect(tiers.map((t) => t.key)).toEqual(["essential"]);
     const html = ssr(<PricingTiers tiers={tiers} />);
-    expect(html).toContain(">Concierge<");
+    expect(html).not.toContain(">Plus<");
+    expect(html).not.toContain(">Concierge<");
   });
 });
 
 describe("v2 pricing tier-count flag default", () => {
-  it("getTierCount defaults to 2 when PRICING_TIERS is unset or not '3'", () => {
+  it("getTierCount defaults to 1 when PRICING_TIERS is unset or not '3'", () => {
     const prior = process.env.PRICING_TIERS;
     delete process.env.PRICING_TIERS;
-    expect(getTierCount()).toBe(2);
+    expect(getTierCount()).toBe(1);
     process.env.PRICING_TIERS = "2";
-    expect(getTierCount()).toBe(2);
+    expect(getTierCount()).toBe(1);
     process.env.PRICING_TIERS = "3";
-    expect(getTierCount()).toBe(3);
+    expect(getTierCount()).toBe(1);
     if (prior === undefined) delete process.env.PRICING_TIERS;
     else process.env.PRICING_TIERS = prior;
   });
 });
 
-describe("v2 pricing compare table", () => {
-  it("renders Concierge column only when threeTier=true and labels 'not included' dashes for screen readers", () => {
-    const two = ssr(<PricingCompareTable threeTier={false} recommended="plus" />);
-    expect(two).not.toContain(">Concierge<");
-
-    const three = ssr(<PricingCompareTable threeTier recommended="plus" />);
-    expect(three).toContain(">Concierge<");
-    // aria-label on dash cells so SRs don't read silence
-    expect(three).toMatch(/aria-label="not included"/);
-  });
-
-  it("hides rows where every visible 2-tier value is not included", () => {
-    const two = ssr(<PricingCompareTable threeTier={false} recommended="plus" />);
-    expect(two).not.toContain("1:1 human pre-filing review");
-
-    const three = ssr(<PricingCompareTable threeTier recommended="plus" />);
-    expect(three).toContain("1:1 human pre-filing review");
-  });
-});
 
 describe("v2 FAQ accordion", () => {
   const items = [
@@ -192,7 +176,8 @@ describe("v2 pricing mobile sticky CTA", () => {
   it("renders the locked price summary and CTA label", () => {
     const html = ssr(<PricingMobileStickyCTA />);
     expect(html).toContain("$149");
-    expect(html).toContain("$299/yr");
+    expect(html).not.toContain("$299/yr");
+    expect(html).toContain("one-time");
     expect(html).toContain("Start my filing");
     // Hidden flag starts false; flips true via IntersectionObserver in-browser.
     expect(html).toContain('data-hidden="false"');
