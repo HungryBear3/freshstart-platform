@@ -112,11 +112,18 @@ describe("root metadata is production-canonical and share-copy aligned", () => {
   }
 
   const layout = read("app/layout.tsx");
+  const homePage = read("app/page.tsx");
 
   it("defaults metadataBase/canonical to the production domain, not Vercel preview or auth URLs", () => {
     expect(layout).toMatch(/siteUrl\s*=\s*SITE_URL/);
     expect(layout).toMatch(/metadataBase:\s*new URL\(siteUrl\)/);
-    expect(layout).toMatch(/canonical:\s*"\/"/);
+    // The root canonical is owned by app/page.tsx, not app/layout.tsx. A
+    // layout-level canonical cascades to every route that doesn't declare its
+    // own, which is what made /questionnaires & co. advertise the homepage as
+    // their canonical (Search Console, 2026-07-28). See
+    // __tests__/seo/gsc-canonical-robots.test.ts.
+    expect(homePage).toMatch(/canonical:\s*"\/"/);
+    expect(layout).not.toMatch(/canonical:/);
     expect(layout).not.toMatch(/metadataBase:[\s\S]*NEXTAUTH_URL/);
     expect(layout).not.toMatch(/metadataBase:[\s\S]*VERCEL_URL/);
   });
