@@ -3,12 +3,21 @@
  * Lists all available questionnaires for the user to start
  */
 
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+// Restates the segment-layout directive at the route that Search Console
+// actually reported, and pins the canonical to this route's own path so
+// /questionnaires?<query> consolidates here instead of onto the homepage.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  alternates: { canonical: "/questionnaires" },
+};
 
 export default async function QuestionnairesPage() {
   const session = await getSession();

@@ -60,8 +60,15 @@ export const metadata: Metadata = {
     description: "Simplify your Illinois divorce process with FreshStart's helpful tools and guidance.",
     images: [DEFAULT_TWITTER_IMAGE],
   },
+  // No `canonical` at the layout level on purpose. Next metadata cascades to
+  // every route that does not declare its own, so a root-layout canonical made
+  // ~40 unrelated routes (/questionnaires, /questionnaires/[type], /documents,
+  // /dashboard/**, the remaining /legal-info/* stubs) emit the homepage as
+  // their canonical — the "canonicalized to homepage" defect Search Console
+  // reported on 2026-07-28. The homepage owns its own canonical in
+  // app/page.tsx; every other route declares one (or deliberately omits it
+  // while noindexed).
   alternates: {
-    canonical: "/",
     types: { "application/rss+xml": "/rss.xml" },
   },
   robots: { index: true, follow: true },
