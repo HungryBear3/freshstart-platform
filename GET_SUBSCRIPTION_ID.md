@@ -1,5 +1,7 @@
 # How to Get Your Subscription ID from Stripe
 
+> **SUPERSEDED — DO NOT EXECUTE.** This subscription workflow is retired. Fresh Start IL's current approved offer is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; do not retrieve or modify subscription records based on this file.
+
 ## Quick Steps
 
 1. Go to [Stripe Dashboard](https://dashboard.stripe.com/test)

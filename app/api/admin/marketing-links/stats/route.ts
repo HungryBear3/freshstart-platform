@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/db"
+import { requireAdmin } from "@/lib/auth/require-admin"
 
 export const dynamic = "force-dynamic"
 
@@ -15,10 +15,8 @@ export const dynamic = "force-dynamic"
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const { error } = await requireAdmin(request)
+    if (error) return error
 
     // Get date range from query params
     const searchParams = request.nextUrl.searchParams
@@ -49,8 +47,8 @@ export async function GET(request: NextRequest) {
       ? ((totals.conversions / totals.signups) * 100).toFixed(2)
       : '0'
 
-    // Revenue (assuming $299 per conversion)
-    const revenue = totals.conversions * 299
+    // Revenue based on the current $149 one-time Essential offer.
+    const revenue = totals.conversions * 149
 
     // Group by source
     const bySource = links.reduce((acc, link) => {
@@ -70,7 +68,7 @@ export async function GET(request: NextRequest) {
       ...stats,
       signupRate: stats.clicks > 0 ? ((stats.signups / stats.clicks) * 100).toFixed(2) : '0',
       conversionRate: stats.signups > 0 ? ((stats.conversions / stats.signups) * 100).toFixed(2) : '0',
-      revenue: stats.conversions * 299,
+      revenue: stats.conversions * 149,
     })).sort((a, b) => b.conversions - a.conversions)
 
     // Group by campaign
@@ -88,7 +86,7 @@ export async function GET(request: NextRequest) {
       campaign,
       ...stats,
       conversionRate: stats.signups > 0 ? ((stats.conversions / stats.signups) * 100).toFixed(2) : '0',
-      revenue: stats.conversions * 299,
+      revenue: stats.conversions * 149,
     })).sort((a, b) => b.conversions - a.conversions)
 
     // Get user attribution stats from User table

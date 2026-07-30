@@ -24,7 +24,7 @@ const HELP_SECTIONS = [
     title: "Document generation",
     icon: FileText,
     content:
-      "After completing questionnaires, generate court-ready documents. You can edit and regenerate as needed before filing.",
+      "After completing questionnaires, prepare supported document drafts. Review and update them as needed before filing.",
   },
   {
     id: "general",

@@ -6,18 +6,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Calculator, DollarSign, Clock, TrendingDown, ArrowRight } from "lucide-react"
+import { Calculator, FileText, ArrowRight } from "lucide-react"
 
 import type { Metadata } from "next"
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
   title: "Divorce Calculators",
-  description: "Free Illinois divorce calculators for child support, spousal maintenance, timeline estimates, and cost estimation. Based on official Illinois guidelines.",
+  description: "General educational Illinois divorce planning tools for support, timeline, and filing-cost research. Verify results with current official sources.",
   alternates: { canonical: "/calculators" },
   openGraph: {
     title: "Divorce Calculators | FreshStart IL",
-    description: "Free Illinois divorce calculators - child support, spousal maintenance, timeline, and cost estimates.",
+    description: "General educational Illinois divorce planning tools. Verify results with current official sources.",
     images: [DEFAULT_OG_IMAGE],
   },
 }
@@ -40,8 +40,8 @@ export default function CalculatorsLandingPage() {
             <Calculator className="h-16 w-16 mx-auto mb-4 opacity-90" />
             <h1 className="text-4xl font-bold mb-4">Illinois Divorce Calculators</h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Free tools to help you understand your divorce costs, support obligations, and timeline. 
-              Based on official Illinois statutory guidelines.
+              General educational tools for planning and identifying information to verify.
+              Results are not legal advice or court calculations.
             </p>
           </div>
         </div>
@@ -51,128 +51,45 @@ export default function CalculatorsLandingPage() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           
-          {/* Child Support Calculator */}
-          <Card className="hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-100">
+          {/* Calculator availability */}
+          <Card className="md:col-span-2 border-2 border-amber-200 bg-amber-50">
             <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Calculator className="h-8 w-8 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">Child Support Calculator</CardTitle>
-                  <CardDescription>Illinois Guidelines (750 ILCS 5/505)</CardDescription>
-                </div>
-              </div>
+              <CardTitle className="text-xl">Support and timeline calculators are unavailable</CardTitle>
+              <CardDescription>Validation in progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">
-                Calculate monthly child support obligations based on:
+              <p className="text-gray-700">
+                We have removed these tools while their formulas, source data, and legal boundaries are independently validated. Use current official court and statutory resources, or consult a qualified attorney, for case-specific calculations and timing questions.
               </p>
-              <ul className="text-sm text-gray-500 space-y-1 mb-6">
-                <li>• Combined net income of both parents</li>
-                <li>• Number of children</li>
-                <li>• Parenting time percentages</li>
-                <li>• Healthcare, childcare, and education costs</li>
-              </ul>
-              <Link href="/dashboard/financial/child-support">
-                <Button className="w-full">
-                  Calculate Child Support
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
             </CardContent>
           </Card>
 
-          {/* Spousal Maintenance Calculator */}
-          <Card className="hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-100">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">Spousal Maintenance Calculator</CardTitle>
-                  <CardDescription>Illinois Guidelines (750 ILCS 5/504)</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Estimate spousal maintenance (alimony) including:
-              </p>
-              <ul className="text-sm text-gray-500 space-y-1 mb-6">
-                <li>• Monthly maintenance amount</li>
-                <li>• Duration based on marriage length</li>
-                <li>• Formula: 33.33% of payer - 25% of payee income</li>
-                <li>• 40% cap on combined income</li>
-              </ul>
-              <Link href="/dashboard/financial/spousal-maintenance">
-                <Button className="w-full">
-                  Calculate Maintenance
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Timeline Calculator */}
-          <Card className="hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-100">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Clock className="h-8 w-8 text-purple-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">Timeline Calculator</CardTitle>
-                  <CardDescription>Estimate Your Divorce Timeline</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Get a realistic timeline estimate based on:
-              </p>
-              <ul className="text-sm text-gray-500 space-y-1 mb-6">
-                <li>• Contested vs. uncontested divorce</li>
-                <li>• Children and custody issues</li>
-                <li>• Property and debt complexity</li>
-                <li>• County-specific processing times</li>
-              </ul>
-              <Link href="/legal-info/timeline-calculator">
-                <Button className="w-full">
-                  Estimate Timeline
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Cost Estimator */}
+          {/* Court Cost Reference */}
           <Card className="hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-100">
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 bg-orange-100 rounded-lg">
-                  <TrendingDown className="h-8 w-8 text-orange-600" />
+                  <FileText className="h-8 w-8 text-orange-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Cost Estimator</CardTitle>
-                  <CardDescription>Estimate Your Divorce Costs</CardDescription>
+                  <CardTitle className="text-xl">Court Cost Reference</CardTitle>
+                  <CardDescription>Review Common Filing-Related Costs</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-4">
-                Understand the costs involved including:
+                Review common filing-related cost categories, including:
               </p>
               <ul className="text-sm text-gray-500 space-y-1 mb-6">
                 <li>• Court filing fees by county</li>
                 <li>• Service of process costs</li>
                 <li>• Parent education requirements</li>
-                <li>• Mediation and attorney fee ranges</li>
+                <li>• Current amounts to verify with the clerk or provider</li>
               </ul>
-              <Link href="/legal-info/cost-estimator">
+              <Link href="/legal">
                 <Button className="w-full">
-                  Estimate Costs
+                  Review Legal Information
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -188,13 +105,14 @@ export default function CalculatorsLandingPage() {
                 Ready to Start Your Divorce Journey?
               </h2>
               <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-                FreshStart IL guides you through the entire Illinois divorce process with 
-                questionnaires, document generation, and step-by-step instructions.
+                FreshStart IL prepares supported uncontested-divorce form drafts from your
+                answers. The $149 one-time purchase includes 60 days of service access. You review
+                everything and file it yourself.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/auth/signup">
+                <Link href="/auth/signup?redirect=%2Fpricing&subscribe=true&plan=one_time&source=calculators_cta">
                   <Button size="lg">
-                    Get Started Free
+                    Start $149 / 60-day access
                   </Button>
                 </Link>
                 <Link href="/legal-info">
@@ -210,10 +128,9 @@ export default function CalculatorsLandingPage() {
         {/* Disclaimer */}
         <div className="mt-12 max-w-3xl mx-auto">
           <p className="text-xs text-gray-500 text-center">
-            <strong>Disclaimer:</strong> These calculators provide estimates based on Illinois 
-            statutory guidelines. Actual court orders may vary based on specific circumstances 
-            and judicial discretion. This is not legal advice. Consult with an attorney for 
-            advice specific to your situation.
+            <strong>Disclaimer:</strong> These are general educational estimates, not court
+            calculations. Inputs, law, and official methods may change. Verify current official
+            sources. This is not legal advice; consult an attorney for advice about your situation.
           </p>
         </div>
       </div>

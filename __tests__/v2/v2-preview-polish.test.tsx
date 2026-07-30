@@ -59,9 +59,9 @@ describe("CTA copy consistency — primary v2 label is 'Start my filing'", () =>
     expect(src).not.toMatch(/ctaLabel = "Start my free 7-day trial"/);
   });
 
-  it("no-trial language is preserved as supporting microcopy in the priceline", () => {
+  it("no-subscription language is preserved as supporting microcopy in the priceline", () => {
     const src = readSource("app/v2/_components/Hero.tsx");
-    expect(src).toMatch(/No free trial/);
+    expect(src).toMatch(/No subscription/);
   });
 
   it("PricingTiers and the mobile sticky CTA already use 'Start my filing'", () => {

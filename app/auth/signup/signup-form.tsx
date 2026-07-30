@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { normalizeCheckoutPlan } from "@/app/v2/_components/checkout-intent"
 
 /**
  * Client form for /auth/signup. Form logic is unchanged from the
@@ -22,7 +23,7 @@ export function SignUpForm() {
 
   // Check if user came from pricing/subscribe flow
   const redirectUrl = searchParams.get("redirect") || "/dashboard"
-  const subscribePlan = searchParams.get("plan") || "annual"
+  const subscribePlan = normalizeCheckoutPlan(searchParams.get("plan"))
   const subscribeSource = searchParams.get("source") || "signup"
   const isSubscribeFlow =
     searchParams.get("subscribe") === "true" ||

@@ -28,6 +28,10 @@ describe("FreshStart public design shell consistency", () => {
     expect(html).toContain("FAQ");
     expect(html).toContain("Start my filing");
     expect(html).not.toContain("The Illinois Divorce Checklist</h1>");
+    expect(html).not.toMatch(/Cook County: \$|DuPage County: \$|Will County: ~?\$/);
+    expect(html).not.toMatch(/Updated for 2026|All 102 Illinois counties/);
+    expect(html).not.toMatch(/Deadlines You Can.t Miss|Top Reasons Courts Reject Filings/);
+    expect(html).toContain("Verify current requirements with your circuit clerk before filing");
   });
 
   it("404/not-found renders inside the v2 dark marketing shell", () => {

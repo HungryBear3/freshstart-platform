@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 const siteUrl = SITE_URL
-const homepageTitle = "FreshStart IL — Your Illinois divorce, filed right, from $149"
+const homepageTitle = "FreshStart IL — Illinois divorce form preparation from $149"
 const organizationAndWebsiteJsonLd = [
   {
     "@context": "https://schema.org",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     default: homepageTitle,
     template: "%s | FreshStart IL",
   },
-  description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
+  description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access. You review and file.",
   keywords: ["Illinois divorce", "divorce forms", "divorce process", "pro se divorce", "Cook County divorce"],
   authors: [{ name: "FreshStart IL" }],
   openGraph: {
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     url: "/",
     siteName: "FreshStart IL",
     title: homepageTitle,
-    description: "Illinois residents: Simplify your divorce with easy-to-use questionnaires, automatic forms, and deadline tracking. Start your fresh start today.",
+    description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access. You review and file.",
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: homepageTitle,
-    description: "Simplify your Illinois divorce process with FreshStart's helpful tools and guidance.",
+    description: "Supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access.",
     images: [DEFAULT_TWITTER_IMAGE],
   },
   // No `canonical` at the layout level on purpose. Next metadata cascades to

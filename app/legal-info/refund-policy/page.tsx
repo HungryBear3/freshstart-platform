@@ -7,7 +7,7 @@ import { Disclaimer } from "@/components/legal/disclaimer"
 export const metadata: Metadata = {
   title: "Refund Policy — FreshStart-IL",
   description:
-    "FreshStart-IL 30-day money-back guarantee, what it covers, what it doesn't, and how to request a refund.",
+    "FreshStart-IL 30-day refund policy, eligibility boundaries, and how to request a refund review.",
   alternates: { canonical: "/legal-info/refund-policy" },
 }
 
@@ -39,28 +39,26 @@ export default function RefundPolicyPage() {
               <div className="article-content space-y-6">
                 <section>
                   <p className="text-lg text-gray-700 leading-relaxed">
-                    FreshStart-IL offers a 30-day money-back guarantee on
-                    purchases and subscriptions. This page explains what that
-                    means, what it doesn&apos;t mean, and how to request a
-                    refund.
+                    FreshStart-IL publishes a 30-day refund policy for its
+                    one-time purchase. This page explains the eligibility
+                    boundaries and how to request a refund review.
                   </p>
                 </section>
 
                 <section>
                   <h2 className="text-3xl font-bold text-gray-900 mb-4 mt-8">
-                    30-day money-back guarantee
+                    30-day refund policy
                   </h2>
                   <p>
                     If FreshStart-IL isn&apos;t the right fit for you, or if
                     you experience a service or platform issue on our side,
-                    you can request a refund within 30 days of your purchase
-                    or subscription start date. We will process eligible
-                    refunds without a retention call.
+                    you can request a refund review within 30 days of your
+                    purchase. Eligible refunds are processed without a
+                    retention call.
                   </p>
                   <p className="mt-4">
-                    Refunds apply to FreshStart-IL plan purchases — currently{" "}
-                    <strong>Essential ($149)</strong> and{" "}
-                    <strong>Plus ($299)</strong>. Third-party court filing
+                    Refunds apply to the FreshStart-IL purchase — currently{" "}
+                    <strong>$149 one-time for 60 days of service access</strong>. Third-party court filing
                     fees, county fees, and any payments to outside service
                     providers are not part of this policy and are governed by
                     those providers&apos; own terms.
@@ -119,8 +117,8 @@ export default function RefundPolicyPage() {
                       {SUPPORT_EMAIL}
                     </a>{" "}
                     from the email address on the account, within 30 days of
-                    your purchase or subscription start date. Include the
-                    order or subscription identifier if you have it. We
+                    your purchase. Include the order identifier if you have
+                    it. We
                     don&apos;t require a reason or a phone call. Eligible
                     refunds are processed under this policy without a
                     retention conversation.

@@ -39,6 +39,9 @@ model User {
   parentingPlan ParentingPlan?
   subscription  Subscription?
   payments      Payment[]
+  checkoutObligations CheckoutObligation[]
+  checkoutRecoveryAuditsPerformed CheckoutRecoveryAudit[] @relation("RecoveryAdmin")
+  checkoutRecoveryAuditsReceived CheckoutRecoveryAudit[] @relation("RecoverySubject")
   spouseFinancialRecords SpouseFinancialRecord[]
   notificationPreferences UserNotificationPreferences?
   badges UserBadge[]
@@ -601,6 +604,8 @@ model Subscription {
   cancelAtPeriodEnd  Boolean @default(false)
   trialStart         DateTime?
   trialEnd           DateTime?
+  providerEventCreatedAt DateTime?
+  grantingObligationId String? @unique
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -615,6 +620,8 @@ model Payment {
   userId            String
   stripePaymentIntentId String? @unique
   stripeInvoiceId   String? @unique
+  stripeCheckoutSessionId String? @unique
+  stripePriceId     String?
   amount            Decimal  @db.Decimal(10, 2)
   currency          String   @default("usd")
   status            String   // "succeeded", "pending", "failed", "refunded"
@@ -625,6 +632,83 @@ model Payment {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+// Immutable server-authoritative contract for the one-time $149 checkout.
+model CheckoutObligation {
+  id                    String   @id @default(cuid())
+  contractKey           String   @unique
+  userId                String
+  plan                  String
+  cycle                 Int      @default(1)
+  status                String   @default("PENDING")
+  stripeCustomerId      String?
+  stripeSessionId       String?  @unique
+  stripePaymentIntentId String?  @unique
+  stripePriceId         String
+  expectedAmountCents   Int
+  expectedCurrency      String
+  quantity              Int      @default(1)
+  attempt               Int      @default(1)
+  settledAmountCents    Int?
+  settledCurrency       String?
+  settledAt             DateTime?
+  conversionTrackedAt   DateTime?
+  conversionClaimToken  String?
+  conversionLeaseExpiresAt DateTime?
+  failureReason         String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryAudits CheckoutRecoveryAudit[]
+
+  @@index([userId, status])
+  @@map("checkout_obligations")
+}
+
+// Durable evidence for refunds/disputes that can arrive before checkout settlement.
+model PaymentReversal {
+  id                      String   @id @default(cuid())
+  stripePaymentIntentId   String   @unique
+  stripeEventId           String
+  status                  String
+  amountCents             Int
+  amountReversedCents     Int
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("payment_reversals")
+}
+
+// Append-only evidence for authenticated manual resolution of paid legacy Checkout Sessions.
+model CheckoutRecoveryAudit {
+  id                      String   @id @default(cuid())
+  checkoutObligationId    String
+  stripeSessionId         String
+  adminUserId             String
+  subjectUserId           String
+  action                  String
+  reason                  String
+  stripeMode              String
+  stripePaymentStatus     String
+  stripeCustomerId        String?
+  stripePaymentIntentId   String?
+  stripeSubscriptionId    String?
+  stripePriceId           String
+  stripeAmountCents       Int
+  stripeCurrency          String
+  stripeQuantity          Int
+  providerVerifiedAt      DateTime
+  createdAt               DateTime @default(now())
+
+  admin User @relation("RecoveryAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  subject User @relation("RecoverySubject", fields: [subjectUserId], references: [id], onDelete: Restrict)
+  checkoutObligation CheckoutObligation @relation(fields: [checkoutObligationId], references: [id], onDelete: Restrict)
+
+  @@unique([checkoutObligationId, action])
+  @@index([checkoutObligationId, createdAt])
+  @@map("checkout_recovery_audits")
 }
 
 // Marketing Link for tracking campaigns and influencers
@@ -676,11 +760,17 @@ model DripEmail {
   @@index([email, sequence])
 }
 
-// Idempotency log for Stripe webhook events — prevents duplicate processing on retries
+// Retry-safe claim and completion record for Stripe webhook events.
 model StripeEvent {
-  id            String   @id @default(cuid())
-  stripeEventId String   @unique
-  processedAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  stripeEventId  String   @unique
+  status         String   @default("PROCESSING")
+  claimToken     String?
+  leaseExpiresAt DateTime?
+  processedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("stripe_events")
 }

@@ -139,8 +139,8 @@ export default function CourtFormsLibraryPage() {
           Illinois Court Forms Library
         </h1>
         <p className="text-muted-foreground text-lg">
-          Official Illinois Supreme Court approved standardized divorce and family law forms. 
-          These forms are required to be accepted by all Illinois Circuit Courts.
+          The Illinois Courts website publishes approved standardized divorce and family law forms.
+          Form requirements can vary by case and circuit, so verify the current requirements with your circuit clerk.
         </p>
       </div>
 
@@ -156,8 +156,8 @@ export default function CourtFormsLibraryPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-lg">Let Us Fill Out Your Forms</h3>
               <p className="text-sm text-muted-foreground">
-                Complete our questionnaires and we'll automatically fill out the official court forms for you.
-                No typing into PDFs - just answer questions and download ready-to-file documents.
+                Complete our questionnaires to prepare supported form drafts from your answers.
+                Review every draft and verify current circuit-clerk requirements before you file.
               </p>
             </div>
             <Link href="/legal-info/document-guide">

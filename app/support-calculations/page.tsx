@@ -29,7 +29,7 @@ export default function SupportCalculationsPage() {
       idSuffix="support"
       eyebrow="Illinois law"
       title="Support calculations — child support & maintenance."
-      lede="Illinois child support and spousal maintenance are formula-driven by statute. FreshStart-IL surfaces the same formulas so the numbers in your filing match what a court would expect to see."
+      lede="Illinois statutes describe child-support and maintenance calculations. This overview is educational; verify current inputs, limits, and court requirements before relying on any estimate."
       lastUpdated="2026-05"
     >
       <h2>Child support (750 ILCS 5/505)</h2>
@@ -47,40 +47,33 @@ export default function SupportCalculationsPage() {
           deductions,</li>
         <li>the number of qualifying children, and</li>
         <li>
-          parenting time — when each parent has the children for at least
-          146 overnights/year, the "shared parenting" formula applies.
+          parenting time — current statutory overnight thresholds and other
+          case facts can change how a calculation is performed.
         </li>
       </ul>
       <p>
-        FreshStart-IL has a built-in{" "}
-        <Link href="/calculators">child-support calculator</Link> that
-        applies the current schedule.
+        FreshStart-IL does not currently provide a child-support calculation.
+        Use current official Illinois schedules and instructions, or consult a
+        qualified attorney, before relying on a figure.
       </p>
 
       <h2>Spousal maintenance (750 ILCS 5/504)</h2>
       <p>
-        Illinois maintenance — formerly called "alimony" — is calculated by
-        a statutory formula when combined gross income is at or below the
-        income cap. The standard formula is:
+        Illinois maintenance — formerly called "alimony" — may involve
+        statutory guidelines after a court determines that an award is
+        appropriate. Eligibility, inputs, limits, amount, and duration are
+        fact-specific and can change.
       </p>
-      <ul>
-        <li>
-          <strong>Amount:</strong> 33⅓% of the payor&apos;s net annual
-          income minus 25% of the payee&apos;s net annual income, capped so
-          the payee&apos;s share of combined net income doesn&apos;t exceed
-          40%.
-        </li>
-        <li>
-          <strong>Duration:</strong> a statutory percentage of the length
-          of the marriage that scales from short to long marriages, with
-          marriages of 20+ years often eligible for indefinite
-          maintenance.
-        </li>
-      </ul>
       <p>
-        For combined gross income above the statutory cap (currently
-        $500,000), the formula does not apply automatically — the court
-        sets maintenance using the §504 factors.
+        FreshStart-IL does not currently provide a maintenance calculation.
+        Verify the current statute and official court resources, or consult a
+        qualified attorney, for a case-specific analysis.
+      </p>
+      <p>
+        Formula eligibility and statutory limits can change. When the
+        statutory formula does not apply, the court considers the §504
+        factors. Verify current law or consult a qualified attorney for advice
+        about a specific case.
       </p>
 
       <h2>Modifications</h2>

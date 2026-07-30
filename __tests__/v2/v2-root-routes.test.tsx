@@ -24,15 +24,15 @@ function ssr(node: React.ReactElement): string {
 describe("root `/` renders the v2 redesigned homepage", () => {
   const html = ssr(<HomePage />);
 
-  it("renders the v2 hero headline + price-forward accent", () => {
-    expect(html).toContain("Your Illinois divorce, filed right");
-    expect(html).toContain("without starting with hourly attorney fees.");
+  it("renders the document-preparation hero and price-forward accent", () => {
+    expect(html).toMatch(/We prepare your forms\.[\s\S]*You file them\./);
+    expect(html).toContain("$149 one-time");
   });
 
-  it("renders the locked primary CTA `Start my filing` with accurate no-trial microcopy", () => {
+  it("renders the locked primary CTA with accurate no-subscription microcopy", () => {
     // Primary v2 button copy is "Start my filing" everywhere.
     expect(html).toContain("Start my filing");
-    expect(html).toContain("No free trial");
+    expect(html).toContain("No subscription");
   });
 
   it("renders the v2 header CTA `Start my filing` (not `Free Checklist`)", () => {
@@ -45,8 +45,8 @@ describe("root `/` renders the v2 redesigned homepage", () => {
     expect(html).not.toMatch(/Illinois Divorce Done Right/);
   });
 
-  it("includes the cost-comparison band, FAQ, orientation call, and a single checklist capture", () => {
-    expect(html).toMatch(/\$15,000–\$25,000/); // strike-through attorney range
+  it("includes the FAQ, orientation call, and a single checklist capture without unverified attorney-cost ranges", () => {
+    expect(html).not.toMatch(/\$15,000–\$25,000|\$300–\$500\/hr/);
     expect(html).toMatch(/Frequently asked/);
     expect(html).toMatch(/Book a free 15-min call/);
     // Single capture: exactly one "Send my checklist" button.
@@ -56,7 +56,7 @@ describe("root `/` renders the v2 redesigned homepage", () => {
 
   it("uses safer legal copy and labels scenarios as illustrative", () => {
     expect(html).toContain("Illinois form drafts");
-    expect(html).toContain("Illustrative Illinois filing scenarios");
+    expect(html).toContain("How a straightforward workflow may look");
     expect(html).not.toMatch(/Court-ready|court-ready|Reviewed against Illinois Compiled Statutes|Trusted by Illinois residents/);
     expect(html).not.toMatch(/accepted by|actually filed/);
   });
@@ -65,13 +65,13 @@ describe("root `/` renders the v2 redesigned homepage", () => {
 describe("root `/pricing` renders the v2 redesigned pricing page", () => {
   const html = ssr(<PricingPage />);
 
-  it('renders the "from $149" pricing hero', () => {
-    expect(html).toMatch(/from \$149/i);
+  it('renders the "$149 flat" pricing hero', () => {
+    expect(html).toMatch(/\$149 flat/i);
   });
 
-  it("renders Essential and Plus tiers (and no Concierge by default)", () => {
+  it("renders only the Essential one-time tier", () => {
     expect(html).toContain(">Essential<");
-    expect(html).toContain(">Plus<");
+    expect(html).not.toContain(">Plus<");
     expect(html).not.toContain(">Concierge<");
   });
 
@@ -91,15 +91,16 @@ describe("root `/pricing` renders the v2 redesigned pricing page", () => {
     expect(html).not.toMatch(/\$197/);
   });
 
-  it("shows the comparison table and add-on row, with no checklist capture above tiers", () => {
-    expect(html).toMatch(/Side by side/);
-    expect(html).toMatch(/À la carte/);
+  it("shows the free-forms value comparison without legacy add-ons", () => {
+    expect(html).toContain("Official Illinois court forms are available free");
+    expect(html).not.toMatch(/Side by side/);
+    expect(html).not.toMatch(/À la carte/);
     // No email-capture form above or inside the pricing flow.
     expect(html).not.toMatch(/Send my checklist/);
   });
 
   it("avoids court-reliant promises, contestation refunds, and unsubstantiated quantified claims", () => {
-    expect(html).toContain("Illustrative pricing scenarios");
+    expect(html).not.toContain("Illustrative pricing scenarios");
     expect(html).toContain("We don&#x27;t mediate contested disputes");
     expect(html).not.toMatch(/court-ready|Court-ready|Accepted statewide|same court acceptance/);
     expect(html).not.toMatch(/80%|1 in 12|pause your Plus|prorated refund|contestation is not a separate refund trigger/);
@@ -130,7 +131,7 @@ describe("root metadata is production-canonical and share-copy aligned", () => {
 
   it("uses the homepage hook as the default document, OpenGraph, and Twitter title", () => {
     expect(layout).toMatch(
-      /homepageTitle\s*=\s*"FreshStart IL — Your Illinois divorce, filed right, from \$149"/,
+      /homepageTitle\s*=\s*"FreshStart IL — Illinois divorce form preparation from \$149"/,
     );
     expect(layout).toMatch(/default:\s*homepageTitle/);
     expect(layout).toMatch(/openGraph:[\s\S]*title:\s*homepageTitle/);

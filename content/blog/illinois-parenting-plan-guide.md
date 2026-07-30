@@ -7,7 +7,7 @@ slug: "illinois-parenting-plan-guide"
 
 If you're going through a divorce in Illinois and you have children, you cannot finalize the divorce without a **parenting plan** — a written agreement that covers how you and your spouse will share parenting responsibilities after the divorce.
 
-Illinois courts take parenting plans seriously. Vague or incomplete plans get rejected. Here's what yours must include.
+Parenting-plan requirements are detailed and case-specific. Current law, court orders, and local procedure should be checked before filing.
 
 ## What Illinois Law Requires
 
@@ -63,13 +63,13 @@ Illinois requires the plan to address how disputes between parents will be handl
 - **Mediation** — neutral third party helps reach agreement
 - **Parenting coordinator** — appointed professional who makes binding decisions on minor disputes
 
-You don't have to get creative here. A simple provision that disputes go to mediation before litigation is sufficient.
+Confirm what dispute-resolution language applies to the case; generic mediation wording may not meet current requirements.
 
 ## 5. Right of First Refusal (Optional but Recommended)
 
 This provision says that if one parent needs childcare for more than a certain number of hours (often 4 or 8), they must offer the other parent the opportunity to care for the child before using a third party.
 
-It's optional under Illinois law but prevents disputes down the road and is seen favorably by courts.
+Whether to include this provision and how to draft it depends on the family and current law. It does not guarantee fewer disputes or any particular court response.
 
 ## 6. Transportation
 
@@ -81,9 +81,7 @@ Specify who is responsible for transporting the child at each exchange — parti
 
 ## Child Support Is Separate
 
-A parenting plan doesn't typically include child support numbers — that goes in the Marital Settlement Agreement. However, your parenting time arrangement directly affects the child support calculation under Illinois law. More parenting time generally means lower support obligations for the higher-earner.
-
-[Use our child support calculator](/calculators) to see how different parenting time arrangements affect the numbers.
+Parenting time can affect a child-support analysis, but the applicable inputs, thresholds, adjustments, documents, and result are case-specific. Fresh Start IL does not currently provide a child-support calculation. Verify current official schedules and instructions or consult a qualified attorney.
 
 ## Common Mistakes to Avoid
 
@@ -95,10 +93,12 @@ A parenting plan doesn't typically include child support numbers — that goes i
 
 **Ignoring long-distance provisions.** If there's any chance one parent may relocate, address relocation notice requirements.
 
-## The Easiest Way to Build Your Parenting Plan
+## Preparing a Parenting-Plan Draft
 
-A compliant Illinois parenting plan has a lot of moving parts. Getting it right matters — an incomplete plan delays your divorce and can create confusion for years.
+A parenting plan has many fact-specific provisions. Review current requirements and consider legal advice before deciding that a draft protects your family's interests.
 
-[FreshStart IL builds your parenting plan automatically](/start). Answer questions about your children, schedule preferences, and decision-making arrangements — we generate a complete, Illinois-compliant parenting plan you can include in your filing. No templates to decipher, no terms to look up.
+[Fresh Start IL prepares supported Illinois uncontested-divorce form drafts](/start) from your answers, which may include a parenting-plan draft when supported. You review and file the drafts. Fresh Start IL is not a law firm and does not provide legal advice or guarantee completeness, court acceptance, timing, or outcome.
 
 Your children's stability is worth getting this right.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

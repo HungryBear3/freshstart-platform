@@ -8,13 +8,13 @@ import { PricingView } from "../v2/_components/PricingView";
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 
 export const metadata: Metadata = {
-  title: "Pricing — From $149 for an Illinois divorce filing",
+  title: "Pricing — $149 one-time Illinois divorce form preparation",
   description:
-    "Essential ($149 one-time) and Plus ($299/yr) FreshStart IL plans for Illinois divorce filings in all 102 Illinois counties.",
+    "FreshStart IL document-preparation assistance for straightforward Illinois uncontested divorce: $149 one-time for 60 days of service access, no subscription, with a published 30-day refund policy.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing | FreshStart IL",
-    description: "Illinois divorce document preparation plans starting at $149.",
+    description: "Illinois uncontested-divorce form preparation for $149 one-time with 60 days of service access and no subscription.",
     images: [DEFAULT_OG_IMAGE],
   },
 };

@@ -11,16 +11,16 @@ export function HowItWorksSection() {
     },
     {
       number: 2,
-      title: "Get your court-ready documents",
+      title: "Get Illinois form drafts",
       description:
-        "We fill out all required Illinois divorce forms using your answers. Edit and regenerate anytime your information changes.",
+        "We organize your answers into supported Illinois divorce form drafts. Review, edit, and regenerate them as your information changes.",
       icon: FileText,
     },
     {
       number: 3,
-      title: "File with confidence",
+      title: "Review your filing roadmap",
       description:
-        "E-file through Illinois E-Services with step-by-step guidance. We handle county-specific requirements so nothing gets rejected.",
+        "Use step-by-step e-filing guidance and verify current county-specific instructions before you submit.",
       icon: CheckCircle,
     },
   ]

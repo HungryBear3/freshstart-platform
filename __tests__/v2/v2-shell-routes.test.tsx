@@ -97,7 +97,7 @@ const INFO_ROUTES: Array<{ label: string; render: () => string; expects: string[
   {
     label: "/faq",
     render: () => ssr(<FaqPage />),
-    expects: ["Essential", "Plus", "support@freshstart-il.com"],
+    expects: ["$149 one-time", "no subscription", "support@freshstart-il.com"],
   },
   {
     label: "/about",

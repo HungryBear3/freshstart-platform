@@ -54,14 +54,14 @@ export function ChecklistForm({ variant = "page" }: ChecklistFormProps) {
           <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-left">
             <p className="text-sm font-semibold text-blue-900 mb-1">Ready to go further?</p>
             <p className="text-sm text-blue-800 mb-3">
-              FreshStart IL generates your complete Illinois divorce packet — petition, financial
-              affidavit, and parenting plan — from plain-English questions.
+              FreshStart IL turns your answers into supported Illinois divorce form drafts and a
+              filing roadmap that you review before filing.
             </p>
             <Link
               href="/pricing"
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
             >
-              Get started — $299/year
+              View the $149 one-time / 60-day access option
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

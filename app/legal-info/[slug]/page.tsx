@@ -364,17 +364,13 @@ const staticContent: Record<
     content: `
       <h2>Residency Requirements for Illinois Divorce</h2>
       
-      <p>To file for divorce in Illinois, you must meet specific residency requirements.</p>
+      <p>Illinois law includes state-residency requirements. Timing and application should be verified for the specific case.</p>
       
       <h3>90-Day Residency Rule</h3>
-      <p><strong>At least one spouse must have lived in Illinois for at least 90 days</strong> before filing for divorce.</p>
+      <p>Illinois law includes a 90-day state-residency timing requirement tied to commencement or entry of judgment. Verify how the timing applies before filing.</p>
       
       <h3>County Filing Requirements</h3>
-      <p>You must file in a county where:</p>
-      <ul>
-        <li>Either spouse has lived for at least 90 days, OR</li>
-        <li>The cause of action (grounds for divorce) arose</li>
-      </ul>
+      <p>County venue is separate from the state-residency period. Verify the proper county under current law and local circuit-clerk instructions.</p>
       
       <h3>What Counts as "Living" in Illinois</h3>
       <p>To establish residency, you must:</p>
@@ -385,7 +381,7 @@ const staticContent: Record<
       </ul>
       
       <h3>Military Exception</h3>
-      <p>Military members stationed in Illinois may meet residency requirements even if they haven't lived there for the full 90 days, depending on their circumstances.</p>
+      <p>Special rules may affect military members. Verify current requirements with the circuit clerk or a licensed Illinois attorney.</p>
       
       <h3>Proving Residency</h3>
       <p>You may need to provide proof of residency, such as:</p>

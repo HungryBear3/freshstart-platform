@@ -1,5 +1,7 @@
 # Stripe Configuration Complete! ✅
 
+> **SUPERSEDED — DO NOT EXECUTE.** This document describes retired subscription migration and testing. Fresh Start IL's current approved offer is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; no migration, provider mutation, or production test is authorized by this file.
+
 ## What's Configured
 
 - ✅ Stripe API keys added

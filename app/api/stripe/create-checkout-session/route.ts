@@ -1,124 +1,221 @@
+import { createHash } from "crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/session"
+import { prisma } from "@/lib/db"
 import { stripe } from "@/lib/stripe/config"
-import { getOrCreateStripeCustomer } from "@/lib/stripe/customer"
 
-type CheckoutPlan = "annual" | "one_time" | "parenting_plan" | "refile_assistance"
+const ONE_TIME_AMOUNT_CENTS = 14_900
+const ONE_TIME_CURRENCY = "usd"
+const BLOCKING_LEGACY_STATUSES = new Set(["active", "trialing", "past_due"])
+const TERMINAL_OBLIGATION_STATUSES = new Set(["PAID", "REFUNDED", "DISPUTED", "REJECTED"])
 
-const PRICE_ENV_BY_PLAN: Record<CheckoutPlan, string> = {
-  annual: "ANNUAL_PRICE_ID",
-  one_time: "ONE_TIME_PRICE_ID",
-  parenting_plan: "PARENTING_PLAN_PRICE_ID",
-  refile_assistance: "REFILE_PRICE_ID",
+function contractKey(userId: string, priceId: string, cycle: number) {
+  return createHash("sha256")
+    .update(`freshstart:one_time:v2:${userId}:${priceId}:${ONE_TIME_AMOUNT_CENTS}:${ONE_TIME_CURRENCY}:1:${cycle}`)
+    .digest("hex")
 }
 
-const ADDON_LABEL_BY_PLAN: Partial<Record<CheckoutPlan, string>> = {
-  parenting_plan: "Parenting Plan Worksheet",
-  refile_assistance: "Refile Assistance",
+function error(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status })
 }
 
-function isCheckoutPlan(plan: unknown): plan is CheckoutPlan {
-  return plan === "annual" || plan === "one_time" || plan === "parenting_plan" || plan === "refile_assistance"
+function hasCurrentOneTimeAccess(subscription: Awaited<ReturnType<typeof prisma.subscription.findUnique>>) {
+  if (!subscription || subscription.plan !== "one_time") return false
+  if (!BLOCKING_LEGACY_STATUSES.has(subscription.status)) return false
+  return Boolean(subscription.currentPeriodEnd && subscription.currentPeriodEnd.getTime() > Date.now())
 }
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser(request)
+  if (!user?.email) return error("Unauthorized", 401)
+
+  let body: Record<string, unknown>
   try {
-    const user = await getCurrentUser(request)
-    if (!user || !user.email) {
-      console.error("[Checkout] Unauthorized - no user or email")
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const parsed = await request.json()
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return error("Invalid JSON body", 400)
+    }
+    body = parsed as Record<string, unknown>
+  } catch {
+    return error("Invalid JSON body", 400)
+  }
+
+  const requestedPlan = Object.prototype.hasOwnProperty.call(body, "plan") ? body.plan : "one_time"
+  if (requestedPlan === "parenting_plan" || requestedPlan === "refile_assistance") {
+    return error("Add-on checkout is unavailable until fulfillment is supported", 409)
+  }
+  if (requestedPlan !== "one_time") return error("Unsupported checkout plan", 400)
+
+  const priceId = process.env.ONE_TIME_PRICE_ID
+  if (!process.env.STRIPE_SECRET_KEY || !priceId) return error("Checkout is not configured", 500)
+
+  try {
+    const price = await stripe.prices.retrieve(priceId)
+    if (
+      !price.active ||
+      price.type !== "one_time" ||
+      price.unit_amount !== ONE_TIME_AMOUNT_CENTS ||
+      price.currency.toLowerCase() !== ONE_TIME_CURRENCY
+    ) {
+      throw new Error("Configured Price must be an active fixed $149.00 USD one-time Price")
     }
 
-    const body = await request.json().catch(() => ({}))
-    const requestedPlan = body.plan || "annual"
-    if (!isCheckoutPlan(requestedPlan)) {
-      return NextResponse.json({ error: "Unsupported checkout plan" }, { status: 400 })
-    }
-
-    const plan = requestedPlan
-    const envName = PRICE_ENV_BY_PLAN[plan]
-    const priceId = process.env[envName]
-    const isSubscription = plan === "annual"
-    const isAddon = plan === "parenting_plan" || plan === "refile_assistance"
-
-    console.log("[Checkout] Creating session", {
-      userId: user.id,
-      plan,
-      source: body.source || "unknown",
-      priceConfigured: Boolean(priceId),
-    })
-
-    if (!priceId) {
-      console.error(`[Checkout] ${envName} not configured`)
-      return NextResponse.json(
-        { error: "Price ID not configured. Please check server configuration." },
-        { status: 500 }
-      )
-    }
-
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error("[Checkout] STRIPE_SECRET_KEY not set")
-      return NextResponse.json(
-        { error: "Stripe not configured. Please check server configuration." },
-        { status: 500 }
-      )
-    }
-
-    const customer = await getOrCreateStripeCustomer(user.id, user.email)
-    console.log("[Checkout] Customer ready:", customer.id)
-
-    try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      const metadata = {
-        userId: user.id,
-        plan,
-        source: typeof body.source === "string" ? body.source : "unknown",
-        kind: isAddon ? "addon" : "plan",
-        ...(isAddon ? { addon: plan, addonLabel: ADDON_LABEL_BY_PLAN[plan] || plan } : {}),
+    const prepared = await prisma.$transaction(async (tx) => {
+      const legacy = await tx.subscription.findUnique({ where: { userId: user.id } })
+      if (legacy && legacy.plan !== "one_time" && BLOCKING_LEGACY_STATUSES.has(legacy.status)) {
+        return { ok: false as const, message: "An existing subscription must be resolved before one-time checkout" }
+      }
+      if (hasCurrentOneTimeAccess(legacy)) {
+        return { ok: false as const, message: "Your current 60-day access period is still active" }
+      }
+      const unresolvedReview = await tx.checkoutObligation.findFirst({
+        where: { userId: user.id, status: "REVIEW_REQUIRED" },
+        orderBy: { createdAt: "desc" },
+      })
+      if (unresolvedReview) {
+        return { ok: false as const, message: "Your payment is under manual review. Support has been notified; contact support@freshstart-il.com if you need help." }
       }
 
-      const sessionParams: any = {
-        customer: customer.id,
-        mode: isSubscription ? "subscription" : "payment",
-        payment_method_types: ["card"],
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${appUrl}/dashboard?success=true&plan=${encodeURIComponent(plan)}`,
-        cancel_url: `${appUrl}/pricing?canceled=true&plan=${encodeURIComponent(plan)}`,
-        metadata,
-      }
+      const latest = await tx.checkoutObligation.findFirst({
+        where: { userId: user.id, plan: "one_time", stripePriceId: price.id },
+        orderBy: { cycle: "desc" },
+      })
+      const cycle = latest && TERMINAL_OBLIGATION_STATUSES.has(latest.status) ? latest.cycle + 1 : (latest?.cycle ?? 1)
+      const key = latest && !TERMINAL_OBLIGATION_STATUSES.has(latest.status)
+        ? latest.contractKey
+        : contractKey(user.id, price.id, cycle)
+      const obligation = await tx.checkoutObligation.upsert({
+        where: { contractKey: key },
+        create: {
+          contractKey: key,
+          userId: user.id,
+          plan: "one_time",
+          cycle,
+          stripeCustomerId: null,
+          stripePriceId: price.id,
+          expectedAmountCents: ONE_TIME_AMOUNT_CENTS,
+          expectedCurrency: ONE_TIME_CURRENCY,
+          quantity: 1,
+          attempt: 1,
+          status: "PENDING",
+        },
+        update: {},
+      })
+      return { ok: true as const, legacy, cycle, obligation }
+    }, { isolationLevel: "Serializable" })
+    if (!prepared.ok) return error(prepared.message, 409)
+    const { legacy, cycle } = prepared
+    let obligation = prepared.obligation
 
-      if (isSubscription) {
-        sessionParams.subscription_data = {
-          metadata,
+    const exactCoreContract =
+      obligation.userId === user.id &&
+      obligation.plan === "one_time" &&
+      obligation.cycle === cycle &&
+      obligation.stripePriceId === price.id &&
+      obligation.expectedAmountCents === ONE_TIME_AMOUNT_CENTS &&
+      obligation.expectedCurrency === ONE_TIME_CURRENCY &&
+      obligation.quantity === 1
+    if (!exactCoreContract) throw new Error("Existing checkout obligation conflicts with this request")
+    if (obligation.status === "PAID") return error("This checkout is already paid", 409)
+    if (obligation.status === "REVIEW_REQUIRED") {
+      return error("Your payment is under manual review. Support has been notified; contact support@freshstart-il.com if you need help.", 409)
+    }
+
+    let customerId = obligation.stripeCustomerId
+    if (!customerId && legacy?.stripeCustomerId) {
+      const candidate = await stripe.customers.retrieve(legacy.stripeCustomerId)
+      if (!("deleted" in candidate && candidate.deleted) && candidate.id === legacy.stripeCustomerId) {
+        const rebound = await prisma.checkoutObligation.updateMany({
+          where: { id: obligation.id, stripeCustomerId: null, status: "PENDING" },
+          data: { stripeCustomerId: candidate.id },
+        })
+        if (rebound.count === 1) {
+          customerId = candidate.id
+          obligation = { ...obligation, stripeCustomerId: candidate.id }
         }
       }
-
-      const session = await stripe.checkout.sessions.create(sessionParams)
-      console.log("[Checkout] Session created successfully:", session.id)
-
-      return NextResponse.json({
-        sessionId: session.id,
-        url: session.url,
-      })
-    } catch (stripeError: any) {
-      console.error("[Checkout] Stripe API error:", stripeError)
-      return NextResponse.json(
-        {
-          error: "Stripe error: " + (stripeError.message || "Failed to create checkout session"),
-          details: stripeError.type || "unknown",
-        },
-        { status: 500 }
-      )
     }
-  } catch (error: any) {
-    console.error("[Checkout] Unexpected error:", error)
-    console.error("[Checkout] Error stack:", error.stack)
-    return NextResponse.json(
+
+    if (customerId) {
+      const existingCustomer = await stripe.customers.retrieve(customerId)
+      if (("deleted" in existingCustomer && existingCustomer.deleted) || existingCustomer.id !== customerId) {
+        throw new Error("Bound Stripe Customer is unavailable")
+      }
+    } else {
+      const customer = await stripe.customers.create(
+        { email: user.email, metadata: { userId: user.id, obligationId: obligation.id } },
+        { idempotencyKey: `${obligation.contractKey}:customer` },
+      )
+      const boundCustomer = await prisma.checkoutObligation.updateMany({
+        where: { id: obligation.id, stripeCustomerId: null, status: "PENDING" },
+        data: { stripeCustomerId: customer.id },
+      })
+      if (boundCustomer.count !== 1) {
+        const winner = await prisma.checkoutObligation.findUnique({ where: { id: obligation.id } })
+        if (winner?.stripeCustomerId !== customer.id) throw new Error("Failed to bind the exact Stripe Customer")
+        obligation = winner
+      } else {
+        obligation = { ...obligation, stripeCustomerId: customer.id }
+      }
+      customerId = obligation.stripeCustomerId
+    }
+    if (!customerId) throw new Error("Checkout obligation has no bound Stripe Customer")
+
+    if (obligation.stripeSessionId) {
+      const existing = await stripe.checkout.sessions.retrieve(obligation.stripeSessionId)
+      const existingCustomerId = typeof existing.customer === "string" ? existing.customer : existing.customer?.id
+      if (existing.id !== obligation.stripeSessionId || existingCustomerId !== customerId) {
+        throw new Error("Bound Checkout Session conflicts with the obligation")
+      }
+      if (existing.status === "open" && existing.url) {
+        return NextResponse.json({ sessionId: existing.id, url: existing.url, reused: true })
+      }
+      if (existing.status !== "expired") {
+        return error("Payment confirmation is still processing. Refresh your dashboard shortly.", 409)
+      }
+
+      const released = await prisma.checkoutObligation.updateMany({
+        where: { id: obligation.id, stripeSessionId: existing.id, status: "OPEN", attempt: obligation.attempt },
+        data: { stripeSessionId: null, status: "PENDING", attempt: { increment: 1 } },
+      })
+      if (released.count !== 1) throw new Error("Expired Checkout Session recovery lost its compare-and-swap")
+      const recovered = await prisma.checkoutObligation.findUnique({ where: { id: obligation.id } })
+      if (!recovered || recovered.status !== "PENDING" || recovered.stripeSessionId) {
+        throw new Error("Expired Checkout Session recovery produced an invalid obligation")
+      }
+      obligation = recovered
+    }
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "")
+    const session = await stripe.checkout.sessions.create(
       {
-        error: "Failed to create checkout session",
-        details: error.message || "Unknown error",
+        customer: customerId,
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [{ price: price.id, quantity: 1 }],
+        success_url: `${appUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/pricing?canceled=true`,
+        metadata: { obligationId: obligation.id },
       },
-      { status: 500 }
+      { idempotencyKey: `${obligation.contractKey}:${obligation.attempt}` },
     )
+    if (!session.url) throw new Error("Stripe returned a Checkout Session without a URL")
+
+    const bound = await prisma.checkoutObligation.updateMany({
+      where: { id: obligation.id, stripeCustomerId: customerId, stripeSessionId: null, status: "PENDING", attempt: obligation.attempt },
+      data: { stripeSessionId: session.id, status: "OPEN" },
+    })
+    if (bound.count !== 1) {
+      const winner = await prisma.checkoutObligation.findUnique({ where: { id: obligation.id } })
+      if (winner?.stripeSessionId === session.id && winner.status === "OPEN") {
+        return NextResponse.json({ sessionId: session.id, url: session.url, reused: true })
+      }
+      throw new Error("Failed to bind the exact Checkout Session")
+    }
+
+    return NextResponse.json({ sessionId: session.id, url: session.url })
+  } catch (cause) {
+    console.error("[Checkout] Failed closed:", cause)
+    return error("Unable to create a verified checkout", 500)
   }
 }

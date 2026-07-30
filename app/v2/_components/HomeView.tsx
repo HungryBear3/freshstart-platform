@@ -6,7 +6,7 @@ import "./styles.css";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { HomepageHero } from "./Hero";
-import { CostBand } from "./CostBand";
+
 import { FeaturePills } from "./FeaturePills";
 import { HowItWorks } from "./HowItWorks";
 import { Testimonials } from "./Testimonials";
@@ -19,7 +19,7 @@ import { OrganizationAndWebsiteJsonLd } from "./JsonLd";
 const FAQ_ITEMS = [
   {
     q: "Are the forms built for Illinois filing?",
-    a: "Yes. FreshStart prepares Illinois divorce form drafts and county-specific filing steps based on current court templates and filing information. You review everything before filing, and support can help correct generation issues under our guarantee.",
+    a: "FreshStart prepares supported Illinois divorce form drafts and county-aware filing notes where available. You review everything and verify current clerk requirements before filing.",
   },
   {
     q: "What if my divorce is contested?",
@@ -47,7 +47,13 @@ export function HomeView() {
       <Header page="homepage" ctaLabel="Start my filing" />
       <main role="main">
         <HomepageHero />
-        <CostBand page="homepage" eyebrow="The math is the message" />
+        <section className="mx-auto max-w-6xl px-5 pt-5 sm:px-8" aria-label="Scope and legal boundary">
+          <div className="rounded-xl border border-[var(--fs-border)] bg-[var(--fs-card)] px-5 py-4 text-sm leading-6 text-[var(--fs-text-mid)]">
+            <strong className="text-[var(--fs-text)]">Not a law firm. Not legal advice.</strong>{" "}
+            FreshStart IL prepares Illinois uncontested-divorce form drafts and step-by-step
+            filing guidance; you review everything before you file.
+          </div>
+        </section>
         <FeaturePills />
         <HowItWorks />
         <Testimonials />
@@ -61,7 +67,7 @@ export function HomeView() {
           page="homepage"
           eyebrow="Not sure yet?"
           heading="Book a free 15-minute orientation call."
-          body="No pitch — we'll tell you honestly whether FreshStart is the right fit for your situation, and point you to the next step either way."
+          body="No pitch — we'll explain FreshStart's product scope and answer service questions. We cannot tell you whether you need an attorney or give legal advice."
         />
         <ChecklistCapture />
       </main>

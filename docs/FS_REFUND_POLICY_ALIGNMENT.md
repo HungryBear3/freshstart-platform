@@ -1,5 +1,7 @@
 # FreshStart-IL — Refund Policy Alignment Audit
 
+> **HISTORICAL AUDIT — NOT CURRENT OPERATING INSTRUCTIONS.** References below to trials, Plus, subscriptions, cancellation, or earlier public copy describe the May 2026 state and must not be used for a release. The current approved implementation is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md` for current release and recovery controls.
+
 Date: 2026-05-11
 Scope: Doc-only survey. No code, copy, Stripe, or content changes.
 Direction (hard rules):

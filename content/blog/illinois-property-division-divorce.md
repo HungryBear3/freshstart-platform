@@ -52,4 +52,6 @@ Retirement accounts require a special court order called a **Qualified Domestic 
 
 In an uncontested divorce, you and your spouse agree on how to divide everything and document it in a **Marital Settlement Agreement (MSA)**. This is a binding contract that becomes part of your divorce judgment.
 
-Fresh Start IL helps you create a complete MSA with all required provisions for an Illinois divorce. Visit [freshstart-il.com](https://www.freshstart-il.com) to get started.
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers, which may include an agreement draft when supported. You review and file the drafts. Fresh Start IL is not a law firm and does not provide legal advice or guarantee completeness, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

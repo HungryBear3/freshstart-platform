@@ -24,7 +24,7 @@ const STEPS = [
         </p>
         <ul className="list-disc list-inside space-y-2 text-muted-foreground">
           <li>Complete questionnaires about your case</li>
-          <li>Generate court-ready documents automatically</li>
+          <li>Prepare supported document drafts from your answers</li>
           <li>Track deadlines and milestones</li>
           <li>Access calculators for child support and maintenance</li>
         </ul>

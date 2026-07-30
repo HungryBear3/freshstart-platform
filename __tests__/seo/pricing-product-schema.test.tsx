@@ -11,7 +11,7 @@ import { getTiers } from "@/app/v2/_components/tiers"
 
 function payloadsForPricing() {
   const html = ReactDOMServer.renderToStaticMarkup(
-    <PricingProductsJsonLd tiers={getTiers({ count: 2, recommendedTier: "plus" })} />,
+    <PricingProductsJsonLd tiers={getTiers({ count: 1, recommendedTier: "essential" })} />,
   )
   return Array.from(
     html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g),
@@ -21,7 +21,7 @@ function payloadsForPricing() {
 
 describe("pricing Product structured data", () => {
   it("emits one valid Product + simple Offer per visible tier", () => {
-    const tiers = getTiers({ count: 2, recommendedTier: "plus" })
+    const tiers = getTiers({ count: 1, recommendedTier: "essential" })
     const payloads = payloadsForPricing()
 
     expect(payloads).toHaveLength(tiers.length)

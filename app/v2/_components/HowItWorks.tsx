@@ -9,12 +9,12 @@ const steps = [
   {
     n: "02",
     title: "Get Illinois form drafts",
-    body: "We auto-fill every required Illinois form. Edit and regenerate as your case evolves.",
+    body: "We organize your answers into supported Illinois form drafts. Review, edit, and regenerate them as your information changes.",
   },
   {
     n: "03",
-    title: "File with confidence",
-    body: "Step-by-step e-filing guidance through Illinois E-Services, with county-specific instructions so nothing gets rejected.",
+    title: "Review your filing roadmap",
+    body: "Step-by-step e-filing guidance through Illinois E-Services, with county-specific notes where supported to help you review common clerical gaps.",
   },
 ];
 
@@ -25,7 +25,7 @@ export function HowItWorks() {
         <div className="fs-section-head">
           <div className="fs-section-eyebrow">How it works</div>
           <h2 id="how-h2" className="fs-h2">
-            From questionnaire to filed in three steps.
+            From questionnaire to filing roadmap in three steps.
           </h2>
         </div>
         <div className="fs-how-grid">

@@ -945,6 +945,7 @@
   max-width: 1080px;
   margin: 0 auto;
 }
+.fs-pr-tier-grid.is-one { grid-template-columns: minmax(0, 1fr); max-width: 560px; }
 .fs-pr-tier-grid.is-two { grid-template-columns: 1fr 1fr; max-width: 880px; }
 .fs-pr-tier-grid.is-three { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 900px) {

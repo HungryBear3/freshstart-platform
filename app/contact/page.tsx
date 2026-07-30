@@ -22,7 +22,7 @@ export default function ContactPage() {
       idSuffix="contact"
       eyebrow="Contact"
       title="Talk to us."
-      lede="The fastest way to reach us is email. We answer most messages within 1–2 business days, and Plus subscribers usually get a same-day response."
+      lede="The fastest way to reach us is email. We answer most messages within 1–2 business days."
     >
       <h2>Reach the team</h2>
       <ul>

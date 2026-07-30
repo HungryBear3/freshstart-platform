@@ -1,5 +1,8 @@
 import { resend, FROM_EMAIL } from "./resend"
 import { escapeHtml } from "@/lib/security/validation"
+import { buildChecklistEmail } from "./email/checklist-content"
+
+export { buildChecklistEmail } from "./email/checklist-content"
 
 const isResendConfigured = !!process.env.RESEND_API_KEY
 
@@ -72,9 +75,7 @@ export async function sendChecklistEmail(email: string) {
   const appUrl = process.env.NEXTAUTH_URL || "https://www.freshstart-il.com"
   return sendEmail({
     to: email,
-    subject: "Your Illinois Divorce Checklist — FreshStart IL",
-    html: `<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto"><div style="background:#2563eb;padding:24px 32px;border-radius:8px 8px 0 0"><h1 style="color:white;margin:0">FreshStart IL</h1></div><div style="background:white;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px"><h2>Your Illinois Divorce Checklist</h2><p>4 required forms: Petition for Dissolution, Financial Affidavit, Parenting Plan (if kids), Marital Settlement Agreement.</p><p>Filing fees: Cook $388 · DuPage $349 · Will ~$299</p><p>Key deadlines: 90-day IL residency · serve spouse within 30 days · 30-day response window</p><div style="text-align:center;margin:32px 0"><a href="${appUrl}/auth/signup" style="background:#2563eb;color:white;padding:14px 32px;text-decoration:none;border-radius:6px;font-weight:bold">Start Free 7-Day Trial →</a></div></div></div>`,
-    text: `Illinois Divorce Checklist\n\n4 Required Forms:\n1. Petition for Dissolution\n2. Financial Affidavit\n3. Parenting Plan (if kids)\n4. Marital Settlement Agreement\n\nFiling fees: Cook $388, DuPage $349, Will ~$299\n\nStart your trial: ${appUrl}/auth/signup`,
+    ...buildChecklistEmail(appUrl),
   })
 }
 

@@ -216,8 +216,8 @@ export function CourtFormDisclaimer({ className }: { className?: string }) {
       <AlertTitle className="text-blue-800">Official Illinois Court Form</AlertTitle>
       <AlertDescription className="text-blue-700 space-y-2">
         <p>
-          This document uses an official Illinois Supreme Court approved standardized form. 
-          These forms are required to be accepted by all Illinois Circuit Courts.
+          This document uses a form sourced from the Illinois Courts website.
+          Verify that it is the current version and confirm your circuit clerk's requirements before filing.
         </p>
         <p className="text-sm">
           <strong>Before filing:</strong> Verify all information is accurate, sign where required, 

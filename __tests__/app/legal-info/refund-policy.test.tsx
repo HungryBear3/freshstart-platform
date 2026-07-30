@@ -24,7 +24,8 @@ describe("/legal-info/refund-policy", () => {
 
   it("renders the canonical refund-policy headline", () => {
     expect(html).toContain("Refund Policy");
-    expect(html).toContain("30-day money-back guarantee");
+    expect(html).toContain("request a refund review within 30 days");
+    expect(html).not.toMatch(/money-back guarantee/i);
   });
 
   it("uses support@freshstart-il.com, never refund@", () => {
@@ -62,8 +63,8 @@ describe("legal-info copy alignment with paid plans", () => {
     const src = readSourceFile("app/legal-info/terms/page.tsx");
     expect(src).not.toMatch(/free to use/i);
     // Should now reference the paid plans + refund policy
-    expect(src).toMatch(/Essential/);
-    expect(src).toMatch(/Plus/);
+    expect(src).toMatch(/\$149 one-time/);
+    expect(src).not.toMatch(/Plus/);
     expect(src).toMatch(/refund-policy/);
   });
 
@@ -71,7 +72,7 @@ describe("legal-info copy alignment with paid plans", () => {
     const src = readSourceFile("app/legal-info/faq/page.tsx");
     expect(src).not.toMatch(/FreshStart IL is free to use/i);
     expect(src).toMatch(/\$149/);
-    expect(src).toMatch(/\$299/);
+    expect(src).not.toMatch(/\$299/);
     expect(src).toMatch(/refund-policy/);
   });
 

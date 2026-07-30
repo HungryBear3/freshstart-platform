@@ -54,7 +54,7 @@ export default function NotFound() {
             <Link href="/pricing" className="rounded-[18px] border border-[var(--fs-border)] bg-[var(--fs-card)] p-5 shadow-[var(--fs-shadow-card)] transition hover:border-[var(--fs-border-hi)]">
               <Home className="mb-4 h-6 w-6 text-[var(--fs-purple)]" />
               <h2 className="font-semibold text-[var(--fs-text)]">Pricing</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fs-text-mid)]">See the Essential and Plus filing plans.</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--fs-text-mid)]">See the $149 one-time Essential service with 60 days of service access.</p>
             </Link>
             <Link href="/faq" className="rounded-[18px] border border-[var(--fs-border)] bg-[var(--fs-card)] p-5 shadow-[var(--fs-shadow-card)] transition hover:border-[var(--fs-border-hi)]">
               <HelpCircle className="mb-4 h-6 w-6 text-[var(--fs-green)]" />

@@ -345,17 +345,19 @@ export default function ProfilePage() {
             </form>
           </div>
 
-          {/* Subscription Management */}
+          {/* Service access / legacy subscription management */}
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Subscription
+              {subscription?.plan === "one_time" ? "Service Access" : "Subscription"}
             </h2>
             {subscription ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">
-                      {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan
+                      {subscription.plan === "one_time"
+                        ? "Essential one-time purchase"
+                        : `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan`}
                     </p>
                     <p className="text-sm text-gray-600">
                       Status:{" "}
@@ -365,51 +367,64 @@ export default function ProfilePage() {
                         subscription.status === "canceled" ? "text-red-600 font-medium" :
                         "text-gray-600"
                       }>
-                        {subscription.status === "trialing" ? "Free Trial" : 
+                        {subscription.status === "trialing" ? "Free Trial" :
                          subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
                       </span>
                     </p>
-                    {subscription.status === "trialing" && subscription.trialEnd && (
+                    {subscription.plan === "one_time" && subscription.currentPeriodEnd && (
+                      <p className="text-sm text-gray-500">
+                        Access through: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                      </p>
+                    )}
+                    {subscription.plan !== "one_time" && subscription.status === "trialing" && subscription.trialEnd && (
                       <p className="text-sm text-gray-500">
                         Trial ends: {new Date(subscription.trialEnd).toLocaleDateString()}
                       </p>
                     )}
-                    {subscription.status === "active" && subscription.currentPeriodEnd && (
+                    {subscription.plan !== "one_time" && subscription.status === "active" && subscription.currentPeriodEnd && (
                       <p className="text-sm text-gray-500">
                         Next billing: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                       </p>
                     )}
                   </div>
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    subscription.status === "active" || subscription.status === "trialing" 
-                      ? "bg-green-100 text-green-800" 
+                    subscription.status === "active" || subscription.status === "trialing"
+                      ? "bg-green-100 text-green-800"
                       : "bg-gray-100 text-gray-800"
                   }`}>
                     {subscription.status === "active" || subscription.status === "trialing" ? "Active" : "Inactive"}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleManageSubscription}
-                  disabled={loadingPortal}
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {loadingPortal ? "Loading..." : "Manage Subscription"}
-                </button>
-                <p className="text-xs text-gray-500">
-                  Update payment method, view invoices, or cancel subscription
-                </p>
+                {subscription.plan === "one_time" ? (
+                  <p className="text-xs text-gray-500">
+                    This was a one-time purchase. No recurring charge is scheduled.
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                      {loadingPortal ? "Loading..." : "Manage Subscription"}
+                    </button>
+                    <p className="text-xs text-gray-500">
+                      Update payment method, view invoices, or cancel subscription
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  No active subscription found.
+                  No active service access found.
                 </p>
                 <Link
                   href="/pricing"
                   className="inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                 >
-                  View Plans
+                  View $149 / 60-Day Access
                 </Link>
               </div>
             )}

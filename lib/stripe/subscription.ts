@@ -1,6 +1,10 @@
 /**
  * Get user's subscription status
  */
+export function hasUnexpiredAccessPeriod(currentPeriodEnd: Date | null | undefined, now = Date.now()): boolean {
+  return Boolean(currentPeriodEnd && currentPeriodEnd.getTime() > now)
+}
+
 export async function getUserSubscription(userId: string) {
   try {
     // Lazy import Prisma to avoid initialization issues
@@ -14,6 +18,9 @@ export async function getUserSubscription(userId: string) {
       return null
     }
 
+    const statusIsActive = subscription.status === "active" || subscription.status === "trialing"
+    const periodHasNotEnded = hasUnexpiredAccessPeriod(subscription.currentPeriodEnd)
+
     return {
       id: subscription.id,
       status: subscription.status,
@@ -21,7 +28,7 @@ export async function getUserSubscription(userId: string) {
       currentPeriodEnd: subscription.currentPeriodEnd,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       trialEnd: subscription.trialEnd,
-      isActive: subscription.status === "active" || subscription.status === "trialing",
+      isActive: statusIsActive && periodHasNotEnded,
     }
   } catch (error) {
     console.error("Error fetching subscription:", error)

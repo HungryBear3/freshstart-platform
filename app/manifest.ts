@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "FreshStart IL - Divorce Guidance Platform",
     short_name: "FreshStart IL",
     description:
-      "Guide people in Illinois through their divorce process with questionnaires, document generation, and court-ready forms.",
+      "Illinois uncontested-divorce form preparation and filing guidance. We prepare supported form drafts; you review and file them.",
     start_url: baseUrl,
     display: "standalone",
     background_color: "#ffffff",

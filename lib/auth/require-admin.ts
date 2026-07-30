@@ -39,20 +39,21 @@ export async function requireAdmin(request: NextRequest): Promise<
 
   const userId = ((token as { id?: string }).id ?? token.sub) as string
 
-  // Check role from token first (fast path)
-  const tokenRole = (token as { role?: string }).role
-  if (tokenRole === "admin") {
+  // Always verify the current database role. A signed JWT can outlive an
+  // administrator's privileges and must not authorize privileged mutations
+  // after demotion or account removal.
+  let dbUser
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
+    })
+  } catch {
     return {
-      user: { id: userId, email: (token.email as string) ?? "", role: "admin" },
-      error: null,
+      user: null,
+      error: NextResponse.json({ error: "Unable to verify administrator" }, { status: 503 }),
     }
   }
-
-  // Fallback: fetch from DB (for tokens without role or to ensure latest)
-  const dbUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, role: true },
-  })
 
   if (!dbUser || dbUser.role !== "admin") {
     return {

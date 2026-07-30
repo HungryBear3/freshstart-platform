@@ -7,40 +7,42 @@ type EmailContent = { subject: string; html: string; text: string }
 
 const SITE = "https://www.freshstart-il.com"
 
-function getEmailContent(step: number, email: string): EmailContent | null {
-  const cta = `<p><a href="${SITE}" style="color:#2563eb;">Visit FreshStart IL →</a></p>`
-  const pricingCta = `<p style="margin-top:16px"><a href="${SITE}/pricing" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">Get started — $299/year →</a></p>`
+function getEmailContent(step: number): EmailContent | null {
+  const pricingCta = `<p style="margin-top:16px"><a href="${SITE}/pricing" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;">Start $149 one-time / 60-day access →</a></p>`
+  const accessWindow = "The one-time purchase includes 60 days of service access."
+  const boundaryText = "FreshStart IL is not a law firm and does not provide legal advice."
+  const boundaryHtml = `<p style="font-size:12px;color:#64748b;">${boundaryText}</p>`
 
   switch (step) {
     case 1:
       return {
-        subject: "Your Illinois Divorce Checklist is here",
-        text: `Here's your Illinois Divorce Checklist — a step-by-step overview of what you'll need to file in Illinois.\n\nWhen you're ready to go further, FreshStart IL generates your complete divorce packet for you: petition, financial affidavit, and parenting plan — court-ready, no attorney required.\n\nSee how it works: ${SITE}/pricing`,
-        html: `<p>Here's your <strong>Illinois Divorce Checklist</strong> — a step-by-step overview of what you'll need to file.</p><p>When you're ready to go further, FreshStart IL generates your complete divorce packet for you: petition, financial affidavit, and parenting plan — court-ready, without an attorney.</p>${pricingCta}`,
+        subject: "Your general Illinois Divorce Checklist is here",
+        text: `Here's your general Illinois Divorce Checklist. It can help you organize information and identify questions to verify before filing. When you're ready, FreshStart IL prepares supported uncontested-divorce form drafts from your answers for $149 one-time. ${accessWindow} You review and file them.\n\n${boundaryText}\n\nSee how it works: ${SITE}/pricing`,
+        html: `<p>Here's your <strong>general Illinois Divorce Checklist</strong>. It can help you organize information and identify questions to verify before filing.</p><p>When you're ready, FreshStart IL prepares supported uncontested-divorce form drafts from your answers for <strong>$149 one-time</strong>. ${accessWindow} You review and file them.</p>${boundaryHtml}${pricingCta}`,
       }
     case 2:
       return {
-        subject: "The #1 mistake people make when filing for divorce in Illinois",
-        text: `Missing the Financial Affidavit notarization is the most common reason Illinois divorces get delayed. Every divorce with disputed finances requires a notarized Financial Affidavit — and most people miss it. FreshStart IL walks you through every required form so nothing slips through. Visit freshstart-il.com`,
-        html: `<p><strong>Missing the Financial Affidavit notarization.</strong></p><p>It's the most common reason Illinois divorces get delayed or rejected. Every divorce involving disputed finances requires a notarized Financial Affidavit — and most people don't know until they're already at the courthouse.</p><p>FreshStart IL walks you through every required form so nothing slips through the cracks.</p>${cta}`,
+        subject: "Before you prepare Illinois divorce forms",
+        text: `Forms and filing requirements can vary with your facts and circuit. Check the current instructions from your circuit clerk, review every draft, and ask a licensed Illinois attorney about legal questions specific to your situation.\n\n${boundaryText}\n\nGeneral information: ${SITE}/legal`,
+        html: `<p>Forms and filing requirements can vary with your facts and circuit.</p><ul><li>Check the current instructions from your circuit clerk.</li><li>Review every draft before you sign or file it.</li><li>Ask a licensed Illinois attorney about legal questions specific to your situation.</li></ul>${boundaryHtml}<p><a href="${SITE}/legal" style="color:#2563eb;">Read general legal information →</a></p>`,
       }
     case 3:
       return {
-        subject: "How much does divorce actually cost in Illinois?",
-        text: `Filing fees in Illinois run $300–$400. That's the unavoidable part. Attorney fees? $250–$400/hour, often $5,000–$15,000+ total. FreshStart IL helps you handle the paperwork yourself for a fraction of that. Visit freshstart-il.com`,
-        html: `<p><strong>Illinois divorce costs — the real breakdown:</strong></p><ul><li>Court filing fees: $300–$400 (unavoidable)</li><li>Attorney fees: $250–$400/hr, often $5,000–$15,000+ total</li><li>FreshStart IL: a fraction of that, done yourself</li></ul><p>If your divorce is uncontested, you likely don't need a lawyer for the paperwork.</p>${cta}`,
+        subject: "Official Illinois court forms are free",
+        text: `Official court forms are available free from Illinois Courts and circuit-clerk websites. FreshStart IL's $149 one-time charge is for document-preparation software and filing guidance, not for the blank government forms. ${accessWindow} You review and file your documents.\n\n${boundaryText}\n\nSee the service: ${SITE}/pricing`,
+        html: `<p><strong>Official court forms are available free</strong> from Illinois Courts and circuit-clerk websites.</p><p>FreshStart IL's <strong>$149 one-time</strong> charge is for document-preparation software and filing guidance, not for the blank government forms. ${accessWindow} You review and file your documents.</p>${boundaryHtml}${pricingCta}`,
       }
     case 4:
       return {
-        subject: "Is your spouse delaying your divorce? Here's what to do.",
-        text: `In Illinois, if your spouse is unresponsive, you can request a default judgment after 30 days. Document everything. File on time. Don't let delays drag this out. FreshStart IL can help you stay on track — $299/year, no attorney required. Visit freshstart-il.com/pricing`,
-        html: `<p>If your spouse isn't responding, you're not stuck.</p><p>In Illinois, you can request a <strong>default judgment</strong> after 30 days of non-response. The key is filing correctly and on time.</p><p>Tips to keep things moving:<br>• Document every communication attempt<br>• File a Summons if they won't respond<br>• Don't miss your court dates</p><p>FreshStart IL generates every required form and walks you through each step.</p>${pricingCta}`,
+        subject: "If your uncontested case changes",
+        text: `FreshStart IL is designed for supported uncontested-divorce document preparation. ${accessWindow} If your spouse contests an issue, your facts change, or you're unsure what to file, pause and verify the next step with your circuit clerk or a licensed Illinois attorney.\n\n${boundaryText}\n\nLearn what the service includes: ${SITE}/pricing`,
+        html: `<p>FreshStart IL is designed for supported uncontested-divorce document preparation. ${accessWindow}</p><p>If your spouse contests an issue, your facts change, or you're unsure what to file, pause and verify the next step with your circuit clerk or a licensed Illinois attorney.</p>${boundaryHtml}${pricingCta}`,
       }
     case 5:
       return {
-        subject: "Ready to file? Your documents are waiting.",
-        text: `It's been a month since you downloaded our checklist. If you're ready to move forward, FreshStart IL generates your petition, financial affidavit, and parenting plan — Illinois court-ready, no attorney required. $299/year. Start today: freshstart-il.com/pricing`,
-        html: `<p>It's been a month since you grabbed our checklist.</p><p>If you're ready to move forward, here's what FreshStart IL does for you:</p><ul><li>Auto-generates your Illinois divorce petition</li><li>Builds your Financial Affidavit from your answers</li><li>Creates a court-ready Parenting Plan (if you have children)</li><li>Guides you through e-filing, county by county</li></ul><p><strong>$299/year. No attorney required.</strong></p>${pricingCta}`,
+        subject: "Ready to prepare your form drafts?",
+        text: `FreshStart IL prepares supported uncontested-divorce form drafts from your answers and provides general filing guidance for $149 one-time, with no subscription. ${accessWindow} You review every draft, verify current circuit-clerk requirements, and file the documents yourself.\n\n${boundaryText}\n\nSee the service: ${SITE}/pricing`,
+        html: `<p>FreshStart IL prepares supported uncontested-divorce form drafts from your answers and provides general filing guidance for <strong>$149 one-time</strong>, with no subscription. ${accessWindow}</p><p>You review every draft, verify current circuit-clerk requirements, and file the documents yourself.</p>${boundaryHtml}${pricingCta}`,
       }
     default:
       return null
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
   let failed = 0
 
   for (const record of due) {
-    const content = getEmailContent(record.step, record.email)
+    const content = getEmailContent(record.step)
     if (!content) {
       await prisma.dripEmail.update({
         where: { id: record.id },

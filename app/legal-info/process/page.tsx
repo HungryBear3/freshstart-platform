@@ -8,18 +8,19 @@ import Link from "next/link"
 const divorceSteps: Step[] = [
   {
     id: "1",
-    title: "Meet Residency Requirements",
-    description: "Ensure you meet Illinois residency requirements",
-    estimatedTime: "90 days",
+    title: "Check Residency and Venue",
+    description: "Verify current Illinois residency and county-filing rules",
+    estimatedTime: "Verify before filing",
     required: true,
     content: (
       <div className="space-y-3 text-sm text-gray-700">
         <p>
-          At least one spouse must have lived in Illinois for at least 90 days before filing
-          for divorce.
+          Illinois residency and county venue depend on current law and the facts of the case.
+          Do not rely on a general timeline to choose when or where to file.
         </p>
         <p>
-          You must file in the county where either spouse has lived for at least 90 days.
+          Confirm the current requirements with the applicable circuit clerk, official Illinois
+          Courts materials, or a lawyer before filing.
         </p>
       </div>
     ),
@@ -93,13 +94,13 @@ const divorceSteps: Step[] = [
   {
     id: "5",
     title: "Complete Financial Disclosure",
-    description: "Exchange financial information with your spouse",
+    description: "Address any financial disclosure your case requires",
     estimatedTime: "2-4 weeks",
-    required: true,
+    required: false,
     content: (
       <div className="space-y-3 text-sm text-gray-700">
         <p>
-          Both spouses must complete and exchange Financial Affidavits disclosing:
+          If the court or your case requires a Financial Affidavit, it may ask for information such as:
         </p>
         <ul className="list-disc list-inside space-y-1 ml-4">
           <li>Income from all sources</li>
@@ -108,8 +109,8 @@ const divorceSteps: Step[] = [
           <li>Debts and liabilities</li>
         </ul>
         <p>
-          This information is used to determine child support, spousal maintenance, and property
-          division.
+          Check the current court rules and any case-specific order to confirm what must be filed
+          or exchanged. Financial information may be used for support or property issues.
         </p>
       </div>
     ),
@@ -237,12 +238,12 @@ export default function ProcessPage() {
                 Our platform can help you through each step:
               </p>
               <ul className="text-sm text-gray-600 space-y-2">
-                <li>• Generate required court documents</li>
+                <li>• Prepare supported form drafts from your answers</li>
                 <li>• Track your progress and deadlines</li>
                 <li>• Calculate child support and maintenance</li>
                 <li>• Organize your financial information</li>
               </ul>
-              <Link href="/auth/signup">
+              <Link href="/auth/signup?redirect=%2Fpricing&subscribe=true&plan=one_time&source=process_cta">
                 <Button className="w-full mt-4">Get Started</Button>
               </Link>
             </CardContent>

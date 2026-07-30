@@ -49,9 +49,8 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "What does it cost?",
     a: (
       <>
-        Two paid plans today: <strong>Essential</strong> ($149, one-time)
-        and <strong>Plus</strong> ($299, annual subscription). See the{" "}
-        <Link href="/pricing">pricing page</Link> for what each includes.
+        FreshStart is <strong>$149 one-time for 60 days of service access</strong>, with no subscription. See the{" "}
+        <Link href="/pricing">pricing page</Link> for what is included.
       </>
     ),
   },
@@ -59,9 +58,9 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "Do you offer refunds?",
     a: (
       <>
-        Yes — a 30-day money-back guarantee on plan purchases if
-        FreshStart-IL isn&apos;t the right fit or if there&apos;s a
-        service issue on our side. Refund eligibility is not tied to
+        You can request a refund review within 30 days if FreshStart-IL
+        isn&apos;t the right fit or if there&apos;s a service issue on our side.
+        Eligibility under the published policy is not tied to
         spouse contestation, court outcomes, or county delays. See the{" "}
         <Link href="/legal-info/refund-policy">Refund Policy</Link>.
       </>
@@ -71,8 +70,8 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "Do I need an attorney?",
     a: (
       <>
-        For most uncontested Illinois divorces, no — but FreshStart-IL
-        isn&apos;t legal advice. If your case is contested, involves a
+        FreshStart-IL cannot determine whether you need an attorney and
+        does not provide legal advice. If your case is contested, involves a
         business, or you and your spouse can&apos;t agree on a parenting
         plan, talk to a flat-fee attorney first.
       </>
@@ -82,10 +81,8 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "What documents can I generate?",
     a: (
       <>
-        Illinois Supreme Court approved standardized forms for divorce —
-        Petition for Dissolution of Marriage, Financial Affidavit and
-        schedules, Parenting Plan, and the standard service / judgment /
-        support forms. The full catalog is at{" "}
+        Supported Illinois divorce form drafts depend on your answers and the
+        current product catalog. Review the catalog at{" "}
         <Link href="/legal-info/court-forms">/legal-info/court-forms</Link>.
       </>
     ),
@@ -98,8 +95,7 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
         <Link href="mailto:support@freshstart-il.com">
           support@freshstart-il.com
         </Link>
-        . Plus subscribers get same-day chat support; Essential gets a
-        1–2 business day email response.
+        . We usually respond within 1–2 business days.
       </>
     ),
   },
@@ -125,7 +121,7 @@ export default function FaqPage() {
       eyebrow="FAQ"
       title="Frequently asked questions."
       lede="The short answers. For deeper write-ups on Illinois divorce law, see the legal info library."
-      lastUpdated="2026-05"
+      lastUpdated="2026-07"
     >
       {FAQS.map(({ q, a }) => (
         <section key={q}>

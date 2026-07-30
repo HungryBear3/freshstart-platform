@@ -26,7 +26,7 @@ const faqCategories = [
       },
       {
         question: "Is the service free?",
-        answer: "FreshStart-IL offers paid plans — currently Essential ($149 one-time) and Plus ($299/year). Some legal information and resources remain freely accessible. See the pricing page for the current plan details and what each one includes.",
+        answer: "FreshStart-IL is currently $149 one-time for 60 days of service access, with no subscription. Some general information and resources remain freely accessible. See the pricing page for current details and what is included.",
       },
     ],
   },
@@ -135,7 +135,7 @@ const faqCategories = [
       },
       {
         question: "Do you offer refunds?",
-        answer: "Yes — FreshStart-IL offers a 30-day money-back guarantee on plan purchases and subscriptions if the product isn't right for you or there's a service/platform issue on our side. Refund eligibility is not tied to spouse contestation, court outcomes, or county/clerk delays. Email support@freshstart-il.com to request one. See the full Refund Policy at /legal-info/refund-policy.",
+        answer: "You can request a refund review within 30 days if the product isn't right for you or there's a service/platform issue on our side. Eligibility is governed by the published policy and is not tied to spouse contestation, court outcomes, or county/clerk delays. Email support@freshstart-il.com. See the full Refund Policy at /legal-info/refund-policy.",
       },
     ],
   },

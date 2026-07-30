@@ -7,16 +7,15 @@ export function Footer({ idSuffix }: { idSuffix: string }) {
     <footer className="fs-ft" role="contentinfo">
       <div className="fs-ft-inner">
         <div className="fs-ft-trust">
-          Available in all 102 Illinois counties · 30-day money-back guarantee ·
-          Built around Illinois court forms and filing steps
+          For straightforward uncontested Illinois divorces · 30-day refund policy ·
+          Not a law firm or legal advice
         </div>
 
         <div className="fs-ft-grid">
           <div className="fs-ft-col fs-ft-col-brand">
             <Logo idSuffix={`ft-${idSuffix}`} />
             <p className="fs-ft-tag">
-              Illinois divorce form drafts and step-by-step filing guidance — without the
-              attorney bill.
+              Illinois uncontested-divorce form drafts and filing guidance for self-filers.
             </p>
           </div>
           <div className="fs-ft-col">
