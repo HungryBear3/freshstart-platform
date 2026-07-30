@@ -69,9 +69,10 @@ function snapshotEnv() {
 }
 
 function restoreEnv(snap: Record<string, string | undefined>) {
+  const mutableEnv = process.env as Record<string, string | undefined>
   for (const k of ENV_KEYS) {
-    if (snap[k] === undefined) delete process.env[k]
-    else process.env[k] = snap[k]
+    if (snap[k] === undefined) delete mutableEnv[k]
+    else mutableEnv[k] = snap[k]
   }
 }
 

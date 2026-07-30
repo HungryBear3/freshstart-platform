@@ -13,8 +13,6 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 
-const fsMock = fs as jest.Mocked<typeof fs>
-
 describe('sitemap', () => {
   beforeEach(() => {
     jest.resetAllMocks()
@@ -29,10 +27,8 @@ describe('sitemap', () => {
     ;(prisma.legalContent.findMany as jest.Mock).mockResolvedValue(mockLegalPages)
 
     // Mock fs for blog posts
-    fsMock.readdirSync.mockReturnValue(['post1.md', 'post2.md'])
-    fsMock.statSync.mockImplementation((filePath) => {
-      return { mtime: new Date('2023-03-01') }
-    })
+    ;(fs.readdirSync as jest.Mock).mockReturnValue(['post1.md', 'post2.md'])
+    ;(fs.statSync as jest.Mock).mockReturnValue({ mtime: new Date('2023-03-01') })
 
     // Mock getAllPosts from blog module
     jest.spyOn(blog, 'getAllPosts').mockReturnValue([

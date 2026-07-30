@@ -3,9 +3,10 @@
  * @jest-environment node
  */
 
-import { POST } from "@/app/api/auth/register/route"
 import { NextRequest } from "next/server"
-import { prisma } from "@/__tests__/setup/integration-setup"
+import { prisma, describeIntegration } from "@/__tests__/setup/integration-setup"
+
+let POST = null as unknown as typeof import("@/app/api/auth/register/route").POST
 
 // Mock rate limiter to avoid rate limit issues in tests
 jest.mock("@/lib/rate-limit", () => ({
@@ -17,7 +18,11 @@ jest.mock("@/lib/rate-limit", () => ({
   getClientIdentifier: jest.fn(() => "test-client"),
 }))
 
-describe("POST /api/auth/register", () => {
+describeIntegration("POST /api/auth/register", () => {
+  beforeAll(async () => {
+    ;({ POST } = await import("@/app/api/auth/register/route"))
+  })
+
   const createRequest = (body: any) => {
     return new NextRequest("http://localhost:3000/api/auth/register", {
       method: "POST",
