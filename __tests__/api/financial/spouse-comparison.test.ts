@@ -16,18 +16,25 @@ jest.mock("@/lib/db", () => {
   };
 });
 
-import { GET, POST, DELETE } from "@/app/api/financial/spouse-comparison/route";
 import { NextRequest } from "next/server";
-import { prisma } from "@/__tests__/setup/integration-setup";
+import { prisma, describeIntegration } from "@/__tests__/setup/integration-setup";
 import { getCurrentUser } from "@/lib/auth/session";
+
+let GET = null as unknown as typeof import("@/app/api/financial/spouse-comparison/route").GET;
+let POST = null as unknown as typeof import("@/app/api/financial/spouse-comparison/route").POST;
+let DELETE = null as unknown as typeof import("@/app/api/financial/spouse-comparison/route").DELETE;
 
 jest.mock("@/lib/auth/session", () => ({
   getCurrentUser: jest.fn(),
 }));
 
-describe("Spouse Comparison API", () => {
+describeIntegration("Spouse Comparison API", () => {
   let testUser: any;
   let testEmail: string;
+
+  beforeAll(async () => {
+    ({ GET, POST, DELETE } = await import("@/app/api/financial/spouse-comparison/route"));
+  });
 
   beforeEach(async () => {
     testEmail = `test-spouse-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;

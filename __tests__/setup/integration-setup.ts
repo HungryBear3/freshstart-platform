@@ -53,44 +53,52 @@ import { getTestPrisma } from "./test-prisma"
 
 let prisma: PrismaClient;
 
+// Integration suites bind ONLY to a dedicated TEST_DATABASE_URL. There is NO
+// fallback to process.env.DATABASE_URL (production) — a fallback would let these
+// suites connect to, and (via the beforeEach cleanup below) DELETE FROM,
+// production. When TEST_DATABASE_URL is absent the suites are SKIPPED with a
+// clear reason via `describeIntegration`, and every DB hook below is inert, so
+// no production access is ever possible from the test process.
+export const HAS_TEST_DATABASE = Boolean(process.env.TEST_DATABASE_URL)
+
+/** `describe` when a dedicated test database is configured, else a skipped
+ *  block. Integration suites use this so a missing TEST_DATABASE_URL yields
+ *  explicit, labelled skips rather than failures — and never a production hit. */
+export const describeIntegration: jest.Describe = HAS_TEST_DATABASE ? describe : describe.skip
+
+if (!HAS_TEST_DATABASE) {
+  console.log(
+    "ℹ️  TEST_DATABASE_URL not set — integration suites are SKIPPED " +
+      "(no fallback to production DATABASE_URL).",
+  )
+}
+
 beforeAll(async () => {
-  // Use test database URL if available, otherwise use main database
-  const databaseUrl =
-    process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
+  if (!HAS_TEST_DATABASE) return // suites skipped; never touch a database
 
-  if (!databaseUrl) {
-    throw new Error("TEST_DATABASE_URL or DATABASE_URL must be set")
-  }
+  // Pin Prisma to the TEST database only (never the ambient production URL).
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
 
-  // Set DATABASE_URL environment variable for Prisma
-  process.env.DATABASE_URL = databaseUrl
-
-  // Get or create test prisma instance
   prisma = getTestPrisma()
-
-  // Connect to database
   await prisma.$connect()
-  
-  // Verify connection works
   try {
     await prisma.$queryRaw`SELECT 1`
-    console.log("✅ Database connection verified")
+    console.log("✅ Test database connection verified")
   } catch (error) {
-    console.error("❌ Database connection failed:", error)
+    console.error("❌ Test database connection failed:", error)
     throw error
   }
 })
 
 afterAll(async () => {
-  // Disconnect from database
-  await prisma.$disconnect()
+  if (HAS_TEST_DATABASE && prisma) {
+    await prisma.$disconnect()
+  }
 })
 
 beforeEach(async () => {
-  // Clean up test data before each test
-  // Be careful - this will delete all data in test database!
-  if (process.env.TEST_DATABASE_URL) {
-    // Only clean if using dedicated test database
+  // Clean up test data before each test — ONLY against a dedicated test database.
+  if (HAS_TEST_DATABASE && prisma) {
     await prisma.user.deleteMany({
       where: {
         email: {

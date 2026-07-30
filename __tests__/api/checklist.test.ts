@@ -66,8 +66,22 @@ function createRequest(body: unknown, referer = "https://www.freshstart-il.com/c
 
 describe("POST /api/checklist", () => {
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+  // This suite exercises the real PRODUCTION path of the route (rate-limit,
+  // email, DB persistence, drip — all mocked above). The route no-ops in any
+  // non-production environment, so we must establish a production environment
+  // for these assertions; every external dependency is mocked, so no real
+  // Redis/DB/email/network is ever touched.
+  const savedEnv: Record<string, string | undefined> = {}
+  const mutableEnv = process.env as Record<string, string | undefined>
 
   beforeEach(() => {
+    savedEnv.NODE_ENV = mutableEnv.NODE_ENV
+    savedEnv.VERCEL_ENV = mutableEnv.VERCEL_ENV
+    savedEnv.CHECKLIST_FORCE_PREVIEW_NOOP = mutableEnv.CHECKLIST_FORCE_PREVIEW_NOOP
+    mutableEnv.NODE_ENV = "production"
+    delete mutableEnv.VERCEL_ENV
+    delete mutableEnv.CHECKLIST_FORCE_PREVIEW_NOOP
+
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
     mockAfterCallbacks.length = 0
     mockAfter.mockClear()
@@ -81,6 +95,13 @@ describe("POST /api/checklist", () => {
 
   afterEach(() => {
     consoleErrorSpy.mockRestore()
+    if (savedEnv.NODE_ENV === undefined) delete mutableEnv.NODE_ENV
+    else mutableEnv.NODE_ENV = savedEnv.NODE_ENV
+    if (savedEnv.VERCEL_ENV === undefined) delete mutableEnv.VERCEL_ENV
+    else mutableEnv.VERCEL_ENV = savedEnv.VERCEL_ENV
+    if (savedEnv.CHECKLIST_FORCE_PREVIEW_NOOP === undefined)
+      delete mutableEnv.CHECKLIST_FORCE_PREVIEW_NOOP
+    else mutableEnv.CHECKLIST_FORCE_PREVIEW_NOOP = savedEnv.CHECKLIST_FORCE_PREVIEW_NOOP
   })
 
   it("sends the checklist immediately and schedules persistence via next/server after", async () => {

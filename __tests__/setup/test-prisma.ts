@@ -12,10 +12,19 @@ let testPrisma: PrismaClient | null = null
 let testPrismaUrl: string | null = null
 
 export function getTestPrisma(): PrismaClient {
-  const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
+  // Integration tests bind ONLY to a dedicated test database. We deliberately do
+  // NOT fall back to process.env.DATABASE_URL: that variable holds the PRODUCTION
+  // connection string in every real environment, and a silent fallback would let
+  // an integration suite connect to (and, via beforeEach cleanup, DELETE FROM)
+  // production. Absent TEST_DATABASE_URL the integration suites are skipped (see
+  // describeIntegration in integration-setup.ts); if one still reaches here, fail
+  // closed rather than touch production.
+  const databaseUrl = process.env.TEST_DATABASE_URL
 
   if (!databaseUrl) {
-    throw new Error("TEST_DATABASE_URL or DATABASE_URL must be set")
+    throw new Error(
+      "TEST_DATABASE_URL must be set for integration tests (no fallback to production DATABASE_URL)",
+    )
   }
 
   if (!testPrisma || testPrismaUrl !== databaseUrl) {

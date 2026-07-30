@@ -290,9 +290,13 @@ export function cleanupRateLimitStore(): void {
   }
 }
 
-// Run cleanup every 5 minutes
+// Run cleanup every 5 minutes. In Node, unref keeps this housekeeping timer
+// from pinning short-lived processes such as Jest, scripts, and build checks.
 if (typeof setInterval !== "undefined") {
-  setInterval(cleanupRateLimitStore, 5 * 60 * 1000)
+  const cleanupTimer = setInterval(cleanupRateLimitStore, 5 * 60 * 1000)
+  if (typeof cleanupTimer === "object" && "unref" in cleanupTimer) {
+    cleanupTimer.unref()
+  }
 }
 
 /**

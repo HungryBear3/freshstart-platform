@@ -18,18 +18,24 @@ jest.mock("@/lib/db", () => {
   }
 })
 
-import { GET, POST } from "@/app/api/financial/route"
 import { NextRequest } from "next/server"
-import { prisma } from "@/__tests__/setup/integration-setup"
+import { prisma, describeIntegration } from "@/__tests__/setup/integration-setup"
 import { getCurrentUser } from "@/lib/auth/session"
+
+let GET = null as unknown as typeof import("@/app/api/financial/route").GET
+let POST = null as unknown as typeof import("@/app/api/financial/route").POST
 
 jest.mock("@/lib/auth/session", () => ({
   getCurrentUser: jest.fn(),
 }))
 
-describe("Financial Data API", () => {
+describeIntegration("Financial Data API", () => {
   let testUser: any
   let testEmail: string
+
+  beforeAll(async () => {
+    ;({ GET, POST } = await import("@/app/api/financial/route"))
+  })
 
   beforeEach(async () => {
     // Generate unique email for each test run
