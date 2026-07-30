@@ -201,55 +201,82 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
       },
       update: {},
     })
+    const reviewData = {
+      status: "REVIEW_REQUIRED",
+      settledAmountCents: actualAmount,
+      settledCurrency: actualCurrency,
+      settledAt: new Date(),
+      stripePaymentIntentId: paymentIntentId ?? null,
+      failureReason: `Settled contract mismatch: ${mismatch}`,
+    }
+    const promoteSessionOwner = async () => {
+      const owner = await prisma.checkoutObligation.findUnique({ where: { stripeSessionId: session.id } })
+      if (!owner) return false
+      const promoted = await prisma.checkoutObligation.updateMany({
+        where: { id: owner.id, stripeSessionId: session.id, status: { in: ["OPEN", "PENDING"] } },
+        data: reviewData,
+      })
+      if (promoted.count > 0) return true
+      const readback = await prisma.checkoutObligation.findUnique({ where: { stripeSessionId: session.id } })
+      if (readback && ["REVIEW_REQUIRED", "PAID", "REJECTED", "REFUNDED", "DISPUTED"].includes(readback.status)) {
+        return true
+      }
+      throw new Error("Settled session owner is neither recoverable nor safely terminal")
+    }
     const exactReview = await prisma.checkoutObligation.updateMany({
       where: { id: obligation.id, stripeSessionId: session.id, status: "OPEN" },
-      data: {
-        status: "REVIEW_REQUIRED", settledAmountCents: actualAmount,
-        settledCurrency: actualCurrency, settledAt: new Date(),
-        stripePaymentIntentId: paymentIntentId ?? null, failureReason: `Settled contract mismatch: ${mismatch}`,
-      },
+      data: reviewData,
     })
-    const unboundReview = await prisma.checkoutObligation.updateMany({
-      where: { id: obligation.id, stripeSessionId: null, status: "PENDING" },
-      data: {
-        status: "REVIEW_REQUIRED",
-        stripeSessionId: session.id,
-        settledAmountCents: actualAmount,
-        settledCurrency: actualCurrency,
-        settledAt: new Date(),
-        stripePaymentIntentId: paymentIntentId ?? null,
-        failureReason: `Settled checkout was not locally session-bound: ${mismatch}`,
-      },
-    })
-    if (exactReview.count + unboundReview.count === 0) {
+    let unboundReviewCount = 0
+    if (exactReview.count === 0) {
+      try {
+        const unboundReview = await prisma.checkoutObligation.updateMany({
+          where: { id: obligation.id, stripeSessionId: null, status: "PENDING" },
+          data: {
+            ...reviewData,
+            stripeSessionId: session.id,
+            failureReason: `Settled checkout was not locally session-bound: ${mismatch}`,
+          },
+        })
+        unboundReviewCount = unboundReview.count
+      } catch (cause: any) {
+        if (cause?.code !== "P2002" || !(await promoteSessionOwner())) throw cause
+        unboundReviewCount = 1
+      }
+    }
+    if (exactReview.count + unboundReviewCount === 0 && !(await promoteSessionOwner())) {
       const latest = await prisma.checkoutObligation.findFirst({
         where: { userId: obligation.userId, plan: obligation.plan },
         orderBy: [{ cycle: "desc" }, { createdAt: "desc" }],
         select: { cycle: true },
       })
       const contractKey = createHash("sha256").update(`settled-mismatch:${session.id}`).digest("hex")
-      await prisma.checkoutObligation.upsert({
-        where: { contractKey },
-        update: {},
-        create: {
-          contractKey,
-          userId: obligation.userId,
-          plan: obligation.plan,
-          cycle: (latest?.cycle ?? obligation.cycle) + 1,
-          status: "REVIEW_REQUIRED",
-          stripeCustomerId: customerId ?? obligation.stripeCustomerId,
-          stripeSessionId: session.id,
-          stripePaymentIntentId: paymentIntentId ?? null,
-          stripePriceId: price?.id ?? obligation.stripePriceId,
-          expectedAmountCents: actualAmount ?? obligation.expectedAmountCents,
-          expectedCurrency: actualCurrency ?? obligation.expectedCurrency,
-          quantity: line?.quantity ?? obligation.quantity,
-          settledAmountCents: actualAmount,
-          settledCurrency: actualCurrency,
-          settledAt: new Date(),
-          failureReason: `Settled payment could not transition its original obligation: ${mismatch}`,
-        },
-      })
+      try {
+        await prisma.checkoutObligation.upsert({
+          where: { contractKey },
+          update: {},
+          create: {
+            contractKey,
+            userId: obligation.userId,
+            plan: obligation.plan,
+            cycle: (latest?.cycle ?? obligation.cycle) + 1,
+            status: "REVIEW_REQUIRED",
+            stripeCustomerId: customerId ?? obligation.stripeCustomerId,
+            stripeSessionId: session.id,
+            stripePaymentIntentId: paymentIntentId ?? null,
+            stripePriceId: price?.id ?? obligation.stripePriceId,
+            expectedAmountCents: actualAmount ?? obligation.expectedAmountCents,
+            expectedCurrency: actualCurrency ?? obligation.expectedCurrency,
+            quantity: line?.quantity ?? obligation.quantity,
+            settledAmountCents: actualAmount,
+            settledCurrency: actualCurrency,
+            settledAt: new Date(),
+            failureReason: `Settled payment could not transition its original obligation: ${mismatch}`,
+          },
+        })
+      } catch (cause: any) {
+        if (cause?.code !== "P2002" || !(await promoteSessionOwner())) throw cause
+      }
     }
     errorTracker.captureError(new Error("Paid Checkout Session requires manual review"), {
       eventId,
@@ -258,7 +285,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
       userId: obligation.userId,
       mismatch,
       exactReviewCount: exactReview.count,
-      unboundReviewCount: unboundReview.count,
+      unboundReviewCount,
     })
     return
   }
@@ -526,9 +553,37 @@ async function handleChargeReversal(
       })
       return
     }
+    const durableStatus = isPartialRefund ? "REVIEW_REQUIRED" : status
+    const existingReversal = await tx.paymentReversal.findUnique({ where: { stripePaymentIntentId: paymentIntentId } })
+    if (!existingReversal) {
+      await tx.paymentReversal.create({
+        data: {
+          stripePaymentIntentId: paymentIntentId,
+          stripeEventId: eventId,
+          status: durableStatus,
+          amountCents: charge.amount,
+          amountReversedCents: charge.amount_refunded,
+        },
+      })
+    } else if (existingReversal.status === "REVIEW_REQUIRED" && durableStatus !== "REVIEW_REQUIRED") {
+      await tx.paymentReversal.updateMany({
+        where: { id: existingReversal.id, status: "REVIEW_REQUIRED" },
+        data: {
+          stripeEventId: eventId,
+          status: durableStatus,
+          amountCents: charge.amount,
+          amountReversedCents: charge.amount_refunded,
+        },
+      })
+    }
+
     if (isPartialRefund) {
       const flagged = await tx.checkoutObligation.updateMany({
-        where: { id: obligation.id, stripePaymentIntentId: paymentIntentId, status: "PAID" },
+        where: {
+          id: obligation.id,
+          stripePaymentIntentId: paymentIntentId,
+          status: { in: ["PAID", "REVIEW_REQUIRED"] },
+        },
         data: { status: "REVIEW_REQUIRED", failureReason: "Stripe charge partially refunded; manual access review required" },
       })
       if (flagged.count === 1) {

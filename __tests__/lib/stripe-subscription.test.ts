@@ -40,4 +40,18 @@ describe("subscription authorization", () => {
 
     expect(await hasActiveSubscription("user_1")).toBe(true);
   });
+
+  it("fails closed when an active-like row has no access boundary", async () => {
+    mockSubscriptionFindUnique.mockResolvedValue({
+      id: "sub_1",
+      status: "active",
+      plan: "annual",
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      trialEnd: null,
+    });
+
+    expect((await getUserSubscription("user_1"))?.isActive).toBe(false);
+    expect(await hasActiveSubscription("user_1")).toBe(false);
+  });
 });

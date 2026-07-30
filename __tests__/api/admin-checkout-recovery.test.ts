@@ -74,7 +74,7 @@ function post(body: Record<string, unknown>) {
 }
 const approval = {
   obligationId: "obl_review", action: "APPROVE", reason: "Verified pre-cutover payment",
-  expectedUserId: "user_1", expectedAmountCents: 14900,
+  expectedUserId: "user_1", expectedAmountCents: 14900, expectedNetAmountCents: 14900,
   expectedCurrency: "usd", expectedPriceId: "price_legacy",
 };
 
@@ -129,6 +129,7 @@ describe("admin checkout recovery", () => {
     expect(response.status).toBe(200);
     expect(mockRetrieveSession).toHaveBeenCalledWith("cs_legacy");
     expect(mockListLineItems).toHaveBeenCalledWith("cs_legacy", { limit: 10 });
+    expect(mockListCharges).toHaveBeenCalledWith({ payment_intent: "pi_1", limit: 10 });
     expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: "obl_review", status: "REVIEW_REQUIRED" }),
       data: expect.objectContaining({ status: "PAID", failureReason: null }),
@@ -187,6 +188,19 @@ describe("admin checkout recovery", () => {
     expect(mockObligationUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("refuses payment-mode approval when the live charge is partially refunded", async () => {
+    mockListCharges.mockResolvedValue({ data: [{
+      id: "ch_payment", paid: true, amount: 14900, currency: "usd",
+      refunded: false, disputed: false, amount_refunded: 2500,
+    }] });
+    const response = await POST(post({ ...approval, expectedNetAmountCents: 12400 }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      mismatches: expect.arrayContaining(["original charge reversed"]),
+    }));
+    expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
   it("refuses subscription-mode recovery while the retired recurring subscription remains billable", async () => {
     mockObligationFindUnique.mockResolvedValue({ ...obligation, stripePaymentIntentId: null });
     mockRetrieveSession.mockResolvedValue({
@@ -230,17 +244,23 @@ describe("admin checkout recovery", () => {
     const response = await POST(post(approval));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual(expect.objectContaining({
-      mismatches: expect.arrayContaining(["original subscription charge reversed"]),
+      mismatches: expect.arrayContaining(["original charge reversed"]),
     }));
     expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it("revokes the exact existing grant when a partial-refund review is rejected", async () => {
-    mockObligationFindUnique.mockResolvedValue({
-      ...obligation,
-      failureReason: "Stripe charge partially refunded; manual access review required",
-    });
-    const response = await POST(post({ ...approval, action: "REJECT", reason: "Partial refund access rejected" }));
+    mockReversalFindUnique.mockResolvedValue({ id: "rev_partial", status: "REVIEW_REQUIRED" });
+    mockListCharges.mockResolvedValue({ data: [{
+      id: "ch_partial", paid: true, amount: 14900, currency: "usd",
+      refunded: false, disputed: false, amount_refunded: 2500,
+    }] });
+    const response = await POST(post({
+      ...approval,
+      action: "REJECT",
+      reason: "Partial refund access rejected",
+      expectedNetAmountCents: 12400,
+    }));
     expect(response.status).toBe(200);
     expect(mockSubscriptionUpdateMany).toHaveBeenCalledWith({
       where: { userId: "user_1", plan: "one_time", grantingObligationId: "obl_review" },

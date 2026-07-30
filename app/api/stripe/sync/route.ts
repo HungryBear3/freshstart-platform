@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/session"
+import { hasUnexpiredAccessPeriod } from "@/lib/stripe/subscription"
 
 export const runtime = "nodejs"
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     const subscription = await prisma.subscription.findUnique({ where: { userId: user.id } })
     if (!subscription) return NextResponse.json({ subscription: null })
     const statusIsActive = subscription.status === "active" || subscription.status === "trialing"
-    const periodHasNotEnded = !subscription.currentPeriodEnd || subscription.currentPeriodEnd.getTime() > Date.now()
+    const periodHasNotEnded = hasUnexpiredAccessPeriod(subscription.currentPeriodEnd)
 
     return NextResponse.json({
       subscription: {

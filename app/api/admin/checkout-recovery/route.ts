@@ -59,9 +59,11 @@ export async function POST(request: NextRequest) {
   const expectedCurrency = text(body.expectedCurrency).toLowerCase()
   const expectedPriceId = text(body.expectedPriceId)
   const expectedAmountCents = typeof body.expectedAmountCents === "number" ? body.expectedAmountCents : Number.NaN
+  const expectedNetAmountCents = typeof body.expectedNetAmountCents === "number" ? body.expectedNetAmountCents : Number.NaN
   if (!obligationId || !["APPROVE", "REJECT"].includes(action) || reason.length < 8
     || !expectedUserId || !expectedCurrency || !expectedPriceId
-    || !Number.isInteger(expectedAmountCents) || expectedAmountCents <= 0) {
+    || !Number.isInteger(expectedAmountCents) || expectedAmountCents <= 0
+    || !Number.isInteger(expectedNetAmountCents) || expectedNetAmountCents < 0) {
     return NextResponse.json({ error: "Exact recovery evidence, action, and a reason of at least 8 characters are required" }, { status: 400 })
   }
 
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
   const sourceInvoicePayment = sourceInvoicePayments?.data.find((candidate) =>
     candidate.status === "paid" && candidate.payment.type === "payment_intent")
   const sourcePaymentIntentId = paymentIntentId ?? objectId(sourceInvoicePayment?.payment.payment_intent)
-  const sourceCharges = session.mode === "subscription" && sourcePaymentIntentId
+  const sourceCharges = sourcePaymentIntentId
     ? await stripe.charges.list({ payment_intent: sourcePaymentIntentId, limit: 10 })
     : null
   const sourceCharge = sourceCharges?.data.find((candidate) => {
@@ -119,8 +121,10 @@ export async function POST(request: NextRequest) {
     session.mode === "subscription" && !sourceInvoice && "original paid subscription invoice",
     session.mode === "subscription" && !sourceInvoicePayment && "original paid subscription invoice payment",
     session.mode === "subscription" && !sourcePaymentIntentId && "original subscription payment intent",
-    session.mode === "subscription" && !sourceCharge && "original paid subscription charge",
-    session.mode === "subscription" && (sourceCharge?.refunded || sourceCharge?.disputed || sourceCharge?.amount_refunded > 0) && "original subscription charge reversed",
+    !sourcePaymentIntentId && "payment intent",
+    !sourceCharge && "original paid charge",
+    action === "APPROVE" && sourceCharge && (sourceCharge.refunded || sourceCharge.disputed || sourceCharge.amount_refunded > 0) && "original charge reversed",
+    sourceCharge && (sourceCharge.amount - sourceCharge.amount_refunded) !== expectedNetAmountCents && "operator net amount",
     obligation.userId !== expectedUserId && "operator user",
     metadataUserId !== null && metadataUserId !== obligation.userId && "metadata user",
     obligation.expectedAmountCents !== expectedAmountCents && "operator amount",
@@ -142,16 +146,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Recovery evidence mismatch", mismatches }, { status: 409 })
   }
 
-  if (action === "APPROVE") {
-    if (!sourcePaymentIntentId) {
-      return NextResponse.json({ error: "Exact source PaymentIntent is required to approve access" }, { status: 409 })
-    }
-    const reversal = await prisma.paymentReversal.findUnique({ where: { stripePaymentIntentId: sourcePaymentIntentId } })
-    if (reversal) return NextResponse.json({ error: "Reversed payment cannot grant access", reversalStatus: reversal.status }, { status: 409 })
+  const reversal = sourcePaymentIntentId
+    ? await prisma.paymentReversal.findUnique({ where: { stripePaymentIntentId: sourcePaymentIntentId } })
+    : null
+  if (action === "APPROVE" && reversal) {
+    return NextResponse.json({ error: "Reversed payment cannot grant access", reversalStatus: reversal.status }, { status: 409 })
   }
 
   const providerVerifiedAt = new Date()
-  const isPartialRefundReview = obligation.failureReason?.includes("partially refunded") === true
+  const isPartialRefundReview = reversal?.status === "REVIEW_REQUIRED"
   const accessStarts = obligation.settledAt ?? providerVerifiedAt
   const accessEnds = new Date(accessStarts.getTime() + ACCESS_MS)
   if (action === "APPROVE" && accessEnds.getTime() <= providerVerifiedAt.getTime()) {

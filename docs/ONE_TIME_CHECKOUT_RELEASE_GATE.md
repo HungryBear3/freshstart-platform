@@ -35,7 +35,7 @@ Production migration and deployment require Alexy's explicit approval. Do not ru
    - expected unique indexes on obligation contract/session/payment-intent, reversal payment-intent, and payment session.
 6. Verify existing `stripe_events` rows are `COMPLETED`, retain `processedAt`, and have non-null `updatedAt`.
 
-The migration is additive and the old application does not depend on the new fields, so the old code remains the rollback target during this phase.
+The migration is additive and keeps the old application compatible during this phase. In particular, `stripe_events.updatedAt` has a transitional database `CURRENT_TIMESTAMP` default because the old generated Prisma Client omits that new field on inserts. Keep that default throughout the migration-first and rollback windows; remove it only in a separately reviewed cleanup migration after the new application exclusively owns webhook writes.
 
 The migration is wrapped in a PostgreSQL transaction. On failure, verify both Prisma migration status and the catalog again. Never resolve or rerun a failed migration until the catalog proves whether PostgreSQL rolled it back.
 
@@ -76,8 +76,8 @@ This operation is for post-cutover `REVIEW_REQUIRED` obligations created from pa
      -H "Cookie: __Secure-authjs.session-token=$AUTHJS_COOKIE" \
      https://www.freshstart-il.com/api/admin/checkout-recovery
    ```
-3. For one obligation, independently inspect its user ID, Checkout Session ID, expected/settled integer cents, lowercase currency, Price ID, customer ID, mode, and reason. Do not proceed if any evidence is missing, if a reversal exists, or if another active purchase/subscription could be overwritten. For a legacy `subscription`-mode Session, the endpoint also reads the exact Stripe Subscription, original paid `subscription_create` invoice, Invoice Payment, PaymentIntent, and unreversed charge. Approval fails unless all evidence matches and the provider Subscription is already `canceled`; if it remains billable, stop and obtain separate explicit approval for any provider-side cancellation before retrying recovery.
-4. Resolve exactly one obligation. Echo all four contract fields back deliberately; the endpoint retrieves the Checkout Session and line items read-only and rejects any user/session/customer/amount/currency/Price/quantity/payment-status mismatch.
+3. For one obligation, independently inspect its user ID, Checkout Session ID, expected/settled integer cents, live gross and net-of-refund charge cents, lowercase currency, Price ID, customer ID, mode, and reason. Do not proceed if any evidence is missing, if a reversal exists, or if another active purchase/subscription could be overwritten. For a legacy `subscription`-mode Session, the endpoint also reads the exact Stripe Subscription, original paid `subscription_create` invoice, Invoice Payment, PaymentIntent, and unreversed charge. Approval fails unless all evidence matches and the provider Subscription is already `canceled`; if it remains billable, stop and obtain separate explicit approval for any provider-side cancellation before retrying recovery.
+4. Resolve exactly one obligation. Echo the contract fields and independently observed net charge amount back deliberately; the endpoint retrieves the Checkout Session, line items, PaymentIntent charge, and durable reversal state read-only and rejects any user/session/customer/gross/net/currency/Price/quantity/payment-status/reversal mismatch.
 
    Approve a verified payment for its original, non-extended 60-day access window:
    ```sh
@@ -85,7 +85,7 @@ This operation is for post-cutover `REVIEW_REQUIRED` obligations created from pa
      -H "Cookie: __Secure-authjs.session-token=$AUTHJS_COOKIE" \
      -H 'Content-Type: application/json' \
      https://www.freshstart-il.com/api/admin/checkout-recovery \
-     --data '{"obligationId":"OBLIGATION_ID","action":"APPROVE","reason":"Verified paid pre-cutover Checkout Session","expectedUserId":"USER_ID","expectedAmountCents":14900,"expectedCurrency":"usd","expectedPriceId":"PRICE_ID"}'
+     --data '{"obligationId":"OBLIGATION_ID","action":"APPROVE","reason":"Verified paid pre-cutover Checkout Session","expectedUserId":"USER_ID","expectedAmountCents":14900,"expectedNetAmountCents":14900,"expectedCurrency":"usd","expectedPriceId":"PRICE_ID"}'
    ```
 
    Or explicitly close it without access (for example, a proven duplicate already fulfilled by another exact grant). If the review was opened by a partial refund, `REJECT` cancels only the one-time access tied to that exact obligation and preserves the payment as `partially_refunded`:
@@ -94,7 +94,7 @@ This operation is for post-cutover `REVIEW_REQUIRED` obligations created from pa
      -H "Cookie: __Secure-authjs.session-token=$AUTHJS_COOKIE" \
      -H 'Content-Type: application/json' \
      https://www.freshstart-il.com/api/admin/checkout-recovery \
-     --data '{"obligationId":"OBLIGATION_ID","action":"REJECT","reason":"Documented reason with ticket/reference","expectedUserId":"USER_ID","expectedAmountCents":14900,"expectedCurrency":"usd","expectedPriceId":"PRICE_ID"}'
+     --data '{"obligationId":"OBLIGATION_ID","action":"REJECT","reason":"Documented reason with ticket/reference","expectedUserId":"USER_ID","expectedAmountCents":14900,"expectedNetAmountCents":14900,"expectedCurrency":"usd","expectedPriceId":"PRICE_ID"}'
    ```
 5. Require HTTP 200. A 400/409/500 is a hard stop; do not edit database rows directly and do not retry with altered evidence merely to make it pass.
 6. Read the closed obligation and append-only audit evidence:

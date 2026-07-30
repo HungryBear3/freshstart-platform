@@ -163,6 +163,9 @@ describe("Stripe webhook hardening", () => {
     mockObligationFindUnique.mockResolvedValue({
       ...obligation, status: "PENDING", stripeSessionId: null,
     });
+    mockObligationUpdateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
     const response = await POST(req());
     expect(response.status).toBe(200);
     expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -173,6 +176,7 @@ describe("Stripe webhook hardening", () => {
 
   it("creates an actionable review obligation when both mismatch transitions lose their CAS", async () => {
     mockConstructEvent.mockReturnValue(checkoutEvent({ id: "cs_other" }));
+    mockObligationFindUnique.mockResolvedValueOnce(obligation).mockResolvedValueOnce(null);
     mockObligationUpdateMany.mockResolvedValue({ count: 0 });
     mockObligationFindFirst.mockResolvedValue({ cycle: 4 });
     expect((await POST(req())).status).toBe(200);
@@ -181,6 +185,51 @@ describe("Stripe webhook hardening", () => {
         userId: "user_1", cycle: 5, status: "REVIEW_REQUIRED", stripeSessionId: "cs_other",
       }),
     }));
+  });
+
+  it("does not create a colliding fallback when the settled session is already bound", async () => {
+    mockConstructEvent.mockReturnValue(checkoutEvent({ id: "cs_other" }));
+    mockObligationUpdateMany.mockResolvedValue({ count: 0 });
+    mockObligationFindUnique
+      .mockResolvedValueOnce(obligation)
+      .mockResolvedValueOnce({ ...obligation, status: "REFUNDED", stripeSessionId: "cs_other" })
+      .mockResolvedValueOnce({ ...obligation, status: "REFUNDED", stripeSessionId: "cs_other" });
+    expect((await POST(req())).status).toBe(200);
+    expect(mockObligationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("recovers an unbound-assignment P2002 by promoting the exact session owner", async () => {
+    mockConstructEvent.mockReturnValue(checkoutEvent({ id: "cs_other" }));
+    const p2002 = Object.assign(new Error("unique session"), { code: "P2002" });
+    mockObligationUpdateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockRejectedValueOnce(p2002)
+      .mockResolvedValueOnce({ count: 1 });
+    mockObligationFindUnique
+      .mockResolvedValueOnce({ ...obligation, status: "PENDING", stripeSessionId: null })
+      .mockResolvedValueOnce({ ...obligation, id: "obl_owner", status: "PENDING", stripeSessionId: "cs_other" });
+    expect((await POST(req())).status).toBe(200);
+    expect(mockObligationUpdateMany).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      where: { id: "obl_owner", stripeSessionId: "cs_other", status: { in: ["OPEN", "PENDING"] } },
+      data: expect.objectContaining({ status: "REVIEW_REQUIRED", stripePaymentIntentId: "pi_1" }),
+    }));
+    expect(mockObligationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("promotes a session owner that became OPEN after both original CAS attempts lost", async () => {
+    mockConstructEvent.mockReturnValue(checkoutEvent({ id: "cs_other" }));
+    mockObligationUpdateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    mockObligationFindUnique
+      .mockResolvedValueOnce(obligation)
+      .mockResolvedValueOnce({ ...obligation, status: "OPEN", stripeSessionId: "cs_other" });
+    expect((await POST(req())).status).toBe(200);
+    expect(mockObligationUpdateMany).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      data: expect.objectContaining({ status: "REVIEW_REQUIRED" }),
+    }));
+    expect(mockObligationUpsert).not.toHaveBeenCalled();
   });
 
   it("derives an unbound settled session user from its Stripe customer binding", async () => {
@@ -400,7 +449,28 @@ describe("Stripe webhook hardening", () => {
     expect(mockPaymentUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: { status: "review_required" },
     }));
+    expect(mockReversalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ stripePaymentIntentId: "pi_1", status: "REVIEW_REQUIRED", amountReversedCents: 2500 }),
+    }));
     expect(mockSubscriptionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("durably records a partial refund against an obligation already in review", async () => {
+    mockObligationFindUnique.mockResolvedValue({ ...obligation, status: "REVIEW_REQUIRED", stripePaymentIntentId: "pi_1" });
+    mockConstructEvent.mockReturnValue({
+      id: "evt_partial_review", type: "charge.refunded", created: 3002,
+      data: { object: {
+        id: "ch_1", payment_intent: "pi_1", amount: 14900, amount_refunded: 2500, refunded: false,
+      } },
+    });
+    expect((await POST(req())).status).toBe(200);
+    expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: { in: ["PAID", "REVIEW_REQUIRED"] } }),
+      data: expect.objectContaining({ status: "REVIEW_REQUIRED" }),
+    }));
+    expect(mockReversalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "REVIEW_REQUIRED", amountReversedCents: 2500 }),
+    }));
   });
 
   it("stores a reversal delivered before settlement and refuses the later access grant", async () => {

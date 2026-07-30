@@ -4,12 +4,14 @@ import { join } from "path";
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("one-time checkout migration contract", () => {
-  it("backfills Stripe event updatedAt without leaving a database default that Prisma does not declare", () => {
+  it("keeps old Prisma clients compatible while backfilling Stripe event updatedAt", () => {
     const migration = read("prisma/migrations/20260729150000_harden_one_time_checkout/migration.sql");
-    expect(migration).toMatch(/ADD COLUMN "updatedAt" TIMESTAMP\(3\);/);
+    expect(migration).toMatch(/ADD COLUMN "updatedAt" TIMESTAMP\(3\) DEFAULT CURRENT_TIMESTAMP;/);
     expect(migration).toMatch(/UPDATE "stripe_events" SET "updatedAt" = COALESCE\("processedAt", CURRENT_TIMESTAMP\);/);
     expect(migration).toMatch(/ALTER COLUMN "updatedAt" SET NOT NULL/);
-    expect(migration).not.toMatch(/"updatedAt" TIMESTAMP\(3\) NOT NULL DEFAULT CURRENT_TIMESTAMP/);
+    const runbook = read("docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md");
+    expect(runbook).toContain("old generated Prisma Client omits that new field on inserts");
+    expect(runbook).toContain("transitional database `CURRENT_TIMESTAMP` default");
   });
 
   it("documents migration-first activation and fail-closed rollback", () => {
