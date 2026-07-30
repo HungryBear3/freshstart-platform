@@ -1,24 +1,17 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Logo } from "@/components/navigation/Logo"
-import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata"
-import {
-  ClipboardList,
-  Rocket,
-  Calculator,
-  BookOpen,
-  ExternalLink,
-} from "lucide-react"
+import { V2PageShell } from "@/app/v2/_components/V2PageShell"
+import { DEFAULT_OG_IMAGE } from "@/lib/seo-metadata"
 
 export const metadata: Metadata = {
-  title: "Illinois Divorce Guidance",
+  title: "Start — Illinois divorce form preparation",
   description:
-    "Illinois divorce forms, checklists, and calculators. Get started with FreshStart IL — your guide through the Illinois divorce process.",
+    "Start with FreshStart IL's free checklist, review the $149 one-time document-preparation service, or read Illinois divorce information.",
   alternates: { canonical: "/start" },
   openGraph: {
-    title: "FreshStart IL — Illinois Divorce Guidance",
+    title: "Start with FreshStart IL",
     description:
-      "Illinois-specific divorce guidance, a general checklist, calculators, and supported form drafts.",
+      "Choose the free checklist, review $149 one-time form preparation, or read Illinois divorce information.",
     images: [DEFAULT_OG_IMAGE],
   },
 }
@@ -26,105 +19,37 @@ export const metadata: Metadata = {
 const links = [
   {
     href: "/checklist",
-    icon: ClipboardList,
     label: "Free Illinois Divorce Checklist",
     sublabel: "Common documents and filing checkpoints — instant email delivery",
-    primary: true,
   },
   {
     href: "/pricing",
-    icon: Rocket,
-    label: "View Filing Option",
+    label: "Review the $149 Filing Option",
     sublabel: "$149 one-time · 60 days of service access · No subscription",
-    primary: false,
-  },
-  {
-    href: "/calculators",
-    icon: Calculator,
-    label: "Free Calculators",
-    sublabel: "Child support & spousal maintenance (Illinois guidelines)",
-    primary: false,
   },
   {
     href: "/legal-info",
-    icon: BookOpen,
     label: "Illinois Divorce Guides",
-    sublabel: "Process, forms, timelines, costs — Illinois-specific",
-    primary: false,
+    sublabel: "General information about process, forms, timelines, and costs",
   },
 ]
 
 export default function StartPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-start px-4 py-12">
-      {/* Brand */}
-      <div className="mb-8 flex flex-col items-center gap-3">
-        <Logo />
-        <p className="text-gray-600 text-sm text-center max-w-xs">
-          Illinois divorce guidance — forms, checklists, and calculators
-        </p>
+    <V2PageShell
+      idSuffix="start"
+      eyebrow="Start here"
+      title="Choose the next step that fits."
+      lede="Use the free checklist, review our one-time form-preparation service, or read general Illinois divorce information."
+    >
+      <div className="fs-doc-cards">
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} className="fs-doc-card">
+            <div className="fs-doc-card-title">{link.label}</div>
+            <p className="fs-doc-card-body">{link.sublabel}</p>
+          </Link>
+        ))}
       </div>
-
-      {/* Link cards */}
-      <div className="w-full max-w-sm flex flex-col gap-3">
-        {links.map((link) => {
-          const Icon = link.icon
-          return (
-            <Link key={link.href} href={link.href}>
-              <div
-                className={`flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer ${
-                  link.primary
-                    ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700 shadow-md"
-                    : "bg-white border-gray-200 text-gray-900 hover:border-blue-300 hover:shadow-sm"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-lg flex-shrink-0 ${
-                    link.primary ? "bg-blue-500" : "bg-blue-50"
-                  }`}
-                >
-                  <Icon
-                    className={`h-5 w-5 ${
-                      link.primary ? "text-white" : "text-blue-600"
-                    }`}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className={`font-semibold text-sm leading-tight ${
-                      link.primary ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {link.label}
-                  </p>
-                  <p
-                    className={`text-xs mt-0.5 leading-tight ${
-                      link.primary ? "text-blue-100" : "text-gray-500"
-                    }`}
-                  >
-                    {link.sublabel}
-                  </p>
-                </div>
-                <ExternalLink
-                  className={`h-4 w-4 flex-shrink-0 ml-auto ${
-                    link.primary ? "text-blue-200" : "text-gray-300"
-                  }`}
-                />
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-10 text-center">
-        <Link href="/" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-          freshstart-il.com
-        </Link>
-        <p className="text-xs text-gray-400 mt-1">
-          Illinois divorce guidance · Not legal advice
-        </p>
-      </div>
-    </div>
+    </V2PageShell>
   )
 }
