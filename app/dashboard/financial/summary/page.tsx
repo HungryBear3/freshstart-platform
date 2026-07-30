@@ -653,12 +653,7 @@ export default function FinancialSummaryPage() {
                   {summary?.questionnaireStatus === "not_started" ? "Start" : "Edit"} Financial Affidavit
                 </Button>
               </Link>
-              <Link href="/dashboard/financial/child-support">
-                <Button variant="outline">Calculate Child Support</Button>
-              </Link>
-              <Link href="/dashboard/financial/spousal-maintenance">
-                <Button variant="outline">Calculate Spousal Maintenance</Button>
-              </Link>
+
               <Link href="/dashboard/financial/comparison">
                 <Button variant="outline">Compare with Spouse</Button>
               </Link>

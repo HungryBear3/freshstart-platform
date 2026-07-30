@@ -13,7 +13,7 @@ export default function RequirementsPage() {
             Illinois Divorce Requirements
           </h1>
           <p className="text-lg text-gray-600">
-            Understand the requirements you must meet to file for divorce in Illinois.
+            General information to help you identify requirements to verify before filing.
           </p>
         </div>
 
@@ -27,23 +27,25 @@ export default function RequirementsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">90-Day Residency Rule</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Illinois Residency Timing</h3>
                 <p className="text-sm text-gray-700">
-                  At least one spouse must have lived in Illinois for at least 90 days before
-                  filing for divorce.
+                  Illinois law includes a 90-day state-residency timing requirement tied to
+                  commencement or entry of judgment. The timing can depend on when the court
+                  makes the required finding, so verify it for your case before filing.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">County Filing</h3>
                 <p className="text-sm text-gray-700">
-                  You must file in a county where either spouse has lived for at least 90 days.
+                  County venue is a separate question from the state-residency period. Verify the
+                  proper county under current law and local circuit-clerk instructions.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Military Exception</h3>
                 <p className="text-sm text-gray-700">
-                  Military members stationed in Illinois may meet residency requirements even if
-                  they haven't lived there for 90 days.
+                  Special rules may affect military members. Verify current requirements with the
+                  circuit clerk or a licensed Illinois attorney.
                 </p>
               </div>
             </CardContent>
@@ -68,15 +70,15 @@ export default function RequirementsPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">What It Means</h3>
                 <p className="text-sm text-gray-700">
                   The marriage has broken down and cannot be repaired, with no reasonable
-                  prospect of reconciliation. You must have lived separate and apart for at
-                  least 6 months (or less if both agree).
+                  prospect of reconciliation. Illinois law addresses separation as part of that
+                  analysis; do not treat this page as a filing-timing determination.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Separation Period</h3>
                 <p className="text-sm text-gray-700">
-                  Typically requires 6 months of separation, but this can be waived if both
-                  spouses agree.
+                  Six months living separate and apart can create a statutory presumption, but
+                  application depends on the case. Verify the current rule before relying on it.
                 </p>
               </div>
             </CardContent>
@@ -108,15 +110,17 @@ export default function RequirementsPage() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Financial Affidavit</h3>
                 <p className="text-sm text-gray-700 mb-2">
-                  Required disclosure of financial information. Choose the appropriate form:
+                  A court or case may require financial disclosure. Confirm whether a Financial
+                  Affidavit applies and which current form the court expects:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
                   <li>
-                    <strong>Short Form:</strong> For simpler cases (income under certain
-                    threshold)
+                    <strong>Short Form:</strong> Use only if current court instructions say it
+                    applies
                   </li>
                   <li>
-                    <strong>Long Form:</strong> For complex cases or higher income
+                    <strong>Long Form:</strong> Use only if current court instructions say it
+                    applies
                   </li>
                 </ul>
               </div>

@@ -42,7 +42,7 @@ const VALUES = [
   {
     title: "Plain pricing.",
     body:
-      "$149 one-time, with no subscription. Refund requests are reviewed under the published 30-day refund policy.",
+      "$149 one-time with 60 days of service access, with no subscription. Refund requests are reviewed under the published 30-day refund policy.",
   },
 ];
 

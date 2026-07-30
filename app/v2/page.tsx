@@ -6,7 +6,7 @@ import { HomeView } from "./_components/HomeView";
 export const metadata: Metadata = {
   title: "FreshStart IL — Illinois divorce form preparation from $149",
   description:
-    "FreshStart IL prepares Illinois uncontested-divorce form drafts and filing guidance. $149 one-time, no subscription; you review and file.",
+    "FreshStart IL prepares Illinois uncontested-divorce form drafts and filing guidance. $149 one-time for 60 days of service access, no subscription; you review and file.",
   alternates: { canonical: "/" },
 };
 

@@ -5,7 +5,7 @@ import { PricingView } from "../_components/PricingView";
 export const metadata: Metadata = {
   title: "Pricing — $149 one-time Illinois divorce form preparation",
   description:
-    "FreshStart IL document-preparation assistance for straightforward Illinois uncontested divorce: $149 one-time, no subscription, with a published 30-day refund policy.",
+    "FreshStart IL document-preparation assistance for straightforward Illinois uncontested divorce: $149 one-time for 60 days of service access, no subscription, with a published 30-day refund policy.",
   alternates: { canonical: "/pricing" },
 };
 

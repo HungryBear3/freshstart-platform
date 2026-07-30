@@ -1,7 +1,7 @@
 ---
-title: "Spousal Maintenance in Illinois: Who Pays, How Much, and For How Long"
+title: "Spousal Maintenance in Illinois: General Factors to Review"
 slug: illinois-spousal-maintenance-guide
-description: "Illinois uses a formula to calculate spousal maintenance (alimony). Here's how much is owed, for how long, and when courts can deviate from the guidelines."
+description: "A general overview of factors and current sources to review when researching Illinois spousal maintenance."
 date: "2026-03-24"
 ---
 
@@ -17,28 +17,11 @@ No. Maintenance is not automatic in Illinois. Courts award it only when one spou
 - Contributions as homemaker or caregiver
 - Whether one spouse left the workforce for the family
 
-## The Illinois Maintenance Formula
+## Guideline Research
 
-For marriages where combined gross income is under $500,000 and no children are involved, Illinois uses this formula:
+Current Illinois law may provide guideline methods after a court determines that maintenance is appropriate. Eligibility, income definitions, thresholds, caps, amount, and duration are fact-specific and can change. Use the current statute and official court resources; do not rely on a fixed percentage, income limit, or simplified example from a general article.
 
-**Amount:** 33.33% of the paying spouse's net income minus 25% of the receiving spouse's net income
-
-The result cannot exceed 40% of the couple's combined net income.
-
-**Duration:** Based on the length of the marriage:
-- Under 5 years: 20% of marriage length
-- 5–10 years: 40% of marriage length
-- 10–15 years: 60% of marriage length
-- 15–20 years: 80% of marriage length
-- 20+ years: court discretion (could be indefinite)
-
-## Example
-
-Marriage of 8 years. Paying spouse earns $8,000/month net. Receiving spouse earns $2,000/month net.
-
-Amount: (33.33% × $8,000) – (25% × $2,000) = $2,667 – $500 = **$2,167/month**
-
-Duration: 40% × 8 years = **3.2 years**
+Fresh Start IL does not currently provide a maintenance calculation. A qualified attorney can advise how current law may apply to a specific case.
 
 ## When Courts Deviate
 
@@ -48,4 +31,6 @@ Courts can deviate from the formula for compelling reasons: a disabled spouse, a
 
 In an uncontested divorce, you can agree on any maintenance arrangement — including waiving it entirely. Whatever you agree to goes in your Marital Settlement Agreement.
 
-Fresh Start IL includes a spousal maintenance calculator and generates the required documentation for your county. Visit [freshstart-il.com](https://www.freshstart-il.com).
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review and file the drafts. Any calculator output is general educational information that you must review and verify. Fresh Start IL is not a law firm and does not provide legal advice or guarantee completeness, calculation accuracy, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

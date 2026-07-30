@@ -10,11 +10,11 @@ import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 export const metadata: Metadata = {
   title: "Pricing — $149 one-time Illinois divorce form preparation",
   description:
-    "FreshStart IL document-preparation assistance for straightforward Illinois uncontested divorce: $149 one-time, no subscription, with a published 30-day refund policy.",
+    "FreshStart IL document-preparation assistance for straightforward Illinois uncontested divorce: $149 one-time for 60 days of service access, no subscription, with a published 30-day refund policy.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing | FreshStart IL",
-    description: "Illinois uncontested-divorce form preparation for $149 one-time, with no subscription.",
+    description: "Illinois uncontested-divorce form preparation for $149 one-time with 60 days of service access and no subscription.",
     images: [DEFAULT_OG_IMAGE],
   },
 };

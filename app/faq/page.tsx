@@ -49,7 +49,7 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     q: "What does it cost?",
     a: (
       <>
-        FreshStart is <strong>$149 one-time</strong>, with no subscription. See the{" "}
+        FreshStart is <strong>$149 one-time for 60 days of service access</strong>, with no subscription. See the{" "}
         <Link href="/pricing">pricing page</Link> for what is included.
       </>
     ),

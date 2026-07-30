@@ -1,43 +1,94 @@
 "use client"
 
 import { useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { analytics } from "@/lib/analytics/events"
 
+export interface VerifiedCheckoutSuccess {
+  plan: "one_time"
+  price: 149
+  sessionId: string
+}
+
 /**
- * Tracks conversion events when user returns from Stripe checkout
- * 
- * This component should be placed on the success page (dashboard with ?success=true)
- * It tracks:
- * - Google Analytics purchase event
- * - Google Ads conversion
- * - Meta Pixel purchase event
+ * Polls briefly for webhook settlement, then claims conversion tracking through
+ * a user-bound server CAS so tabs/reloads cannot emit duplicate purchases.
  */
-export function CheckoutSuccessTracker() {
-  const searchParams = useSearchParams()
-  const success = searchParams?.get("success")
-  const sessionId = searchParams?.get("session_id")
+export function CheckoutSuccessTracker({
+  sessionId,
+  verified,
+}: {
+  sessionId: string | null
+  verified: VerifiedCheckoutSuccess | null
+}) {
+  const router = useRouter()
 
   useEffect(() => {
-    // Only track if success parameter is present
-    if (success !== "true") return
+    if (!sessionId || verified) return
+    let attempts = 0
+    const timer = window.setInterval(() => {
+      attempts += 1
+      router.refresh()
+      if (attempts >= 12) window.clearInterval(timer)
+    }, 1500)
+    return () => window.clearInterval(timer)
+  }, [router, sessionId, verified])
 
-    const plan = (typeof window !== "undefined" && sessionStorage.getItem("subscribe_plan")) || "annual"
-    const planPrice = plan === "one_time" ? 149 : 299
-    if (typeof window !== "undefined") sessionStorage.removeItem("subscribe_plan")
+  useEffect(() => {
+    if (!verified) return
+    let cancelled = false
 
-    // Track conversion
-    analytics.subscriptionComplete(plan, planPrice, sessionId || undefined)
+    let retryTimer: number | undefined
+    const clearSession = () => window.history.replaceState({}, "", "/dashboard")
+    const attempt = async () => {
+      try {
+        const claimResponse = await fetch("/api/stripe/checkout-conversion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: verified.sessionId, action: "claim" }),
+        })
+        if (!claimResponse.ok) throw new Error("Conversion claim failed")
+        const claim = await claimResponse.json() as {
+          shouldTrack: boolean
+          claimToken: string | null
+          complete: boolean
+          retryAfterMs: number
+        }
+        if (cancelled) return
+        if (claim.complete) {
+          clearSession()
+          return
+        }
+        if (!claim.shouldTrack || !claim.claimToken) {
+          retryTimer = window.setTimeout(attempt, claim.retryAfterMs)
+          return
+        }
 
-    // Log for debugging
-    if (process.env.NODE_ENV === "development") {
-      console.log("[Analytics] Checkout success tracked:", {
-        plan,
-        price: planPrice,
-        sessionId,
-      })
+        analytics.subscriptionComplete(verified.plan, verified.price, verified.sessionId)
+        const deliveredResponse = await fetch("/api/stripe/checkout-conversion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: verified.sessionId,
+            action: "delivered",
+            claimToken: claim.claimToken,
+          }),
+        })
+        if (!deliveredResponse.ok) throw new Error("Conversion delivery acknowledgment failed")
+        const delivery = await deliveredResponse.json() as { delivered: boolean }
+        if (!cancelled && delivery.delivered) clearSession()
+      } catch (error) {
+        console.error("Checkout conversion tracking failed", error)
+        if (!cancelled) retryTimer = window.setTimeout(attempt, 5000)
+      }
     }
-  }, [success, sessionId])
+    void attempt()
 
-  return null // This component doesn't render anything
+    return () => {
+      cancelled = true
+      if (retryTimer) window.clearTimeout(retryTimer)
+    }
+  }, [verified])
+
+  return null
 }

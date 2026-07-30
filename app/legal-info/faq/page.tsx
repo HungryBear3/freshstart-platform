@@ -26,7 +26,7 @@ const faqCategories = [
       },
       {
         question: "Is the service free?",
-        answer: "FreshStart-IL is currently $149 one-time, with no subscription. Some general information and resources remain freely accessible. See the pricing page for current details and what is included.",
+        answer: "FreshStart-IL is currently $149 one-time for 60 days of service access, with no subscription. Some general information and resources remain freely accessible. See the pricing page for current details and what is included.",
       },
     ],
   },

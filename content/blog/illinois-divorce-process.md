@@ -9,7 +9,7 @@ Filing for divorce in Illinois involves several legal steps, documents, and time
 
 ## Step 1: Meet Residency Requirements
 
-At least one spouse must have lived in Illinois for 90 days before filing for divorce. If you just moved or your spouse is out of state, confirm you meet this threshold first.
+Illinois law includes a 90-day residence condition tied to starting the case or entry of judgment, depending on timing. Confirm residence, venue, and any military-service implications using current official resources or a lawyer.
 
 ## Step 2: File the Petition
 
@@ -21,11 +21,11 @@ The Summons and Petition must be formally served on the other spouse — typical
 
 ## Step 4: Response Period
 
-The Respondent (the other spouse) has **30 days** to file a Response, either agreeing to the petition's terms or contesting specific requests.
+The response deadline depends on service and the applicable rules. Verify the deadline in the official summons and current court instructions.
 
 ## Step 5: Discovery and Negotiation
 
-Both parties exchange financial disclosures and supporting documents. Many couples attend **mediation** to resolve disputes over assets, debt, parenting, and support — without going to trial.
+Financial disclosure, discovery, and mediation obligations depend on the case and court orders. Check the rules and orders that apply to your matter.
 
 ## Step 6: Temporary Orders
 
@@ -33,11 +33,13 @@ While the case is pending, courts can issue temporary orders covering custody, c
 
 ## Step 7: Settlement or Trial
 
-- **Uncontested cases:** If both parties agree on everything, the case can often proceed by affidavit — no courtroom required.
+- **Uncontested cases:** Procedures vary by court and judge; agreement does not guarantee that an appearance or additional documents will be unnecessary.
 - **Contested cases:** Unresolved issues go before a judge at trial. The judge reviews evidence and issues a ruling.
 
 ## Step 8: Final Judgment
 
 Once the judge signs the **Judgment of Dissolution of Marriage**, the divorce is final. All related orders — property division, custody, support — become enforceable.
 
-Divorce can be complex, but you don't have to navigate it alone. Visit [freshstart-il.com](https://freshstart-il.com) to connect with guidance tailored to Illinois's process and your specific situation.
+Divorce can be complex. Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review and file the drafts. Fresh Start IL is not a law firm, does not provide legal advice, and does not guarantee completeness, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

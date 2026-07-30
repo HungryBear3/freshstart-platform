@@ -1,63 +1,46 @@
 ---
-title: "How Much Does a Divorce Cost in Illinois? A 2026 Breakdown"
+title: "Illinois Divorce Costs: How to Verify Current Fees"
 slug: illinois-divorce-cost-breakdown
-description: "Illinois divorces can cost anywhere from $300 to $30,000+. Here's exactly what drives the cost and how to keep yours as low as possible."
+description: "A verification-first guide to court fees, service costs, professional fees, and fee-waiver resources for an Illinois divorce."
 date: "2026-03-22"
 ---
 
-The cost of divorce in Illinois varies enormously — from a few hundred dollars for a simple uncontested case to tens of thousands for a contested battle. Here's what determines where you fall on that spectrum.
+Illinois divorce costs vary by court, service method, case complexity, and the professionals a person chooses to hire. A fixed statewide total or old county fee table can be misleading.
 
-## The Biggest Cost Driver: Contested vs. Uncontested
+## Verify Court Filing Fees
 
-**Uncontested divorce** (both spouses agree on everything): $300–$2,000 total
-**Contested divorce** (court decides disputed issues): $5,000–$30,000+
+Before filing, identify the circuit court that applies to your case and check its current official fee schedule or contact its clerk. Confirm:
 
-The single most powerful thing you can do to control your divorce costs is to reach agreement with your spouse before filing.
+- the filing fee for your case type,
+- accepted payment methods,
+- whether another filing or certified copy has a separate charge, and
+- whether local procedures have changed.
 
-## Illinois Divorce Cost Breakdown
+Recheck close to the filing date. Do not rely on a third-party fee number as the current clerk charge.
 
-### Court Filing Fees
-- Cook County: ~$337
-- DuPage County: ~$271
-- Lake County: ~$264
-- Will County: ~$259
+## Verify Service Costs
 
-These fees are set by the county and are unavoidable.
+The required method of service depends on the case and applicable rules. If service is required, ask the sheriff or authorized provider about the current charge, geographic limits, and what happens after an unsuccessful attempt. A waiver or other alternative is not automatically available in every case.
 
-### Attorney Fees
-This is where costs explode if you're not careful.
+## Verify Lawyer and Other Professional Fees
 
-- **Consultation:** $150–$400/hour
-- **Full representation (uncontested):** $1,500–$3,500
-- **Full representation (contested):** $5,000–$25,000+
-- **Trial:** $10,000–$50,000+
+Lawyers, mediators, evaluators, appraisers, and financial professionals set their own fees. Before hiring someone, request a current written explanation of:
 
-Many attorneys require a retainer upfront of $2,500–$5,000.
+- hourly, flat, retainer, and replenishment terms,
+- which services are included,
+- likely third-party expenses, and
+- refund or cancellation terms.
 
-### Alternatives to Full Attorney Representation
+No single attorney-fee range reliably predicts what a particular case will cost.
 
-**DIY (pro se):** Handle everything yourself. Illinois courts allow this. Total cost = filing fee + service fee. Biggest risk is paperwork errors that delay your case.
+## Fee-Waiver Information
 
-**Document preparation services:** Services like Fresh Start IL help you generate the correct forms for your county, guided step-by-step. Fraction of attorney cost with much less risk of errors than going it completely alone.
+Illinois Courts publishes fee-waiver forms and instructions. Eligibility and required proof depend on current rules and individual circumstances. Review the current official materials and follow the circuit clerk's filing instructions. Only the court decides whether to grant a waiver.
 
-**Limited scope representation:** Hire an attorney only for specific parts (like reviewing your settlement agreement). $300–$800 instead of full representation.
+## Fresh Start IL Scope
 
-**Mediation:** A neutral third party helps you reach agreement. $100–$300/hour, split between spouses. Often resolves issues in 2–4 sessions.
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review the drafts, verify current court requirements and fees, and file them yourself. Current Fresh Start IL pricing is shown on the pricing page.
 
-### Other Potential Costs
+Fresh Start IL is not a law firm and does not provide legal advice. We do not guarantee completeness, court acceptance, timing, savings, or outcome.
 
-- **Service of process:** $0 (if spouse signs waiver) to $75 (sheriff service)
-- **Child custody evaluator:** $2,000–$10,000 (only if disputed)
-- **Real estate appraiser:** $300–$600 (if home value is disputed)
-- **Financial advisor/CDFA:** $200–$400/hour (for complex asset division)
-
-## How to Keep Costs Low
-
-1. **Agree before you file.** Every disputed issue costs money to resolve through the courts.
-2. **Use document automation.** Don't pay an attorney $300/hour to fill out forms.
-3. **Be organized.** Courts charge for time. Having your documents ready saves everyone time.
-4. **Consider mediation.** Cheaper than litigation for working through disagreements.
-
-## What Fresh Start IL Costs
-
-Our platform guides you through the entire process and generates your county-specific documents automatically. Visit [freshstart-il.com](https://www.freshstart-il.com) to see current pricing — it's a fraction of what you'd pay an attorney for the same paperwork.
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

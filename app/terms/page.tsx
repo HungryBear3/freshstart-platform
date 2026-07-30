@@ -61,11 +61,10 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2>Paid plans</h2>
+      <h2>Paid service</h2>
       <p>
-        FreshStart-IL has paid plans — currently{" "}
-        <strong>Essential</strong> (one-time) and <strong>Plus</strong>{" "}
-        (annual). Eligible refunds are governed by our{" "}
+        FreshStart-IL currently offers <strong>Essential for $149 one-time with 60 days of service access</strong>,
+        with no subscription. Eligible refunds are governed by our{" "}
         <Link href="/legal-info/refund-policy">Refund Policy</Link>. See
         the <Link href="/pricing">pricing page</Link> for current rates.
       </p>

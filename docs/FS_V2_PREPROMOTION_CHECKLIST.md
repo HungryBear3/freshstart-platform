@@ -1,5 +1,7 @@
 # FreshStart-IL v2 — Pre-promotion verification checklist
 
+> **SUPERSEDED — DO NOT EXECUTE.** This historical checklist includes retired trial and Plus-subscription checks. The current approved implementation is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md` for any release; where this document conflicts, the release gate controls.
+
 One-document checklist that runs end-to-end before `vercel --prod`. Each section is a copy-pasteable command + a manual checkbox. Stop and resolve the first failure; do not skip.
 
 Companion docs (read first if you haven't):

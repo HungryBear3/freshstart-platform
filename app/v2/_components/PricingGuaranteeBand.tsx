@@ -5,7 +5,7 @@ const items = [
     num: "$149",
     unit: "one-time",
     title: "No subscription",
-    body: "One simple price. No subscription and no recurring billing — you pay once.",
+    body: "One simple price for 60 days of service access. No subscription or recurring billing.",
   },
   {
     num: "IL",

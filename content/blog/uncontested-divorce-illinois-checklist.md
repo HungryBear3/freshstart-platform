@@ -1,6 +1,6 @@
 ---
 title: "Illinois Uncontested Divorce Checklist: Everything You Need Before You File"
-description: "A practical checklist of everything you need to file for uncontested divorce in Illinois — residency, forms, finances, and parenting plan — before you walk into the courthouse."
+description: "A practical planning checklist for a supported Illinois uncontested-divorce matter. Verify current statewide and local requirements before filing."
 date: "2026-03-25"
 slug: "uncontested-divorce-illinois-checklist"
 ---
@@ -21,19 +21,15 @@ If you disagree on any of these, the divorce is contested and will likely requir
 
 ## Illinois Residency Requirement
 
-☐ At least one spouse must have lived in Illinois for **90 days** before filing.
+Illinois law includes a 90-day residence condition tied to starting the case or entry of judgment, depending on timing. Venue and military-service facts can affect the analysis. Verify your timing and county with current official court resources or a lawyer before filing.
 
-If you're filing in Cook County, that residency must be in Cook County specifically. Keep a utility bill, lease, or other documentation handy to prove residency if needed.
+## The Six-Month Presumption
 
-## The 6-Month Separation Requirement
-
-☐ You and your spouse must have been **living separate and apart** for at least 6 months before a judge will grant the divorce.
-
-Note: "Separate and apart" in Illinois can mean living under the same roof as long as you're no longer functioning as a couple. This is a nuanced area — if you're still sharing a home, document the arrangement clearly.
+Illinois law discusses living separate and apart in connection with a rebuttable presumption about irreconcilable differences; it is not presented here as a universal pre-filing wait. Confirm how the rule applies to your facts.
 
 ## Financial Documents to Gather
 
-You'll need these for your financial affidavit (required in all Illinois divorces):
+Depending on your case and court orders, you may need financial disclosures or supporting records. Check your court's current instructions before deciding what to file or exchange:
 
 ☐ Last 3 years of tax returns (both spouses)
 ☐ Recent pay stubs or proof of income (last 2-3 months)
@@ -59,42 +55,43 @@ You'll need these for your financial affidavit (required in all Illinois divorce
 ☐ Calculate **child support** using the Illinois formula (based on both parents' incomes and parenting time)
 ☐ Address health insurance — which parent covers the children and how uncovered expenses are split
 
-Illinois requires a detailed written **parenting plan** as part of the divorce filing. [Use our parenting plan builder](/start) to make sure yours covers everything the court requires.
+Cases involving children may require a written **parenting plan**. [Our guided intake](/start) can help prepare supported drafts, but you must verify current court and county requirements.
 
 ## Illinois Court Forms You'll Need
 
-The specific forms depend on your county and whether you have children, but the core documents for an uncontested divorce include:
+The forms depend on your facts, case stage, and local court. Common examples may include:
 
 ☐ Petition for Dissolution of Marriage
 ☐ Summons (or Waiver of Service if spouse is cooperating)
 ☐ Joint Parenting Plan (if you have children)
 ☐ Marital Settlement Agreement
 ☐ Child Support Worksheet (if applicable)
-☐ Financial Affidavit (both parties)
+☐ Financial Affidavit, if required for the case or by court order
 ☐ Judgment for Dissolution of Marriage (the final order)
 
-Illinois uses standardized court forms. [FreshStart IL automatically fills out all of these](/start) based on your answers — no law degree required.
+Illinois publishes standardized forms, and local requirements can add or change documents. [FreshStart IL prepares supported form drafts](/start) from your answers for your review; we do not promise every form or court acceptance.
 
 ## Filing Fees
 
-☐ Cook County filing fee: approximately **$289–$337** depending on the type of case
-☐ Other Illinois counties: typically **$150–$250**
-☐ Fee waiver available if your income qualifies (ask the clerk for a fee waiver petition)
+☐ Verify the current filing fee directly with your circuit clerk
+☐ Review the Illinois Courts fee-waiver materials if cost is a barrier
 
 ## Before You File: Quick Checklist
 
 ☐ Both spouses have agreed on all terms in writing (even informally)
-☐ Residency requirement met (90 days in Illinois)
-☐ Separation period met or agreed-upon date established
+☐ Residence, venue, and timing checked against current official resources
+☐ Any separation-related issue checked for your facts
 ☐ All financial documents gathered
 ☐ Parenting plan drafted and agreed upon (if applicable)
-☐ All court forms completed accurately
+☐ The forms you plan to submit reviewed against current instructions
 ☐ Filing fee ready (or fee waiver prepared)
 
 ## The Easiest Way to Get Through This
 
 Gathering forms, filling them out correctly, and making sure nothing is missing is where most people get stuck — not the legal complexity, just the paperwork.
 
-[FreshStart IL walks you through the whole process](/start). Answer questions about your situation, and we generate all your Illinois court forms automatically — parenting plan, financial affidavit, settlement agreement, everything. Court-ready, in one place.
+[Fresh Start IL provides guided intake and supported Illinois uncontested-divorce form drafts](/start). You review and file the drafts after verifying current filing requirements.
 
-You've already made the hard decisions. We handle the paperwork.
+Fresh Start IL is not a law firm, does not provide legal advice, and does not guarantee completeness, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

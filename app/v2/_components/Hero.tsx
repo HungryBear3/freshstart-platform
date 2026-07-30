@@ -44,7 +44,7 @@ export function HomepageHero() {
           filing roadmap. You review the drafts, pay court fees separately, and file them yourself.
         </p>
         <div className="fs-priceline" aria-label="Pricing summary">
-          <strong>$149 one-time</strong>
+          <strong>$149 one-time · 60 days of service access</strong>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>

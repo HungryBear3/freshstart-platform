@@ -2,40 +2,27 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 interface SubscribeButtonProps {
-  plan?: "annual" | "one_time"
+  plan?: "one_time"
   className?: string
   size?: "default" | "sm" | "lg" | "icon"
   children?: React.ReactNode
 }
 
 export function SubscribeButton({
-  plan = "annual",
+  plan = "one_time",
   className,
   size = "lg",
   children,
 }: SubscribeButtonProps) {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState("")
 
   const handleSubscribe = async () => {
-    // If not logged in, redirect to signup with return URL
-    if (status === "unauthenticated" || !session) {
-      // Store the plan in sessionStorage so we can use it after signup
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("subscribe_plan", plan)
-        sessionStorage.setItem("subscribe_redirect", "/pricing")
-      }
-      router.push(`/auth/signup?redirect=/pricing`)
-      return
-    }
-
     setLoading(true)
 
     try {
@@ -82,9 +69,12 @@ export function SubscribeButton({
     }
     
     return (
-      <Link href={`/auth/signup?redirect=/pricing`} onClick={handleClick}>
+      <Link
+        href={`/auth/signup?redirect=%2Fpricing&subscribe=true&plan=${plan}&source=legacy_subscribe_button`}
+        onClick={handleClick}
+      >
         <Button size={size} className={className} disabled={loading}>
-          {children || "Start Free Trial"}
+          {children || "Continue to Checkout"}
         </Button>
       </Link>
     )
@@ -99,7 +89,7 @@ export function SubscribeButton({
         disabled={loading || !session}
         data-subscribe-button="true"
       >
-        {loading ? "Redirecting to Stripe…" : children || "Start Free Trial"}
+        {loading ? "Redirecting to Stripe…" : children || "Continue to Checkout"}
       </Button>
       {checkoutError && (
         <p className="text-sm text-red-600 mt-2 text-center">{checkoutError}</p>

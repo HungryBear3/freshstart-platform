@@ -120,14 +120,14 @@ export const ILLINOIS_COURT_FORMS: CourtForm[] = [
   {
     id: 'financial-affidavit',
     name: 'Financial Affidavit (Family & Divorce Cases)',
-    description: 'Comprehensive disclosure of income, expenses, assets, and debts required in all divorce cases.',
+    description: 'Disclosure of income, expenses, assets, and debts that may be required in some family or divorce matters.',
     category: 'financial',
     filename: 'financial-affidavit.pdf',
     officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
     version: '2025',
     lastUpdated: '2025-06-01',
     requiredFor: ['both'],
-    instructions: 'Both parties must complete and exchange. Must be updated if circumstances change.',
+    instructions: 'Use if the court or your case requires it; confirm filing, exchange, and update requirements for your matter.',
     relatedQuestionnaires: ['financial-information', 'income-employment', 'assets-debts']
   },
   {

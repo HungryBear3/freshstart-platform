@@ -105,11 +105,13 @@ describe("signup-first checkout intent", () => {
     expect(planForTier("concierge")).toBe("one_time");
   });
 
-  it("keeps annual checkout as a subscription without creating a free trial", () => {
+  it("limits new checkout creation to one-time plans and add-ons", () => {
     const src = readSource("app/api/stripe/create-checkout-session/route.ts");
-    expect(src).toMatch(/isSubscription\s*=\s*plan === "annual"/);
-    expect(src).toMatch(/mode:\s*isSubscription \? "subscription" : "payment"/);
-    expect(src).toMatch(/sessionParams\.subscription_data\s*=/);
+    expect(src).not.toMatch(/"annual"/);
+    expect(src).toMatch(/hasOwnProperty\.call\(body, "plan"\)/);
+    expect(src).toMatch(/\? body\.plan\s*:\s*"one_time"/);
+    expect(src).toMatch(/mode:\s*"payment"/);
+    expect(src).not.toMatch(/subscription_data/);
     expect(src).not.toMatch(/trial_period_days/);
   });
 
@@ -176,16 +178,13 @@ describe("v2 launch add-ons", () => {
     expect(html).not.toContain("Mediation referral");
   });
 
-  it("routes add-on purchase clicks through signup-first checkout once test price IDs exist", () => {
+  it("keeps add-on payment entrypoints disabled until durable fulfillment exists", () => {
     const src = readSource("app/v2/_components/PricingAddons.tsx");
     const checkoutRoute = readSource("app/api/stripe/create-checkout-session/route.ts");
-    const webhookRoute = readSource("app/api/webhooks/stripe/route.ts");
-    expect(src).toMatch(/beginSignupFirstCheckout/);
-    expect(src).toMatch(/parenting_plan/);
-    expect(src).toMatch(/refile_assistance/);
-    expect(src).not.toMatch(/STUB_ENDPOINTS\.addOn/);
-    expect(checkoutRoute).toMatch(/PARENTING_PLAN_PRICE_ID/);
-    expect(checkoutRoute).toMatch(/REFILE_PRICE_ID/);
-    expect(webhookRoute).toMatch(/kind === "addon"/);
+    expect(src).not.toMatch(/beginSignupFirstCheckout/);
+    expect(src).toMatch(/disabled/);
+    expect(src).toContain("Unavailable");
+    expect(checkoutRoute).toContain("Add-on checkout is unavailable until fulfillment is supported");
+    expect(checkoutRoute).not.toMatch(/PARENTING_PLAN_PRICE_ID|REFILE_PRICE_ID/);
   });
 });

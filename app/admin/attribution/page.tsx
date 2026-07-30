@@ -206,13 +206,13 @@ export default function AttributionDashboardPage() {
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Revenue
+                  Estimated Revenue
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{formatCurrency(stats.totals.revenue)}</div>
                 <p className="text-sm text-muted-foreground">
-                  At $299/subscription
+                  Current-offer estimate at $149 per conversion
                 </p>
               </CardContent>
             </Card>

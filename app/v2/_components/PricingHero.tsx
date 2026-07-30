@@ -17,7 +17,7 @@ export function PricingHero() {
           Illinois form drafts, a filing checklist, and plain-English next steps.
         </p>
         <div className="fs-priceline" aria-label="Plan benefits">
-          <strong>$149 one-time</strong>
+          <strong>$149 one-time · 60 days of service access</strong>
           <span className="fs-priceline-dot" aria-hidden="true">
             ·
           </span>

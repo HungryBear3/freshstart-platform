@@ -6,19 +6,19 @@ import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from "@/lib/seo-metadata";
 export const metadata: Metadata = {
   title: "Grounds for divorce in Illinois",
   description:
-    "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. What 'separate and apart' means, and how the 6-month period works.",
+    "A general explanation of irreconcilable differences and Illinois's rebuttable presumption after six months of living separate and apart.",
   alternates: { canonical: "/grounds-for-divorce" },
   openGraph: {
     title: "Grounds for divorce in Illinois",
     description:
-      "Illinois is a no-fault state. Most divorces are filed on irreconcilable differences. How 'separate and apart' and the 6-month period work.",
+      "A general explanation of irreconcilable differences and the rebuttable presumption concerning living separate and apart.",
     url: "/grounds-for-divorce",
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     title: "Grounds for divorce in Illinois",
     description:
-      "Irreconcilable differences, 'separate and apart,' and the 6-month period — explained.",
+      "Irreconcilable differences and the rebuttable presumption concerning living separate and apart.",
     images: [DEFAULT_TWITTER_IMAGE],
   },
 };
@@ -42,23 +42,24 @@ export default function GroundsForDivorcePage() {
         <li>the marriage has broken down,</li>
         <li>there is no reasonable prospect of reconciliation, and</li>
         <li>
-          the spouses have lived <em>separate and apart</em> for at least 6
-          months (the 6-month period can be waived if both spouses agree).
+          efforts at reconciliation have failed or future attempts would be
+          impracticable and not in the family&apos;s best interests.
         </li>
       </ul>
 
-      <h2>What "separate and apart" means</h2>
+      <h2>What the six-month language does</h2>
       <p>
-        You don&apos;t necessarily need to live in different houses. Courts
-        accept that you&apos;re separate and apart if you are:
+        If spouses have lived separate and apart continuously for at least six
+        months immediately before entry of judgment, Illinois law provides a
+        <strong> rebuttable presumption</strong> that the irreconcilable-
+        differences requirement has been met. This is not a universal
+        pre-filing separation or waiting period.
       </p>
-      <ul>
-        <li>living in separate residences, OR</li>
-        <li>
-          living in the same house but in separate rooms, not sharing meals,
-          and not holding yourselves out as a married couple.
-        </li>
-      </ul>
+      <p>
+        How &quot;separate and apart&quot; applies to particular living
+        arrangements is fact-specific. Check current law and court instructions
+        or ask a lawyer rather than relying on a general website description.
+      </p>
 
       <h2>No-fault — what's gone</h2>
       <p>
@@ -75,10 +76,8 @@ export default function GroundsForDivorcePage() {
           You don&apos;t need your spouse&apos;s sign-off on the grounds —
           you just plead irreconcilable differences.
         </li>
-        <li>
-          The 6-month separation period is waived if both spouses agree on
-          the record.
-        </li>
+        <li>Only the court decides whether the legal ground is established.</li>
+        <li>This page provides general information, not legal advice.</li>
       </ul>
 
       <p>

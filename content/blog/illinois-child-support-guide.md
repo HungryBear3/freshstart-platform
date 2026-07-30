@@ -18,21 +18,21 @@ Illinois uses guidelines established under the Illinois Marriage and Dissolution
 
 The state publishes an **Income Shares Schedule** that estimates the total cost of raising children at various combined income levels. That cost is then split proportionally between the parents based on their incomes.
 
-## Example Calculation
+## Simplified Hypothetical — Not a Calculation
 
 Parent A earns $5,000/month net. Parent B earns $3,000/month net.
 Combined income: $8,000/month.
 
-For one child, the Income Shares Schedule might estimate the total child-rearing cost at $1,400/month.
+Assume, only for illustration, that an official schedule and all applicable inputs produced a $1,400 basic obligation. This is not a current schedule lookup or a prediction for any case.
 
 Parent A's share: 62.5% ($875/month)
 Parent B's share: 37.5% ($525/month)
 
-If Parent B has primary custody, Parent A pays $875/month in child support.
+The arithmetic would allocate $875 before any applicable parenting-time treatment, expenses, deviations, or court findings. It does not establish what either parent owes; only the court can determine an obligation.
 
 ## What Reduces Child Support
 
-**Parenting time adjustment:** If the paying parent has the child 40%+ of nights per year (146+ nights), a parenting time credit reduces their obligation.
+**Parenting time adjustment:** Current statutory thresholds and parenting-time facts may affect the analysis. Verify the current statute and official schedules; do not infer a result from a simplified overnight count.
 
 **Additional expenses:** If one parent pays health insurance premiums for the child, that cost is often credited against their support obligation.
 
@@ -47,6 +47,8 @@ Judges can deviate from guideline amounts if they find it would be unjust. Commo
 
 ## Child Support and Divorce Papers
 
-In an uncontested Illinois divorce, you'll need to include a **child support worksheet** with your filing. Fresh Start IL calculates your child support obligation automatically and includes it in your document package.
+Depending on the case and court, child-support forms or a worksheet may be required. Use current official schedules and instructions. Only the court can determine the support obligation.
 
-Visit [freshstart-il.com](https://www.freshstart-il.com) to get started.
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review and file the drafts. Fresh Start IL is not a law firm and does not provide legal advice or guarantee completeness, calculation accuracy, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

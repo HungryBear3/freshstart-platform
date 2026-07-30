@@ -1,5 +1,7 @@
 # Stripe Checkout & Trial Testing Guide
 
+> **SUPERSEDED — DO NOT EXECUTE.** This document describes retired trial and annual-subscription testing, including obsolete production steps. Fresh Start IL's current approved offer is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; never use a real card or production mode based on this file.
+
 ## Overview
 This guide walks you through testing the complete Stripe checkout flow, including:
 - Starting a free trial

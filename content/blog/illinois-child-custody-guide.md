@@ -26,7 +26,7 @@ Illinois uses a "best interests of the child" standard. Judges consider:
 
 ## Creating a Parenting Plan
 
-Illinois requires divorcing parents to submit a parenting plan — a document outlining parenting time schedules, holiday responsibilities, and decision-making processes. Well-drafted plans reduce future disputes and are more likely to be approved as-is by the court.
+Parenting plans address parenting-time schedules, holiday responsibilities, and decision-making processes. Requirements and approval depend on current law, court orders, local procedure, and the facts of the case; no draft is guaranteed to be approved as submitted.
 
 Key items to include:
 - Regular parenting time schedule (weekdays, weekends, overnights)
@@ -38,4 +38,6 @@ Key items to include:
 
 Life changes. If there's a significant change in circumstances — a relocation, job loss, safety concern, or shift in the child's needs — either parent can petition the court to modify existing custody or parenting time orders.
 
-Child custody decisions shape your child's future. For tailored guidance through Illinois's process, visit [freshstart-il.com](https://freshstart-il.com) and get the support you need.
+Parenting decisions can have lasting legal and practical effects. Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers; users review and file them. It is not a law firm, does not provide legal advice, and does not guarantee completeness, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

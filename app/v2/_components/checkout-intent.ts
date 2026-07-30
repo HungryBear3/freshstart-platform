@@ -1,4 +1,4 @@
-export type CheckoutPlan = "annual" | "one_time" | "parenting_plan" | "refile_assistance";
+export type CheckoutPlan = "one_time" | "parenting_plan" | "refile_assistance";
 
 export interface CheckoutIntent {
   plan: CheckoutPlan;
@@ -9,15 +9,23 @@ const PLAN_KEY = "fs_checkout_plan";
 const SOURCE_KEY = "fs_checkout_source";
 const AUTO_KEY = "fs_auto_checkout";
 
-export function planForTier(tier: string): CheckoutPlan {
+export function planForTier(_tier: string): CheckoutPlan {
   return "one_time";
+}
+
+export function isCheckoutPlan(plan?: string | null): plan is CheckoutPlan {
+  return plan === "one_time" || plan === "parenting_plan" || plan === "refile_assistance";
+}
+
+export function normalizeCheckoutPlan(plan?: string | null): CheckoutPlan {
+  return isCheckoutPlan(plan) ? plan : "one_time";
 }
 
 export function buildSignupFirstCheckoutUrl(intent: CheckoutIntent): string {
   const params = new URLSearchParams({
     redirect: "/pricing",
     subscribe: "true",
-    plan: intent.plan,
+    plan: normalizeCheckoutPlan(intent.plan),
     source: intent.source,
   });
   return `/auth/signup?${params.toString()}`;
@@ -25,19 +33,16 @@ export function buildSignupFirstCheckoutUrl(intent: CheckoutIntent): string {
 
 export function beginSignupFirstCheckout(intent: CheckoutIntent) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(PLAN_KEY, intent.plan);
+  const plan = normalizeCheckoutPlan(intent.plan);
+  window.sessionStorage.setItem(PLAN_KEY, plan);
   window.sessionStorage.setItem(SOURCE_KEY, intent.source);
-  window.sessionStorage.setItem("subscribe_plan", intent.plan);
-  window.location.href = buildSignupFirstCheckoutUrl(intent);
-}
-
-export function isCheckoutPlan(plan?: string | null): plan is CheckoutPlan {
-  return plan === "annual" || plan === "one_time" || plan === "parenting_plan" || plan === "refile_assistance";
+  window.sessionStorage.setItem("subscribe_plan", plan);
+  window.location.href = buildSignupFirstCheckoutUrl({ ...intent, plan });
 }
 
 export function markCheckoutResumeFromSearch(plan?: string | null, source?: string | null) {
   if (typeof window === "undefined") return;
-  const safePlan: CheckoutPlan = isCheckoutPlan(plan) ? plan : "one_time";
+  const safePlan = normalizeCheckoutPlan(plan);
   window.sessionStorage.setItem(PLAN_KEY, safePlan);
   window.sessionStorage.setItem(SOURCE_KEY, source || "auth_resume");
   window.sessionStorage.setItem(AUTO_KEY, "true");
@@ -52,9 +57,8 @@ export function getPendingCheckoutIntent(): CheckoutIntent | null {
 
   const storedPlan = window.sessionStorage.getItem(PLAN_KEY) ||
     window.sessionStorage.getItem("subscribe_plan");
-  const plan: CheckoutPlan = isCheckoutPlan(storedPlan) ? storedPlan : "one_time";
   return {
-    plan,
+    plan: normalizeCheckoutPlan(storedPlan),
     source: window.sessionStorage.getItem(SOURCE_KEY) || "pricing_resume",
   };
 }

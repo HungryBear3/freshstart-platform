@@ -14,6 +14,9 @@ export async function getUserSubscription(userId: string) {
       return null
     }
 
+    const statusIsActive = subscription.status === "active" || subscription.status === "trialing"
+    const periodHasNotEnded = !subscription.currentPeriodEnd || subscription.currentPeriodEnd.getTime() > Date.now()
+
     return {
       id: subscription.id,
       status: subscription.status,
@@ -21,7 +24,7 @@ export async function getUserSubscription(userId: string) {
       currentPeriodEnd: subscription.currentPeriodEnd,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       trialEnd: subscription.trialEnd,
-      isActive: subscription.status === "active" || subscription.status === "trialing",
+      isActive: statusIsActive && periodHasNotEnded,
     }
   } catch (error) {
     console.error("Error fetching subscription:", error)

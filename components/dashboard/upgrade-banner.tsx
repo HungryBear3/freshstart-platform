@@ -23,7 +23,7 @@ export function UpgradeBanner() {
     <div className="relative flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
       <span className="flex-1">
         <strong>Ready to file?</strong> Prepare supported Illinois divorce form drafts
-        and a filing roadmap for <strong>$149 one-time</strong>, with no subscription.{" "}
+        and a filing roadmap for <strong>$149 one-time with 60 days of service access</strong>, with no subscription.{" "}
         <Link href="/pricing" className="font-semibold underline underline-offset-2 hover:text-blue-700">
           Get started →
         </Link>

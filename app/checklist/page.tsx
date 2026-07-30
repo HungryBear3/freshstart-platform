@@ -161,7 +161,7 @@ export default function ChecklistPage() {
                 drafts and a filing roadmap that you review before filing.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link href="/auth/signup" className="fs-btn fs-btn-primary fs-btn-lg">
+                <Link href="/auth/signup?redirect=%2Fpricing&subscribe=true&plan=one_time&source=checklist_cta" className="fs-btn fs-btn-primary fs-btn-lg">
                   Start my filing <span className="fs-arrow">→</span>
                 </Link>
                 <Link href="/pricing" className="fs-btn fs-btn-ghost fs-btn-lg">

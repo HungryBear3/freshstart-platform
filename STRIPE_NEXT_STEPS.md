@@ -1,5 +1,7 @@
 # Stripe Configuration - Next Steps
 
+> **SUPERSEDED — DO NOT EXECUTE.** This document describes retired recurring annual/subscription setup. Fresh Start IL's current approved offer is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; do not create products, prices, migrations, or production configuration from this file.
+
 ## ✅ What's Done
 
 - Stripe API keys added to `.env.local`

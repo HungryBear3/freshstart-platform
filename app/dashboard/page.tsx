@@ -175,12 +175,53 @@ function calculateStepProgress(
   return { stepProgress, currentStep }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/signin")
   }
+
+  const params = searchParams ? await searchParams : {}
+  const sessionId = typeof params.session_id === "string" ? params.session_id : null
+  const checkoutReturn = sessionId
+    ? await prisma.checkoutObligation.findFirst({
+        where: { userId: user.id, stripeSessionId: sessionId },
+        select: {
+          stripeSessionId: true,
+          status: true,
+          expectedAmountCents: true,
+          expectedCurrency: true,
+          settledAmountCents: true,
+          settledCurrency: true,
+        },
+      })
+    : await prisma.checkoutObligation.findFirst({
+        where: { userId: user.id, status: "REVIEW_REQUIRED" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          stripeSessionId: true,
+          status: true,
+          expectedAmountCents: true,
+          expectedCurrency: true,
+          settledAmountCents: true,
+          settledCurrency: true,
+        },
+      })
+  const returnSessionId = checkoutReturn?.stripeSessionId ?? sessionId
+  const verifiedCheckout = checkoutReturn?.status === "PAID"
+    && checkoutReturn.expectedAmountCents === 14900
+    && checkoutReturn.expectedCurrency === "usd"
+    && checkoutReturn.settledAmountCents === 14900
+    && checkoutReturn.settledCurrency === "usd"
+    ? checkoutReturn
+    : null
+  const isPaymentConfirming = Boolean(checkoutReturn && ["PENDING", "OPEN"].includes(checkoutReturn.status))
+  const isPaymentReview = checkoutReturn?.status === "REVIEW_REQUIRED"
 
   // Fetch full user for onboarding status
   const dbUser = await prisma.user.findUnique({
@@ -229,10 +270,20 @@ export default async function DashboardPage() {
 
   // Determine next action
   const getNextAction = () => {
+    if (isPaymentConfirming || isPaymentReview) {
+      return {
+        title: isPaymentReview ? "Payment Needs Review" : "Confirming Payment",
+        description: isPaymentReview
+          ? "Your payment is recorded. Support has been notified; please do not pay again."
+          : "We are waiting for secure payment confirmation. Please do not pay again.",
+        href: returnSessionId ? `/dashboard?session_id=${encodeURIComponent(returnSessionId)}` : "/dashboard",
+        icon: Clock,
+      }
+    }
     if (!hasActiveSubscription) {
       return { 
-        title: 'Choose a Filing Plan',
-        description: 'Subscribe to access all features',
+        title: 'Start Document Preparation',
+        description: 'Choose $149 one-time for 60 days of service access',
         href: '/pricing',
         icon: CreditCard,
       }
@@ -248,7 +299,7 @@ export default async function DashboardPage() {
     if (progress.questionnaires.completed < 2) {
       return { 
         title: 'Complete Financial Affidavit', 
-        description: 'Required for all divorce cases',
+        description: 'Complete this questionnaire if it applies to your filing',
         href: '/questionnaires',
         icon: Calculator,
       }
@@ -256,7 +307,7 @@ export default async function DashboardPage() {
     if (progress.documents.count === 0) {
       return { 
         title: 'Generate Your Documents', 
-        description: 'Create court-ready forms from your questionnaires',
+        description: 'Prepare supported form drafts from your questionnaires',
         href: '/documents',
         icon: FileText,
       }
@@ -282,12 +333,31 @@ export default async function DashboardPage() {
           <p className="mt-2 text-gray-600">
             {hasActiveSubscription 
               ? "Track your progress and manage your divorce documents"
-              : "Start your subscription to begin the divorce process"}
+              : "Start document preparation when you are ready"}
           </p>
         </div>
 
-        {/* Subscription Status Banner */}
-        {!hasActiveSubscription && (
+        {/* Service access status banner */}
+        {(isPaymentConfirming || isPaymentReview) && !hasActiveSubscription && (
+          <Card className="mb-8 border-2 border-amber-200 bg-amber-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <Clock className="h-8 w-8 text-amber-700" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {isPaymentReview ? "Payment Needs Review" : "Confirming Your Payment"}
+                  </h3>
+                  <p className="text-sm text-gray-700">
+                    {isPaymentReview
+                      ? "Your payment is recorded, but access needs manual review. Support has been notified. Please do not pay again; contact support@freshstart-il.com if you need help."
+                      : "Stripe is confirming your payment. This page will refresh automatically. Please do not pay again."}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {!hasActiveSubscription && !isPaymentConfirming && !isPaymentReview && (
           <Card className="mb-8 border-2 border-blue-200 bg-blue-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
@@ -295,16 +365,16 @@ export default async function DashboardPage() {
                   <CreditCard className="h-8 w-8 text-blue-600" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Complete Your Subscription
+                      Start Document Preparation
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Choose a plan when you are ready to access FreshStart IL features
+                      $149 one-time for 60 days of service access; no subscription
                     </p>
                   </div>
                 </div>
                 <Link href="/pricing">
                   <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                    View Plans
+                    View $149 Service
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -320,13 +390,17 @@ export default async function DashboardPage() {
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Active Subscription
+                    {subscription.plan === "one_time" ? "Essential Access Active" : "Active Subscription"}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {subscription.status === "trialing" && subscription.trialEnd
-                      ? `Trial ends ${new Date(subscription.trialEnd).toLocaleDateString()}`
-                      : subscription.currentPeriodEnd
-                      ? `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                    {subscription.plan === "one_time"
+                      ? subscription.currentPeriodEnd
+                        ? `Access through ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                        : "Your one-time service access is active"
+                      : subscription.status === "trialing" && subscription.trialEnd
+                    ? `Trial ends ${new Date(subscription.trialEnd).toLocaleDateString()}`
+                    : subscription.currentPeriodEnd
+                    ? `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
                       : "Your subscription is active"}
                   </p>
                 </div>
@@ -620,7 +694,7 @@ export default async function DashboardPage() {
               <User className="h-8 w-8 text-blue-600 mb-2" />
               <CardTitle>Profile</CardTitle>
               <CardDescription>
-                Manage your account settings and subscription
+                Manage your account settings and service access
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -636,7 +710,11 @@ export default async function DashboardPage() {
       
       {/* Track checkout success for analytics */}
       <Suspense fallback={null}>
-        <CheckoutSuccessTracker />
+        <CheckoutSuccessTracker sessionId={sessionId} verified={verifiedCheckout?.stripeSessionId ? {
+          plan: "one_time",
+          price: 149,
+          sessionId: verifiedCheckout.stripeSessionId,
+        } : null} />
       </Suspense>
     </DashboardLayout>
   )

@@ -58,7 +58,7 @@ export default function RefundPolicyPage() {
                   </p>
                   <p className="mt-4">
                     Refunds apply to the FreshStart-IL purchase — currently{" "}
-                    <strong>$149 one-time</strong>. Third-party court filing
+                    <strong>$149 one-time for 60 days of service access</strong>. Third-party court filing
                     fees, county fees, and any payments to outside service
                     providers are not part of this policy and are governed by
                     those providers&apos; own terms.

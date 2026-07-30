@@ -2,8 +2,12 @@ import { prisma } from "@/lib/db"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, CreditCard, ClipboardList, TrendingUp } from "lucide-react"
+import { requireCurrentAdminPage } from "@/lib/auth/require-current-admin-page"
 
 export default async function AdminDashboardPage() {
+  // Layouts can be reused during client navigation; revalidate current role
+  // immediately before every server-rendered sensitive read.
+  await requireCurrentAdminPage()
   const [
     userCount,
     activeSubCount,

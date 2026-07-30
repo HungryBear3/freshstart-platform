@@ -1,5 +1,7 @@
 # FS v2 CTA Backend Wiring Plan
 
+> **SUPERSEDED — DO NOT EXECUTE.** This historical plan describes retired annual/Plus subscription and trial flows. The current approved implementation is `$149` one-time access for 60 days with no subscription. For any release or recovery work, use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; where this document conflicts, the release gate controls.
+
 > Production wiring tracker. The original v2 preview used five `/api/_stub/*`
 > endpoints; this doc now tracks which CTAs have been wired to real or
 > signup-first flows and which remain blocked.

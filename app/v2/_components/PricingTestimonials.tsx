@@ -3,27 +3,27 @@ import * as React from "react";
 const quotes = [
   {
     initial: "P",
-    name: "Priya R.",
-    city: "Oak Park, IL",
+    name: "Scenario 1",
+    city: "Hypothetical example",
     plan: "Essential",
     quote:
-      "For a straightforward uncontested case, starting at $149 was the difference between moving forward now and waiting months.",
+      "A customer with a supported uncontested case chooses the $149 one-time document-preparation service with 60 days of service access.",
   },
   {
     initial: "J",
-    name: "Jordan B.",
-    city: "Aurora, IL",
-    plan: "Plus",
+    name: "Scenario 2",
+    city: "Hypothetical example",
+    plan: "Essential",
     quote:
-      "We had kids and a property timeline that kept changing. Plus made more sense than paying again every time we needed to update drafts.",
+      "A customer reviews the supported drafts, verifies current clerk requirements, and files the documents themselves.",
   },
   {
     initial: "A",
-    name: "Amelia S.",
-    city: "Peoria, IL",
-    plan: "Essential → Plus",
+    name: "Scenario 3",
+    city: "Hypothetical example",
+    plan: "Essential",
     quote:
-      "Started on Essential, then upgraded when the details changed. The annual option made the moving pieces feel easier to manage.",
+      "A customer whose situation changes pauses and asks a licensed Illinois attorney about case-specific legal questions.",
   },
 ];
 

@@ -39,7 +39,7 @@ export function getTiers(
         "Step-by-step e-filing walkthrough",
         "Save and resume through your filing process",
         "Email support · 1–2 business day response",
-        "No subscription · one flat fee",
+        "60 days of service access · no subscription",
       ],
       excluded: ["No legal advice", "No contested-case mediation"],
       audience:

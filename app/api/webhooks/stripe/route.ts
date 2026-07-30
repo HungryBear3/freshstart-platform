@@ -1,349 +1,631 @@
+import { createHash, randomUUID } from "crypto"
 import { NextRequest, NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe/config"
 import Stripe from "stripe"
+import { prisma } from "@/lib/db"
+import { stripe } from "@/lib/stripe/config"
+import { errorTracker } from "@/lib/monitoring/error-tracking"
+
+const CLAIM_LEASE_MS = 5 * 60 * 1000
+const CONVERTIBLE_LEGACY = ["canceled", "incomplete", "incomplete_expired"]
+const BLOCKING_LEGACY = new Set(["active", "trialing", "past_due"])
+
+async function acquireEventClaim(stripeEventId: string) {
+  const token = randomUUID()
+  const leaseExpiresAt = new Date(Date.now() + CLAIM_LEASE_MS)
+  const existing = await prisma.stripeEvent.findUnique({ where: { stripeEventId } })
+  if (existing?.status === "COMPLETED") return { state: "completed" as const }
+  if (existing?.status === "PROCESSING" && existing.leaseExpiresAt && existing.leaseExpiresAt > new Date()) {
+    return { state: "busy" as const }
+  }
+
+  if (!existing) {
+    try {
+      await prisma.stripeEvent.create({
+        data: { stripeEventId, status: "PROCESSING", claimToken: token, leaseExpiresAt },
+      })
+      return { state: "acquired" as const, token }
+    } catch (cause: any) {
+      if (cause?.code !== "P2002") throw cause
+      return acquireEventClaim(stripeEventId)
+    }
+  }
+
+  const claimed = await prisma.stripeEvent.updateMany({
+    where: { id: existing.id, status: existing.status, claimToken: existing.claimToken },
+    data: { status: "PROCESSING", claimToken: token, leaseExpiresAt, lastError: null },
+  })
+  return claimed.count === 1 ? { state: "acquired" as const, token } : { state: "busy" as const }
+}
+
+async function renewEventClaim(stripeEventId: string, token: string) {
+  const renewed = await prisma.stripeEvent.updateMany({
+    where: {
+      stripeEventId,
+      status: "PROCESSING",
+      claimToken: token,
+      leaseExpiresAt: { gt: new Date() },
+    },
+    data: { leaseExpiresAt: new Date(Date.now() + CLAIM_LEASE_MS) },
+  })
+  if (renewed.count !== 1) throw new Error("Stripe event claim ownership was lost")
+}
+
+async function finishEvent(stripeEventId: string, token: string) {
+  const finished = await prisma.stripeEvent.updateMany({
+    where: {
+      stripeEventId,
+      status: "PROCESSING",
+      claimToken: token,
+      leaseExpiresAt: { gt: new Date() },
+    },
+    data: { status: "COMPLETED", processedAt: new Date(), claimToken: null, leaseExpiresAt: null, lastError: null },
+  })
+  if (finished.count !== 1) throw new Error("Stripe event completion lost its claim")
+}
+
+async function failEvent(stripeEventId: string, token: string, cause: unknown) {
+  await prisma.stripeEvent.updateMany({
+    where: { stripeEventId, status: "PROCESSING", claimToken: token },
+    data: {
+      status: "FAILED", claimToken: null, leaseExpiresAt: null,
+      lastError: cause instanceof Error ? cause.message.slice(0, 1000) : "Unknown webhook failure",
+    },
+  })
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
-  const signature = request.headers.get("stripe-signature")!
-
-  console.log("[Webhook] Received webhook request")
-
+  const signature = request.headers.get("stripe-signature")
   let event: Stripe.Event
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
-    console.log("[Webhook] Event verified:", event.type, event.id)
-  } catch (err) {
-    console.error("[Webhook] Signature verification failed:", err)
-    return NextResponse.json(
-      { error: "Webhook signature verification failed" },
-      { status: 400 }
-    )
+    if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Missing webhook configuration")
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
+  } catch (cause) {
+    console.error("[Webhook] Signature verification failed:", cause)
+    return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })
   }
 
-  // Idempotency guard: Stripe retries failed webhooks for up to 3 days.
-  // Create a unique record for this event ID; if it already exists (P2002),
-  // the event was already processed — return 200 so Stripe stops retrying.
-  const { prisma } = await import("@/lib/db")
-  try {
-    await prisma.stripeEvent.create({ data: { stripeEventId: event.id } })
-  } catch (e: any) {
-    if (e?.code === "P2002") {
-      console.log("[Webhook] Duplicate event ignored:", event.id)
-      return NextResponse.json({ received: true })
-    }
-    throw e
+  const claim = await acquireEventClaim(event.id)
+  if (claim.state === "completed") return NextResponse.json({ received: true, duplicate: true })
+  if (claim.state === "busy") {
+    return NextResponse.json({ error: "Webhook event is already processing" }, { status: 409 })
   }
+  const token = claim.token
 
   try {
     switch (event.type) {
       case "checkout.session.completed":
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
+      case "checkout.session.async_payment_succeeded":
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, event.id, token)
+        break
+      case "checkout.session.expired":
+        await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session, event.id, token)
         break
       case "customer.subscription.created":
       case "customer.subscription.updated":
-        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription)
+        await renewEventClaim(event.id, token)
+        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription, event.created)
         break
       case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
+        await renewEventClaim(event.id, token)
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, event.created)
         break
       case "invoice.payment_succeeded":
-        await handlePaymentSucceeded(event.data.object as Stripe.Invoice)
+        await renewEventClaim(event.id, token)
+        await handleInvoice(event.data.object as Stripe.Invoice, true)
         break
       case "invoice.payment_failed":
-        await handlePaymentFailed(event.data.object as Stripe.Invoice)
+        await renewEventClaim(event.id, token)
+        await handleInvoice(event.data.object as Stripe.Invoice, false)
         break
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
+      case "charge.refunded":
+        await handleChargeReversal(event.data.object as Stripe.Charge, "REFUNDED", event.id, token)
+        break
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute
+        const charge = typeof dispute.charge === "string" ? await stripe.charges.retrieve(dispute.charge) : dispute.charge
+        await handleChargeReversal(charge, "DISPUTED", event.id, token)
+        break
+      }
     }
-
+    await finishEvent(event.id, token)
     return NextResponse.json({ received: true })
-  } catch (error) {
-    console.error("Webhook handler error:", error)
-    return NextResponse.json(
-      { error: "Webhook handler failed" },
-      { status: 500 }
-    )
+  } catch (cause) {
+    console.error("[Webhook] Handler failed:", cause)
+    await failEvent(event.id, token, cause)
+    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 })
   }
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const customerId = session.customer as string
-  const userId = session.metadata?.userId
-
-  if (!userId) {
-    console.error("[Webhook] Missing userId in checkout session metadata")
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string, token: string) {
+  // Structurally unrelated or not-yet-settled events are permanent non-actions, not retryable failures.
+  if (session.payment_status !== "paid" || session.status !== "complete") return
+  if (session.mode !== "payment") {
+    await recordUnboundSettledSession(session, eventId, token)
     return
   }
 
-  // Add-on purchases are one-time payments, but they should not overwrite the
-  // user's core subscription/access window. Fulfillment is handled operationally
-  // from Stripe metadata until a dedicated add-on persistence table exists.
-  if (session.mode === "payment" && session.metadata?.kind === "addon") {
-    console.log("[Webhook] Add-on payment completed", {
-      userId,
-      addon: session.metadata?.addon,
-      sessionId: session.id,
-    })
+  const obligationId = session.metadata?.obligationId
+  if (!obligationId) {
+    await recordUnboundSettledSession(session, eventId, token)
+    return
+  }
+  const obligation = await prisma.checkoutObligation.findUnique({ where: { id: obligationId } })
+  if (!obligation) {
+    await recordUnboundSettledSession(session, eventId, token)
     return
   }
 
-  // One-time Essential payment: grant 60 days of access directly, matching v2 marketing copy.
-  if (session.mode === "payment") {
-    const { prisma } = await import("@/lib/db")
-    const now = new Date()
-    const essentialAccessEnds = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
+  const lines = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
+  const line = lines.data[0]
+  const price = line?.price
+  const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id
+  const actualAmount = session.amount_total
+  const actualCurrency = session.currency?.toLowerCase() ?? null
+  const contractMismatch = [
+    obligation.plan !== "one_time" && "plan",
+    obligation.stripeSessionId !== session.id && "session",
+    obligation.stripeCustomerId !== customerId && "customer",
+    obligation.stripePriceId !== price?.id && "price",
+    obligation.expectedAmountCents !== actualAmount && "amount",
+    obligation.expectedCurrency !== actualCurrency && "currency",
+    obligation.quantity !== line?.quantity && "quantity",
+    price?.unit_amount !== obligation.expectedAmountCents && "unit amount",
+    price?.currency?.toLowerCase() !== obligation.expectedCurrency && "line currency",
+    price?.type !== "one_time" && "line price type",
+    line?.amount_total !== obligation.expectedAmountCents && "line total",
+    !paymentIntentId && "payment intent",
+  ].filter(Boolean).join(", ")
 
-    await prisma.subscription.upsert({
-      where: { userId },
+  if (obligation.status === "PAID" && !contractMismatch) return
+  if (obligation.status === "REVIEW_REQUIRED" && !contractMismatch) return
+  const mismatch = [
+    obligation.status !== "OPEN" && "obligation status",
+    contractMismatch,
+  ].filter(Boolean).join(", ")
+
+  if (mismatch) {
+    await renewEventClaim(eventId, token)
+    await prisma.payment.upsert({
+      where: { stripeCheckoutSessionId: session.id },
       create: {
-        userId,
-        stripeCustomerId: customerId,
-        stripeSubscriptionId: session.payment_intent as string ?? session.id,
-        stripePriceId: process.env.ONE_TIME_PRICE_ID ?? "",
-        status: "active",
-        plan: "one_time",
-        currentPeriodStart: now,
-        currentPeriodEnd: essentialAccessEnds,
-        trialStart: null,
-        trialEnd: null,
+        userId: obligation.userId,
+        stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId ?? null,
+        stripePriceId: price?.id ?? null,
+        amount: (actualAmount ?? 0) / 100,
+        currency: actualCurrency ?? "unknown",
+        status: "review_required",
+        description: `Settled checkout contract mismatch: ${mismatch}`,
       },
-      update: {
-        stripeCustomerId: customerId,
-        status: "active",
-        plan: "one_time",
-        currentPeriodStart: now,
-        currentPeriodEnd: essentialAccessEnds,
+      update: {},
+    })
+    const exactReview = await prisma.checkoutObligation.updateMany({
+      where: { id: obligation.id, stripeSessionId: session.id, status: "OPEN" },
+      data: {
+        status: "REVIEW_REQUIRED", settledAmountCents: actualAmount,
+        settledCurrency: actualCurrency, settledAt: new Date(),
+        stripePaymentIntentId: paymentIntentId ?? null, failureReason: `Settled contract mismatch: ${mismatch}`,
       },
     })
-
-    console.log("[Webhook] One-time access granted for userId:", userId, "until:", essentialAccessEnds.toISOString())
-    return
-  }
-
-  const subscriptionId = session.subscription as string
-  if (!subscriptionId) {
-    console.error("[Webhook] Missing subscriptionId in subscription checkout session")
-    return
-  }
-
-  // Lazy import Prisma
-  const { prisma } = await import("@/lib/db")
-
-  // Get subscription details from Stripe
-  // Type assertion needed because Stripe SDK v20 types are strict
-  const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
-  // Cast to any first, then to Stripe.Subscription to access properties
-  const subscription = subscriptionResponse as any as Stripe.Subscription
-  const sub = subscription as any
-
-  // Safely parse date fields, handling both timestamp numbers and Date objects
-  const currentPeriodStart = sub.current_period_start 
-    ? new Date(typeof sub.current_period_start === 'number' ? sub.current_period_start * 1000 : sub.current_period_start)
-    : null
-  const currentPeriodEnd = sub.current_period_end
-    ? new Date(typeof sub.current_period_end === 'number' ? sub.current_period_end * 1000 : sub.current_period_end)
-    : null
-  const trialStart = sub.trial_start
-    ? new Date(typeof sub.trial_start === 'number' ? sub.trial_start * 1000 : sub.trial_start)
-    : null
-  const trialEnd = sub.trial_end
-    ? new Date(typeof sub.trial_end === 'number' ? sub.trial_end * 1000 : sub.trial_end)
-    : null
-
-  // Validate dates before using them
-  if (currentPeriodStart && isNaN(currentPeriodStart.getTime())) {
-    console.error("[Webhook] Invalid currentPeriodStart:", sub.current_period_start)
-    throw new Error("Invalid currentPeriodStart date")
-  }
-  if (currentPeriodEnd && isNaN(currentPeriodEnd.getTime())) {
-    console.error("[Webhook] Invalid currentPeriodEnd:", sub.current_period_end)
-    throw new Error("Invalid currentPeriodEnd date")
-  }
-
-  const plan = session.metadata?.plan || "annual"
-  const planPrice = plan === "annual" ? 299 : 29.99 // Annual or monthly price
-
-  await prisma.subscription.upsert({
-    where: { userId },
-    create: {
-      userId,
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      stripePriceId: subscription.items.data[0]?.price.id,
-      status: subscription.status,
-      plan: plan,
-      currentPeriodStart: currentPeriodStart && !isNaN(currentPeriodStart.getTime()) ? currentPeriodStart : null,
-      currentPeriodEnd: currentPeriodEnd && !isNaN(currentPeriodEnd.getTime()) ? currentPeriodEnd : null,
-      trialStart: trialStart && !isNaN(trialStart.getTime()) ? trialStart : null,
-      trialEnd: trialEnd && !isNaN(trialEnd.getTime()) ? trialEnd : null,
-    },
-    update: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      stripePriceId: subscription.items.data[0]?.price.id,
-      status: subscription.status,
-      currentPeriodStart: currentPeriodStart && !isNaN(currentPeriodStart.getTime()) ? currentPeriodStart : undefined,
-      currentPeriodEnd: currentPeriodEnd && !isNaN(currentPeriodEnd.getTime()) ? currentPeriodEnd : undefined,
-    },
-  })
-
-  console.log("[Webhook] Subscription record upserted successfully for userId:", userId)
-
-  // Track analytics conversion (server-side)
-  // Note: Client-side tracking will also fire when user returns from Stripe checkout
-  // This server-side tracking ensures we capture conversions even if user doesn't return
-  try {
-    const { analytics } = await import("@/lib/analytics/events")
-    // Get user to check if this is their first purchase
-    const user = await prisma.user.findUnique({ where: { id: userId } })
-    if (user) {
-      // Track subscription completion with transaction ID
-      // Note: In a real implementation, you'd want to send this to a server-side analytics endpoint
-      // For now, we log it - client-side tracking will handle the actual event firing
-      console.log("[Analytics] Subscription completed:", {
-        userId,
-        plan,
-        price: planPrice,
-        transactionId: subscriptionId,
+    const unboundReview = await prisma.checkoutObligation.updateMany({
+      where: { id: obligation.id, stripeSessionId: null, status: "PENDING" },
+      data: {
+        status: "REVIEW_REQUIRED",
+        stripeSessionId: session.id,
+        settledAmountCents: actualAmount,
+        settledCurrency: actualCurrency,
+        settledAt: new Date(),
+        stripePaymentIntentId: paymentIntentId ?? null,
+        failureReason: `Settled checkout was not locally session-bound: ${mismatch}`,
+      },
+    })
+    if (exactReview.count + unboundReview.count === 0) {
+      const latest = await prisma.checkoutObligation.findFirst({
+        where: { userId: obligation.userId, plan: obligation.plan },
+        orderBy: [{ cycle: "desc" }, { createdAt: "desc" }],
+        select: { cycle: true },
+      })
+      const contractKey = createHash("sha256").update(`settled-mismatch:${session.id}`).digest("hex")
+      await prisma.checkoutObligation.upsert({
+        where: { contractKey },
+        update: {},
+        create: {
+          contractKey,
+          userId: obligation.userId,
+          plan: obligation.plan,
+          cycle: (latest?.cycle ?? obligation.cycle) + 1,
+          status: "REVIEW_REQUIRED",
+          stripeCustomerId: customerId ?? obligation.stripeCustomerId,
+          stripeSessionId: session.id,
+          stripePaymentIntentId: paymentIntentId ?? null,
+          stripePriceId: price?.id ?? obligation.stripePriceId,
+          expectedAmountCents: actualAmount ?? obligation.expectedAmountCents,
+          expectedCurrency: actualCurrency ?? obligation.expectedCurrency,
+          quantity: line?.quantity ?? obligation.quantity,
+          settledAmountCents: actualAmount,
+          settledCurrency: actualCurrency,
+          settledAt: new Date(),
+          failureReason: `Settled payment could not transition its original obligation: ${mismatch}`,
+        },
       })
     }
-  } catch (error) {
-    // Don't fail webhook if analytics fails
-    console.error("[Webhook] Analytics tracking error:", error)
+    errorTracker.captureError(new Error("Paid Checkout Session requires manual review"), {
+      eventId,
+      sessionId: session.id,
+      obligationId: obligation.id,
+      userId: obligation.userId,
+      mismatch,
+      exactReviewCount: exactReview.count,
+      unboundReviewCount: unboundReview.count,
+    })
+    return
   }
+
+  await renewEventClaim(eventId, token)
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.subscription.findUnique({ where: { userId: obligation.userId } })
+    if (existing?.plan !== "one_time" && existing && BLOCKING_LEGACY.has(existing.status)) {
+      throw new Error("Active historical subscription blocks one-time conversion")
+    }
+
+    const priorReversal = await tx.paymentReversal.findUnique({
+      where: { stripePaymentIntentId: paymentIntentId! },
+    })
+    if (priorReversal) {
+      const blocked = await tx.checkoutObligation.updateMany({
+        where: { id: obligation.id, status: "OPEN", stripeSessionId: session.id },
+        data: {
+          status: priorReversal.status,
+          settledAmountCents: actualAmount,
+          settledCurrency: actualCurrency,
+          settledAt: new Date(),
+          stripePaymentIntentId: paymentIntentId!,
+          failureReason: "Payment reversal arrived before checkout settlement; access was not granted",
+        },
+      })
+      if (blocked.count !== 1) throw new Error("Pre-settlement reversal CAS failed")
+      await tx.payment.upsert({
+        where: { stripeCheckoutSessionId: session.id },
+        create: {
+          userId: obligation.userId,
+          stripeCheckoutSessionId: session.id,
+          stripePaymentIntentId: paymentIntentId!,
+          stripePriceId: obligation.stripePriceId,
+          amount: obligation.expectedAmountCents / 100,
+          currency: obligation.expectedCurrency,
+          status: priorReversal.status === "REFUNDED" ? "refunded" : priorReversal.status === "DISPUTED" ? "disputed" : "review_required",
+          description: "FreshStart IL reversed payment; access not granted",
+        },
+        update: {},
+      })
+      return
+    }
+
+    const paid = await tx.checkoutObligation.updateMany({
+      where: {
+        id: obligation.id, status: "OPEN", stripeSessionId: session.id,
+        stripeCustomerId: customerId!, stripePriceId: price!.id,
+        expectedAmountCents: actualAmount!, expectedCurrency: actualCurrency!, quantity: line!.quantity!,
+      },
+      data: {
+        status: "PAID", settledAmountCents: actualAmount, settledCurrency: actualCurrency,
+        settledAt: new Date(), stripePaymentIntentId: paymentIntentId ?? null, failureReason: null,
+      },
+    })
+    if (paid.count !== 1) throw new Error("One-time obligation settlement CAS failed")
+
+    const now = new Date()
+    const accessEnds = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) // grant 60 days of access
+    const accessData = {
+      stripeCustomerId: customerId!, stripeSubscriptionId: null, stripePriceId: obligation.stripePriceId,
+      status: "active", plan: "one_time", currentPeriodStart: now, currentPeriodEnd: accessEnds,
+      cancelAtPeriodEnd: false, trialStart: null, trialEnd: null, grantingObligationId: obligation.id,
+    }
+    if (!existing) {
+      await tx.subscription.create({ data: { userId: obligation.userId, ...accessData } })
+    } else if (existing.plan === "one_time") {
+      const changed = await tx.subscription.updateMany({ where: { id: existing.id, plan: "one_time" }, data: accessData })
+      if (changed.count !== 1) throw new Error("One-time access update CAS failed")
+    } else {
+      const changed = await tx.subscription.updateMany({
+        where: { id: existing.id, plan: { not: "one_time" }, status: { in: CONVERTIBLE_LEGACY } },
+        data: accessData,
+      })
+      if (changed.count !== 1) throw new Error("Legacy subscription conversion CAS failed")
+    }
+
+    await tx.payment.upsert({
+      where: { stripeCheckoutSessionId: session.id },
+      create: {
+        userId: obligation.userId, stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId ?? null, stripePriceId: obligation.stripePriceId,
+        amount: obligation.expectedAmountCents / 100, currency: obligation.expectedCurrency,
+        status: "succeeded", description: "FreshStart IL 60-day service access",
+      },
+      update: {},
+    })
+  }, { isolationLevel: "Serializable" })
 }
 
-async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const { prisma } = await import("@/lib/db")
-  // Type assertion needed because Stripe SDK v20 types are strict
-  const sub = subscription as any
-  
-  // Safely parse date fields, handling both timestamp numbers and potential undefined values
-  const parseDate = (value: any): Date | null => {
-    if (!value) return null
-    const date = new Date(typeof value === 'number' ? value * 1000 : value)
-    return isNaN(date.getTime()) ? null : date
+async function recordUnboundSettledSession(session: Stripe.Checkout.Session, eventId: string, token: string) {
+  const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id
+  if (!customerId) throw new Error("Settled Checkout Session has no Stripe customer binding")
+  const sessionBinding = await prisma.checkoutObligation.findUnique({ where: { stripeSessionId: session.id } })
+  if (sessionBinding?.stripeCustomerId !== undefined && sessionBinding.stripeCustomerId !== customerId) {
+    throw new Error("Settled Checkout Session customer conflicts with its durable obligation")
   }
-  
-  const currentPeriodStart = parseDate(sub.current_period_start)
-  const currentPeriodEnd = parseDate(sub.current_period_end)
-  const trialStart = parseDate(sub.trial_start)
-  const trialEnd = parseDate(sub.trial_end)
-  
-  // Build update data, only including valid dates
-  const updateData: any = {
-    status: subscription.status,
-    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
-  }
-  
-  // Only include date fields if they are valid
-  if (currentPeriodStart) updateData.currentPeriodStart = currentPeriodStart
-  if (currentPeriodEnd) updateData.currentPeriodEnd = currentPeriodEnd
-  if (trialStart !== undefined) updateData.trialStart = trialStart
-  if (trialEnd !== undefined) updateData.trialEnd = trialEnd
-  
-  await prisma.subscription.updateMany({
-    where: { stripeSubscriptionId: subscription.id },
-    data: updateData,
+  const customerBinding = await prisma.subscription.findFirst({
+    where: { stripeCustomerId: customerId },
+    select: { userId: true },
   })
-  
-  console.log("[Webhook] Subscription updated for:", subscription.id, "status:", subscription.status)
+  if (sessionBinding && customerBinding?.userId && customerBinding.userId !== sessionBinding.userId) {
+    throw new Error("Settled Checkout Session obligation conflicts with local customer ownership")
+  }
+  const userId = sessionBinding?.userId ?? customerBinding?.userId
+  if (!userId) throw new Error("Settled Checkout Session customer is not bound to a local user")
+  if (session.metadata?.userId && session.metadata.userId !== userId) {
+    throw new Error("Settled Checkout Session metadata user conflicts with durable customer ownership")
+  }
+  errorTracker.captureError(new Error("Settled Checkout Session has no durable obligation binding"), {
+    sessionId: session.id,
+    userId: userId ?? "unknown",
+    mode: session.mode,
+  })
+  if (!userId) throw new Error("Settled Checkout Session cannot be bound to a local user")
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  if (!user) throw new Error("Settled Checkout Session references an unknown local user")
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id
+  const lines = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
+  const line = lines.data[0]
+  const priceId = line?.price?.id
+  const currency = session.currency?.toLowerCase() ?? "unknown"
+  await renewEventClaim(eventId, token)
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.upsert({
+      where: { stripeCheckoutSessionId: session.id },
+      create: {
+        userId,
+        stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId ?? null,
+        stripePriceId: priceId ?? null,
+        amount: (session.amount_total ?? 0) / 100,
+        currency,
+        status: "review_required",
+        description: "Settled pre-cutover checkout requires manual access review",
+      },
+      update: {},
+    })
+    if (!priceId || session.amount_total == null || !line?.quantity) {
+      throw new Error("Settled Checkout Session lacks evidence required for an actionable recovery obligation")
+    }
+    const existingBinding = await tx.checkoutObligation.findUnique({ where: { stripeSessionId: session.id } })
+    if (existingBinding) {
+      if (
+        existingBinding.userId !== userId
+        || existingBinding.stripeCustomerId !== customerId
+        || existingBinding.stripePriceId !== priceId
+        || existingBinding.expectedAmountCents !== session.amount_total
+        || existingBinding.expectedCurrency.toLowerCase() !== currency
+        || existingBinding.quantity !== line.quantity
+      ) {
+        throw new Error("Existing Checkout Session obligation conflicts with settled provider evidence")
+      }
+      if (["OPEN", "PENDING"].includes(existingBinding.status)) {
+        const promoted = await tx.checkoutObligation.updateMany({
+          where: { id: existingBinding.id, status: { in: ["OPEN", "PENDING"] }, stripeSessionId: session.id, userId },
+          data: {
+            status: "REVIEW_REQUIRED",
+            stripePaymentIntentId: paymentIntentId ?? null,
+            settledAmountCents: session.amount_total,
+            settledCurrency: currency,
+            settledAt: new Date(),
+            failureReason: "Settled pre-cutover payment requires manual access reconciliation",
+          },
+        })
+        if (promoted.count !== 1) throw new Error("Concurrent obligation transition requires provider retry")
+      }
+      return
+    }
+    const recoveryPlan = session.mode === "subscription" ? `legacy_${session.metadata?.plan ?? "subscription"}` : "one_time"
+    const latest = await tx.checkoutObligation.findFirst({
+      where: { userId, plan: recoveryPlan, stripePriceId: priceId },
+      orderBy: [{ cycle: "desc" }, { createdAt: "desc" }],
+      select: { cycle: true },
+    })
+    const contractKey = createHash("sha256").update(`precutover:${session.id}`).digest("hex")
+    await tx.checkoutObligation.upsert({
+      where: { contractKey },
+      update: {},
+      create: {
+        contractKey,
+        userId,
+        plan: recoveryPlan,
+        cycle: (latest?.cycle ?? 0) + 1,
+        status: "REVIEW_REQUIRED",
+        stripeCustomerId: customerId,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId ?? null,
+        stripePriceId: priceId,
+        expectedAmountCents: session.amount_total,
+        expectedCurrency: currency,
+        quantity: line.quantity,
+        settledAmountCents: session.amount_total,
+        settledCurrency: currency,
+        settledAt: new Date(),
+        failureReason: `${session.mode === "subscription" ? "Legacy subscription" : "Pre-cutover one-time"} payment requires manual access reconciliation`,
+      },
+    })
+  })
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const { prisma } = await import("@/lib/db")
+async function handleCheckoutExpired(session: Stripe.Checkout.Session, eventId: string, token: string) {
+  const obligationId = session.metadata?.obligationId
+  if (!obligationId) return
+  await renewEventClaim(eventId, token)
+  await prisma.checkoutObligation.updateMany({
+    where: { id: obligationId, stripeSessionId: session.id, status: "OPEN" },
+    data: { stripeSessionId: null, status: "PENDING", attempt: { increment: 1 } },
+  })
+}
+
+async function handleChargeReversal(
+  charge: Stripe.Charge,
+  status: "REFUNDED" | "DISPUTED",
+  eventId: string,
+  token: string,
+) {
+  const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id
+  if (!paymentIntentId) return
+  const isPartialRefund = status === "REFUNDED"
+    && (!charge.refunded || charge.amount_refunded < charge.amount)
+  await renewEventClaim(eventId, token)
+  await prisma.$transaction(async (tx) => {
+    const obligation = await tx.checkoutObligation.findUnique({ where: { stripePaymentIntentId: paymentIntentId } })
+    if (!obligation) {
+      const durableStatus = isPartialRefund ? "REVIEW_REQUIRED" : status
+      const existing = await tx.paymentReversal.findUnique({ where: { stripePaymentIntentId: paymentIntentId } })
+      if (!existing) {
+        await tx.paymentReversal.create({
+          data: {
+            stripePaymentIntentId: paymentIntentId,
+            stripeEventId: eventId,
+            status: durableStatus,
+            amountCents: charge.amount,
+            amountReversedCents: charge.amount_refunded,
+          },
+        })
+      } else if (existing.status === "REVIEW_REQUIRED" && durableStatus !== "REVIEW_REQUIRED") {
+        await tx.paymentReversal.updateMany({
+          where: { id: existing.id, status: "REVIEW_REQUIRED" },
+          data: {
+            stripeEventId: eventId,
+            status: durableStatus,
+            amountCents: charge.amount,
+            amountReversedCents: charge.amount_refunded,
+          },
+        })
+      }
+      if (!isPartialRefund) {
+        const customerId = typeof charge.customer === "string" ? charge.customer : charge.customer?.id
+        if (customerId) {
+          await tx.subscription.updateMany({
+            where: {
+              plan: "one_time",
+              stripeSubscriptionId: paymentIntentId,
+              stripeCustomerId: customerId,
+              grantingObligationId: null,
+            },
+            data: { status: "canceled", currentPeriodEnd: new Date() },
+          })
+        }
+      }
+      errorTracker.captureError(new Error("Payment reversal arrived before checkout settlement"), {
+        eventId, paymentIntentId, status: durableStatus,
+      })
+      return
+    }
+    if (isPartialRefund) {
+      const flagged = await tx.checkoutObligation.updateMany({
+        where: { id: obligation.id, stripePaymentIntentId: paymentIntentId, status: "PAID" },
+        data: { status: "REVIEW_REQUIRED", failureReason: "Stripe charge partially refunded; manual access review required" },
+      })
+      if (flagged.count === 1) {
+        await tx.payment.updateMany({
+          where: { stripePaymentIntentId: paymentIntentId },
+          data: { status: "review_required" },
+        })
+      }
+      errorTracker.captureError(new Error("Partial refund requires manual access review"), {
+        eventId, obligationId: obligation.id, paymentIntentId,
+        amount: charge.amount, amountRefunded: charge.amount_refunded,
+      })
+      return
+    }
+    const reversed = await tx.checkoutObligation.updateMany({
+      where: { id: obligation.id, stripePaymentIntentId: paymentIntentId, status: { in: ["PAID", "REVIEW_REQUIRED"] } },
+      data: { status, failureReason: status === "REFUNDED" ? "Stripe charge refunded" : "Stripe dispute opened" },
+    })
+    if (reversed.count === 0) return
+    const now = new Date()
+    await tx.subscription.updateMany({
+      where: {
+        userId: obligation.userId,
+        plan: "one_time",
+        stripeCustomerId: obligation.stripeCustomerId,
+        grantingObligationId: obligation.id,
+      },
+      data: { status: "canceled", currentPeriodEnd: now },
+    })
+    await tx.payment.updateMany({
+      where: { stripePaymentIntentId: paymentIntentId },
+      data: { status: status === "REFUNDED" ? "refunded" : "disputed" },
+    })
+  }, { isolationLevel: "Serializable" })
+}
+
+function eventDate(created: number) {
+  return new Date(created * 1000)
+}
+
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription, created: number) {
+  const sub = subscription as any
+  const date = eventDate(created)
   await prisma.subscription.updateMany({
-    where: { stripeSubscriptionId: subscription.id },
+    where: {
+      plan: { not: "one_time" }, stripeSubscriptionId: subscription.id,
+      stripeCustomerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id,
+      status: { not: "canceled" },
+      OR: [{ providerEventCreatedAt: null }, { providerEventCreatedAt: { lt: date } }],
+    },
     data: {
-      status: "canceled",
+      status: subscription.status, cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+      currentPeriodStart: sub.current_period_start ? new Date(sub.current_period_start * 1000) : undefined,
+      currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : undefined,
+      trialStart: sub.trial_start ? new Date(sub.trial_start * 1000) : null,
+      trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+      providerEventCreatedAt: date,
     },
   })
 }
 
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  // Type assertion needed because Stripe SDK v20 types are strict
-  const inv = invoice as any
-  const subscriptionId = inv.subscription as string
-  if (!subscriptionId) return
-
-  const { prisma } = await import("@/lib/db")
-  const subscription = await prisma.subscription.findFirst({
-    where: { stripeSubscriptionId: subscriptionId },
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription, created: number) {
+  const date = eventDate(created)
+  await prisma.subscription.updateMany({
+    where: {
+      plan: { not: "one_time" }, stripeSubscriptionId: subscription.id,
+      stripeCustomerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id,
+      OR: [{ providerEventCreatedAt: null }, { providerEventCreatedAt: { lte: date } }],
+    },
+    data: { status: "canceled", providerEventCreatedAt: date },
   })
+}
 
+async function handleInvoice(invoice: Stripe.Invoice, succeeded: boolean) {
+  const inv = invoice as any
+  const subscriptionId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription?.id
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id
+  if (!subscriptionId || !customerId) return
+  const subscription = await prisma.subscription.findFirst({
+    where: { plan: { not: "one_time" }, stripeSubscriptionId: subscriptionId, stripeCustomerId: customerId },
+  })
   if (!subscription) return
-
-  await prisma.payment.create({
-    data: {
-      userId: subscription.userId,
-      stripeInvoiceId: invoice.id,
-      amount: inv.amount_paid / 100, // Convert from cents
+  await prisma.payment.upsert({
+    where: { stripeInvoiceId: invoice.id },
+    create: {
+      userId: subscription.userId, stripeInvoiceId: invoice.id,
+      amount: (succeeded ? inv.amount_paid : inv.amount_due) / 100,
+      currency: invoice.currency, status: succeeded ? "succeeded" : "failed",
+      description: invoice.description || (succeeded ? "Subscription payment" : "Failed subscription payment"),
+    },
+    update: succeeded ? {
+      amount: inv.amount_paid / 100,
       currency: invoice.currency,
       status: "succeeded",
       description: invoice.description || "Subscription payment",
-    },
+    } : {},
   })
 }
 
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  // Type assertion needed because Stripe SDK v20 types are strict
-  const inv = invoice as any
-  const subscriptionId = inv.subscription as string
-  const customerId = inv.customer as string
-  if (!subscriptionId) return
-
-  const { prisma } = await import("@/lib/db")
-  const subscription = await prisma.subscription.findFirst({
-    where: { stripeSubscriptionId: subscriptionId },
-    include: { user: { select: { email: true } } },
-  })
-
-  const userId = subscription?.userId ?? ""
-
-  await prisma.payment.create({
-    data: {
-      userId,
-      stripeInvoiceId: invoice.id,
-      amount: inv.amount_due / 100,
-      currency: invoice.currency,
-      status: "failed",
-      description: invoice.description || "Failed subscription payment",
-    },
-  })
-
-  // Send payment failed email with link to Stripe Customer Portal
-  if (subscription?.user?.email && customerId) {
-    try {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ||
-        process.env.NEXTAUTH_URL ||
-        "https://www.freshstart-il.com"
-      const returnUrl = `${appUrl.replace(/\/$/, "")}/dashboard`
-
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: returnUrl,
-      })
-
-      if (portalSession.url) {
-        const { sendPaymentFailedEmail } = await import("@/lib/email")
-        await sendPaymentFailedEmail({
-          to: subscription.user.email,
-          portalUrl: portalSession.url,
-        })
-        console.log("[Webhook] Payment failed email sent to:", subscription.user.email)
-      }
-    } catch (err) {
-      console.error("[Webhook] Failed to send payment failed email:", err)
-      // Don't fail webhook - Payment record was created
-    }
-  }
-}
-
-// Disable body parsing for webhook route
 export const runtime = "nodejs"

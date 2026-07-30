@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     default: homepageTitle,
     template: "%s | FreshStart IL",
   },
-  description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time. You review and file.",
+  description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access. You review and file.",
   keywords: ["Illinois divorce", "divorce forms", "divorce process", "pro se divorce", "Cook County divorce"],
   authors: [{ name: "FreshStart IL" }],
   openGraph: {
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     url: "/",
     siteName: "FreshStart IL",
     title: homepageTitle,
-    description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time. You review and file.",
+    description: "FreshStart IL prepares supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access. You review and file.",
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: homepageTitle,
-    description: "Supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time.",
+    description: "Supported Illinois uncontested-divorce form drafts and filing guidance for $149 one-time with 60 days of service access.",
     images: [DEFAULT_TWITTER_IMAGE],
   },
   // No `canonical` at the layout level on purpose. Next metadata cascades to

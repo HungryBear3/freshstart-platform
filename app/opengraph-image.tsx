@@ -76,7 +76,7 @@ export default function OpengraphImage() {
           }}
         >
           Illinois uncontested-divorce form drafts and filing guidance — $149 one-time,
-          no subscription.
+          60 days of service access, no subscription.
         </div>
       </div>
     ),

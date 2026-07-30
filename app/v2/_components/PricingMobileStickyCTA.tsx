@@ -43,7 +43,7 @@ export function PricingMobileStickyCTA() {
         <div className="fs-pr-sticky-price">
           $149<span className="fs-pr-sticky-or"> one-time</span>
         </div>
-        <div className="fs-pr-sticky-meta">No subscription · 30-day refund policy</div>
+        <div className="fs-pr-sticky-meta">60 days access · No subscription · 30-day refund policy</div>
       </div>
       <button
         type="button"

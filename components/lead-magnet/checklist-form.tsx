@@ -61,7 +61,7 @@ export function ChecklistForm({ variant = "page" }: ChecklistFormProps) {
               href="/pricing"
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
             >
-              View the $149 one-time option
+              View the $149 one-time / 60-day access option
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

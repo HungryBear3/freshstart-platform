@@ -1,0 +1,10 @@
+export function buildChecklistEmail(appUrl: string) {
+  const signupUrl = `${appUrl}/auth/signup?redirect=%2Fpricing&subscribe=true&plan=one_time&source=checklist_email`
+  const boundary = "FreshStart IL is not a law firm and does not provide legal advice."
+
+  return {
+    subject: "Your General Illinois Divorce Checklist — FreshStart IL",
+    html: `<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto"><div style="background:#2563eb;padding:24px 32px;border-radius:8px 8px 0 0"><h1 style="color:white;margin:0">FreshStart IL</h1></div><div style="background:white;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px"><h2>Your General Illinois Divorce Checklist</h2><p>Gather basic information about the spouses, children, property, debts, and income that applies to your situation.</p><p>Start with the current Illinois Courts resources: official court forms are available free. Verify current forms, fees, and filing procedures with your circuit clerk before filing.</p><p>FreshStart IL offers supported uncontested-divorce form preparation for <strong>$149 one-time</strong>, including <strong>60 days of service access</strong>. You review and file the drafts yourself.</p><p>${boundary}</p><div style="text-align:center;margin:32px 0"><a href="${signupUrl}" style="background:#2563eb;color:white;padding:14px 32px;text-decoration:none;border-radius:6px;font-weight:bold">Start $149 / 60-Day Access →</a></div></div></div>`,
+    text: `General Illinois Divorce Checklist\n\nGather basic information about the spouses, children, property, debts, and income that applies to your situation.\n\nStart with the current Illinois Courts resources: official court forms are available free. Verify current forms, fees, and filing procedures with your circuit clerk before filing.\n\nFreshStart IL offers supported uncontested-divorce form preparation for $149 one-time, including 60 days of service access. You review and file the drafts yourself.\n\n${boundary}\n\nStart document preparation: ${signupUrl}`,
+  }
+}

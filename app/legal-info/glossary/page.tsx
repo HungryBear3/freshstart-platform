@@ -43,7 +43,7 @@ const legalTerms = [
   {
     term: "Residency Requirement",
     definition:
-      "The requirement that at least one spouse must have lived in Illinois for at least 90 days before filing for divorce.",
+      "Illinois law includes a 90-day state-residency timing requirement tied to commencement or entry of judgment. County venue is separate; verify both for the case.",
     category: "Requirements",
   },
   {
@@ -91,7 +91,7 @@ const legalTerms = [
   {
     term: "Financial Affidavit",
     definition:
-      "A detailed form disclosing income, expenses, assets, and debts. Required in Illinois divorces to determine support and property division.",
+      "A form disclosing income, expenses, assets, and debts. A court or case may require it; verify whether it applies and which current form is expected.",
     category: "Documents",
   },
   {

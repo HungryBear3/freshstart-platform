@@ -80,8 +80,8 @@ const QUESTIONNAIRE_FORM_MAPPING = [
         id: "financial-affidavit",
         name: "Financial Affidavit",
         officialId: "CCP 0912.03",
-        required: true,
-        condition: "Required in all cases",
+        required: false,
+        condition: "May be required depending on the case or court",
       },
       {
         id: "schedule-a",

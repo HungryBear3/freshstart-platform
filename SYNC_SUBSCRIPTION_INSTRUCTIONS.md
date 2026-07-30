@@ -1,5 +1,7 @@
 # Manual Subscription Sync Instructions
 
+> **SUPERSEDED — DO NOT EXECUTE.** Manual subscription synchronization belongs to the retired recurring offer. Fresh Start IL's current approved offer is `$149` one-time access for 60 days with no subscription. Use `docs/ONE_TIME_CHECKOUT_RELEASE_GATE.md`; do not synchronize or mutate Stripe subscriptions from this file.
+
 If the automatic sync isn't working, you can manually sync by providing the subscription ID directly from Stripe.
 
 ## Step 1: Get Subscription ID from Stripe

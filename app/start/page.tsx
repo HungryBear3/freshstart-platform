@@ -35,7 +35,7 @@ const links = [
     href: "/pricing",
     icon: Rocket,
     label: "View Filing Option",
-    sublabel: "$149 one-time · No subscription",
+    sublabel: "$149 one-time · 60 days of service access · No subscription",
     primary: false,
   },
   {

@@ -1,7 +1,7 @@
 ---
 title: "Divorce with Children in Illinois: What Parents Need to Know"
 slug: illinois-divorce-with-children
-description: "Illinois divorce with minor children requires a parenting plan, child support calculation, and allocation of parental responsibilities. Here's what to expect."
+description: "A general overview of parenting responsibilities, parenting time, support, and documents that may arise in an Illinois divorce with children."
 date: "2026-03-25"
 ---
 
@@ -49,14 +49,16 @@ Illinois uses an **income shares model** — both parents' incomes factor into t
 
 The parent with less parenting time typically makes child support payments to the other.
 
-FreshStart IL includes a child support calculator to help you estimate your obligation.
+General calculators are educational only. Use current official inputs and instructions; only the court can determine an obligation.
 
 ## What You Need to File
 
-If you have minor children, your divorce filing must include:
+Depending on the case, stage, and court, documents may include:
 
 - **Parenting Plan** — detailed schedule and decision-making allocation
 - **Child Support Worksheet** — showing the calculation
-- **Financial Affidavit** — income and expense disclosure
+- **Financial Affidavit** — if required by the rules, case, or court order
 
-FreshStart IL generates all of these automatically for your situation. Visit [freshstart-il.com](https://www.freshstart-il.com) to get started.
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review and file the drafts. Fresh Start IL is not a law firm and does not provide legal advice or guarantee completeness, court acceptance, timing, or outcome.
+
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

@@ -1,61 +1,43 @@
 ---
-title: "Uncontested Divorce in Illinois: The Complete Guide for 2026"
+title: "Uncontested Divorce in Illinois: A General Guide"
 slug: uncontested-divorce-illinois-guide
-description: "An uncontested divorce in Illinois is faster, cheaper, and less stressful than a contested one. Here's exactly how to do it without a lawyer."
+description: "A general overview of agreed Illinois divorce matters, with reminders to verify current forms, fees, and local court procedures."
 date: "2026-03-22"
 ---
 
-If you and your spouse agree on the major issues — property, debts, children, support — you may qualify for an uncontested divorce in Illinois. This is the fastest, cheapest, and least stressful way to end a marriage.
+An Illinois divorce may be described as uncontested when the spouses agree on the issues that must be resolved. Agreement can simplify a case, but it does not remove court review or guarantee timing, acceptance, or outcome.
 
-Here's everything you need to know.
+## Issues That May Need Agreement
 
-## What Makes a Divorce "Uncontested"?
+Depending on the facts, issues can include:
 
-A divorce is uncontested when both spouses agree on all key issues:
+- division of marital property and debts,
+- maintenance,
+- allocation of parental responsibilities and parenting time, and
+- child support and child-related expenses.
 
-- Division of marital property and debts
-- Child custody and parenting time (if applicable)
-- Child support
-- Spousal maintenance (alimony), if any
+A lawyer can advise whether an agreement addresses a person's rights and obligations.
 
-If you agree on all of these, you don't need a judge to decide anything for you. You just need to document the agreement and file the right paperwork.
+## Residence and the Six-Month Language
 
-## How Long Does an Uncontested Divorce Take in Illinois?
+Illinois law includes a 90-day residence condition tied to commencement of the action or entry of judgment, depending on timing. Venue is separate and should also be checked.
 
-Illinois requires a **6-month separation period** before filing for divorce — unless both spouses waive it, which most do.
+Six months of living separate and apart creates a rebuttable presumption concerning irreconcilable differences. It should not be treated as a universal pre-filing separation or waiting period.
 
-Once filed, an uncontested divorce typically takes **4–8 weeks** to finalize, depending on the county. Cook County is busier and may take longer. Smaller counties can be faster.
+## Forms and Court Procedure
 
-## What Documents Do You Need?
+Forms vary by facts, case stage, and local court. Common categories may include a petition, notice or service papers, an agreement, parenting or support papers when applicable, and a proposed judgment. A Financial Affidavit may be required depending on the case, rules, or court order.
 
-For a basic uncontested divorce in Illinois you'll need:
+Use current Illinois Courts forms and verify local requirements with the appropriate circuit clerk. Court staff can provide procedural information but cannot give legal advice.
 
-1. **Petition for Dissolution of Marriage** — the main filing document
-2. **Summons** — served on your spouse (or waived if they sign a waiver)
-3. **Marital Settlement Agreement (MSA)** — documents how you're dividing everything
-4. **Parenting Plan** — required if you have minor children
-5. **Child Support Worksheet** — required if children are involved
-6. **Financial Affidavit** — income/expense disclosure
-7. **Judgment for Dissolution of Marriage** — the final order signed by the judge
+## Verify Costs Rather Than Relying on Old Numbers
 
-The exact forms vary slightly by county. Fresh Start IL generates the correct forms for your county automatically.
+Confirm the current filing fee and payment methods with the circuit clerk. If service or professional assistance is needed, obtain current terms directly from the sheriff, provider, or lawyer. Review current Illinois Courts fee-waiver materials if cost is a barrier. Only the court decides whether to grant a waiver.
 
-## Can You Do It Without a Lawyer?
+## Fresh Start IL Scope
 
-Yes — and many people do. Illinois allows self-represented (pro se) divorce. The court cannot provide legal advice, but the process itself is designed to be accessible.
+Fresh Start IL prepares supported Illinois uncontested-divorce form drafts from user answers. You review the drafts, verify current statewide and local requirements, and file them yourself.
 
-The biggest challenge is making sure your paperwork is complete and correct. Errors delay your case or cause rejections. That's where Fresh Start IL helps — we walk you through each step and generate your documents automatically.
+Fresh Start IL is not a law firm and does not provide legal advice. We do not generate every possible court or county form and do not guarantee completeness, court acceptance, timing, or outcome.
 
-## How Much Does It Cost?
-
-**Court filing fees:** $250–$350 depending on your county (Cook County is higher).
-
-**Service fees:** $0 if your spouse signs a waiver. ~$60 if a sheriff serves them.
-
-**Attorney fees:** $0 if you do it yourself, $1,500–$5,000+ if you hire one.
-
-**Fresh Start IL:** A fraction of attorney costs, with guided document preparation and generation.
-
-## Next Steps
-
-If you think you qualify for an uncontested divorce, start with a free checklist at [freshstart-il.com](https://www.freshstart-il.com). We'll walk you through the required documents for your county and help you understand what to expect.
+If you choose Fresh Start IL, the one-time service purchase provides 60 days of access; it is not an ongoing subscription.

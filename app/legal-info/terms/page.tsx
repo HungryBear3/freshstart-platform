@@ -139,7 +139,7 @@ export default function TermsOfServicePage() {
                     <li>You are responsible for all taxes applicable to your purchase</li>
                     <li>Payment processing is handled by third-party payment processors</li>
                   </ul>
-                  <p className="mt-4">Current pricing is <strong>$149 one-time</strong>, with no subscription. See the <a className="text-blue-600 underline" href="/pricing">pricing page</a> for current rates and what is included.</p>
+                  <p className="mt-4">Current pricing is <strong>$149 one-time for 60 days of service access</strong>, with no subscription. See the <a className="text-blue-600 underline" href="/pricing">pricing page</a> for current rates and what is included.</p>
                 </section>
 
                 <section>
