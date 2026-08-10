@@ -24,7 +24,13 @@ Download the following forms from illinoiscourts.gov and place them in this dire
 | `judgment-dissolution-with-children.pdf` | Judgment of Dissolution (With Children) |
 | `marital-settlement-agreement.pdf` | Marital Settlement Agreement |
 | `child-support-order.pdf` | Child Support Order |
-| `income-withholding-order.pdf` | Income Withholding for Support Order |
+
+> **Income Withholding for Support (federal OMB 0970-0154) is NOT in this
+> directory.** It is a federal ACF/OMB form, not an Illinois Supreme Court
+> approved form, and it is served through a guarded server-side route that
+> validates provenance, expiration, renewal state, and county disposition before
+> releasing any bytes. The pinned artifact lives in `private/official-forms/`,
+> which is never statically served. Do not place a copy here.
 
 ### Financial Affidavit Forms
 **Source:** https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/

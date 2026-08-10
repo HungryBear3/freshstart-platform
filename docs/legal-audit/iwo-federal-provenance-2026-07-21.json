@@ -1,0 +1,46 @@
+{
+  "artifact": "public/forms/income-withholding-order.pdf",
+  "provenanceClass": "federal-omb",
+  "retrieval": {
+    "canonicalUrl": "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+    "resolvedVia": "301 redirect to https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf (application/pdf, 200)",
+    "designatedBy": "Illinois Courts 'Divorce, Child Support, and Maintenance' approved-forms page lists this as the 'Federal Form'",
+    "retrievalTimestampUtc": "2026-07-21T16:17:52Z",
+    "httpContentType": "application/pdf",
+    "httpContentLength": 505412
+  },
+  "content": {
+    "sha256": "2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551",
+    "byteLength": 505412,
+    "pdfMagic": "%PDF-1.6",
+    "title": "INCOME WITHHOLDING FOR SUPPORT",
+    "ombNumber": "0970-0154",
+    "expiration": "2026-08-31",
+    "acroFormFieldCount": 112,
+    "structureMarkersFound": ["AMENDED IWO", "Custodial Party", "Income Withholder", "Remittance Information"]
+  },
+  "verification": {
+    "titleVerified": true,
+    "ombVerified": true,
+    "expirationVerified": true,
+    "structureVerified": true,
+    "isRealPdfNotHtml": true,
+    "isNotHfs3683R809": true,
+    "hfs3683MarkersFound": 0,
+    "result": "VERIFIED"
+  },
+  "renewal": {
+    "status": "pending",
+    "note": "OMB renewal in progress as of 2026-07 (Federal Register 'Submission for OMB Review; Income Withholding for Support' 2026-07-10; 'Proposed Information Collection Activity' 2026-03-11). Renewal-review remains an active launch blocker until confirmed re-approved. Re-pinning strategy: on re-issue, update expectedSha256/expectedBytes/expiration in IWO_PROVENANCE (scripts/verify-form-field-mappings.ts).",
+    "reviewWindowDays": 60,
+    "daysToExpiryAtGeneration": 41
+  },
+  "companionAuthority": "DV-WI 130.3 (03/23) — Illinois 'How to Fill Out the Income Withholding for Support Form', references IWO fields 1-26",
+  "excludedStaleVariant": "HFS 3683 (R-8-09), OMB expiration 10/31/2010 — MUST NOT be sourced",
+  "conditionality": "Per statewide instructions (ATJ 127.3 09/25; DV-WI 130.3): IWO applies only when support is ordered, payer is employed, and employer is known; not maintenance-only; completed after a signed Order for Support (ATJ 129.5 §B.1); served on the employer and 'Do not file this form with the Circuit Clerk.' No legal conclusion drawn here.",
+  "outstandingBlockers": [
+    "omb_renewal_review_pending — federal OMB renewal not yet confirmed",
+    "county_packet_composition — whether/where the IWO is included in a county packet is NOT confirmed by an official county source",
+    "county_efiling_treatment — county e-filing handling of the IWO (served-not-filed statewide) is NOT confirmed by an official county source"
+  ]
+}

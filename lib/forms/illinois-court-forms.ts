@@ -334,16 +334,23 @@ export const ILLINOIS_COURT_FORMS: CourtForm[] = [
     relatedQuestionnaires: ['financial-information', 'children-information']
   },
   {
+    // FEDERAL form (ACF/OMB 0970-0154) — not an Illinois Supreme Court approved
+    // ATJ form. Access is gated: see lib/forms/official-artifact-access.ts. This
+    // entry is catalog metadata only; it must not be treated as a statement that
+    // the form belongs in any particular packet. County disposition governs that
+    // (lib/counties/county-iwo-workflow.ts).
     id: 'income-withholding-order',
-    name: 'Income Withholding for Support Order',
-    description: 'Order directing employer to withhold support from wages.',
+    name: 'Income Withholding for Support (federal OMB 0970-0154)',
+    description:
+      'Federal form used to direct an employer to withhold support from wages. It follows a signed Order for Support (ATJ 129.5), which is a separate document.',
     category: 'support',
     filename: 'income-withholding-order.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
+    officialUrl: 'https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf',
+    version: 'OMB 0970-0154 (printed expiration 2026-08-31)',
+    lastUpdated: '2026-07-21',
     requiredFor: ['with_children'],
-    instructions: 'Required in most cases where support is ordered.',
+    instructions:
+      'Whether and how this form is used depends on the county and on case-specific direction. Availability is checked before it is offered.',
     relatedQuestionnaires: ['financial-information']
   }
 ]
@@ -382,9 +389,20 @@ export function getFormsForQuestionnaire(questionnaireSlug: string): CourtForm[]
 }
 
 /**
- * Get the local path to a form PDF
+ * Get the local static path to a form PDF.
+ *
+ * The federal IWO is NOT statically served — it lives outside `public/` and is
+ * released only by the guarded route after provenance, expiration, renewal, and
+ * authoritative-county checks. Asking for a static path to it is a programming
+ * error, so this throws rather than returning a URL that would 404 (or, worse,
+ * would start working if someone ever dropped a copy into `public/forms/`).
  */
 export function getFormPath(form: CourtForm): string {
+  if (form.id === 'income-withholding-order') {
+    throw new Error(
+      'income-withholding-order has no static path; use the guarded route (see lib/forms/court-forms-read-model.ts)'
+    )
+  }
   return `/forms/${form.filename}`
 }
 
@@ -425,7 +443,10 @@ Required files:
 - judgment-dissolution-with-children.pdf
 - marital-settlement-agreement.pdf
 - child-support-order.pdf
-- income-withholding-order.pdf
+
+Note: the federal Income Withholding for Support (OMB 0970-0154) is NOT downloaded
+into public/forms/. It is a federal ACF/OMB artifact served through a guarded
+server-side route from private/official-forms/.
 
 ## Financial Affidavit Forms
 Download from: https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/

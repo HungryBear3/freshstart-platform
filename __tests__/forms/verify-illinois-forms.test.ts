@@ -118,9 +118,24 @@ describe("catalogFromForms (integration with real catalog)", () => {
     expect(cat.length).toBeGreaterThan(0);
     for (const entry of cat) {
       expect(entry.id).toMatch(/^[a-z0-9-]+$/);
-      expect(entry.officialUrl).toMatch(/^https:\/\/(www\.)?illinoiscourts\.gov\//);
+      if (entry.id === "income-withholding-order") {
+        // The IWO is a FEDERAL ACF/OMB form, not an Illinois ATJ form. Its
+        // official source is the pinned federal canonical URL — pointing it at
+        // illinoiscourts.gov would misstate its provenance.
+        expect(entry.officialUrl).toBe(
+          "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+        );
+      } else {
+        expect(entry.officialUrl).toMatch(/^https:\/\/(www\.)?illinoiscourts\.gov\//);
+      }
       expect(entry.version).toBeTruthy();
       expect(entry.lastUpdated).toBeTruthy();
     }
+  });
+
+  it("keeps the federal IWO distinguishable from the Illinois ATJ forms", () => {
+    const cat = catalogFromForms();
+    const federal = cat.filter((e) => !/illinoiscourts\.gov/.test(e.officialUrl));
+    expect(federal.map((e) => e.id)).toEqual(["income-withholding-order"]);
   });
 });

@@ -1,0 +1,35 @@
+{
+  "overlayVersion": "1",
+  "generatedFor": "cc/fs-will-iwo-conditional-20260809",
+  "asOf": "2026-08-10",
+  "purpose": "Current-state overlay. The imported July 2026 evidence files are historical records and are NOT rewritten. This overlay authenticates them by hash and records the CURRENT guarded artifact path, which differs from the public/forms/ path those historical records name.",
+  "importedEvidence": {
+    "docs/legal-audit/FS_OFFICIAL_FORM_EVIDENCE_2026-07-21.md": {
+      "sha256": "e7f12072d7d476aa1c27821510cc24bdb4ba0d3a44fcf31055fd814edf80e2ac",
+      "bytes": 4682
+    },
+    "docs/legal-audit/iwo-federal-provenance-2026-07-21.json": {
+      "sha256": "ae772dd2a4939f65fba7c31a83296f370c770c875c1948a7257f451cd21762af",
+      "bytes": 2788
+    },
+    "docs/legal-audit/iwo-source-closure-delta-audit-2026-07-27.md": {
+      "sha256": "50945a4985ac0b95590e1465eb38031ef6e42ff6cf3287c69ebe2d871a4fc8d4",
+      "bytes": 8005
+    },
+    "docs/legal-audit/will-county-iwo-clarification-sent-2026-07-27.md": {
+      "sha256": "c58117af6c8dfad6b70e5936240a99c82d91c1c851de805d0a774e95a925b94b",
+      "bytes": 5267
+    }
+  },
+  "artifact": {
+    "historicalPathInEvidence": "public/forms/income-withholding-order.pdf",
+    "currentGuardedPath": "private/official-forms/income-withholding-order.pdf",
+    "staticallyServed": false,
+    "servedBy": "app/api/forms/iwo/route.ts (guarded; authoritative county + provenance + expiry + renewal)",
+    "sha256": "2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551",
+    "bytes": 505412,
+    "bytesUnchangedSinceImport": true,
+    "fetchedOrReplaced": false
+  },
+  "note": "Relocation only. The PDF bytes are identical to the imported artifact; no fetch or replacement was performed."
+}
