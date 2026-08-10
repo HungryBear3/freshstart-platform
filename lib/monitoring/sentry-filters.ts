@@ -29,16 +29,19 @@ export function isSyntheticBrowserEventPromiseRejection(
     return false
   }
 
-  return exceptionValues.some((exception) => {
-    return (
-      exception?.type === "Event" &&
-      exception?.value === SYNTHETIC_BROWSER_EVENT_REJECTION_VALUE &&
-      exception?.mechanism?.type ===
-        SYNTHETIC_BROWSER_EVENT_REJECTION_MECHANISM &&
-      exception?.mechanism?.synthetic === true &&
-      exception?.mechanism?.handled === false
-    )
-  })
+  return (
+    exceptionValues.length === 1 &&
+    exceptionValues.some((exception) => {
+      return (
+        exception?.type === "Event" &&
+        exception?.value === SYNTHETIC_BROWSER_EVENT_REJECTION_VALUE &&
+        exception?.mechanism?.type ===
+          SYNTHETIC_BROWSER_EVENT_REJECTION_MECHANISM &&
+        exception?.mechanism?.synthetic === true &&
+        exception?.mechanism?.handled === false
+      )
+    })
+  )
 }
 
 export function filterKnownSentryNoise<T>(event: T): T | null {

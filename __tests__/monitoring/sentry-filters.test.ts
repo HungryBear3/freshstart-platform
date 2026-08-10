@@ -50,6 +50,27 @@ describe("Sentry noise filters", () => {
     expect(filterKnownSentryNoise(realErrorEvent)).toBe(realErrorEvent)
   })
 
+  it("keeps mixed events that also contain a real exception", () => {
+    const mixedEvent = {
+      exception: {
+        values: [
+          syntheticBrowserEventPromiseRejection.exception.values[0],
+          {
+            type: "TypeError",
+            value: "Cannot read properties of undefined",
+            mechanism: {
+              type: "auto.browser.global_handlers.onunhandledrejection",
+              synthetic: false,
+              handled: false,
+            },
+          },
+        ],
+      },
+    }
+
+    expect(filterKnownSentryNoise(mixedEvent)).toBe(mixedEvent)
+  })
+
   it("does not broadly suppress similar browser Event errors", () => {
     const differentBrowserEvent = {
       exception: {
