@@ -4,6 +4,7 @@
  */
 
 import { QuestionnaireStructure } from "@/types/questionnaire";
+import { ILLINOIS_DIVORCE_GROUNDS_OPTIONS } from "@/lib/questionnaires/illinois-divorce-grounds";
 
 export const samplePetitionQuestionnaire: QuestionnaireStructure = {
   id: "petition",
@@ -170,54 +171,11 @@ export const samplePetitionQuestionnaire: QuestionnaireStructure = {
           label: "Grounds for Divorce",
           fieldName: "grounds",
           required: true,
-          options: [
-            {
-              label: "Irreconcilable Differences (No-Fault)",
-              value: "irreconcilable",
-            },
-            {
-              label: "Mental Cruelty",
-              value: "mental_cruelty",
-            },
-            {
-              label: "Physical Cruelty",
-              value: "physical_cruelty",
-            },
-            {
-              label: "Desertion",
-              value: "desertion",
-            },
-            {
-              label: "Adultery",
-              value: "adultery",
-            },
-          ],
+          options: [...ILLINOIS_DIVORCE_GROUNDS_OPTIONS],
           validation: [
             {
               type: "required",
               message: "Please select grounds for divorce",
-            },
-          ],
-        },
-        {
-          id: "irreconcilable-duration",
-          type: "number",
-          label: "How long have irreconcilable differences existed? (months)",
-          fieldName: "irreconcilableDuration",
-          conditionalLogic: [
-            {
-              field: "grounds-type",
-              operator: "equals",
-              value: "irreconcilable",
-              action: "show",
-            },
-          ],
-          helpText: "Enter the number of months",
-          validation: [
-            {
-              type: "min",
-              value: 0,
-              message: "Duration must be 0 or greater",
             },
           ],
         },

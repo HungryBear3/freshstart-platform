@@ -14,6 +14,7 @@ import {
   formatCounty,
   formatGrounds
 } from './field-mappings'
+import { normalizeIllinoisPetitionResponses } from '@/lib/questionnaires/illinois-divorce-grounds'
 
 export interface PetitionData {
   // Personal Information
@@ -33,7 +34,6 @@ export interface PetitionData {
   
   // Grounds
   groundsType: string
-  irreconcilableDuration?: number
   
   // Children (for with-children petition)
   hasChildren?: boolean
@@ -174,7 +174,7 @@ export async function fillPetition(
  * Convert PetitionData to questionnaire format for field mapping
  */
 function convertPetitionDataToQuestionnaireFormat(data: PetitionData): Record<string, any> {
-  return {
+  return normalizeIllinoisPetitionResponses({
     'petitioner-first-name': data.petitionerFirstName,
     'petitioner-last-name': data.petitionerLastName,
     'petitioner-middle-name': data.petitionerMiddleName,
@@ -187,10 +187,9 @@ function convertPetitionDataToQuestionnaireFormat(data: PetitionData): Record<st
     'spouse-address': data.spouseAddress,
     'residency-duration-months': data.residencyDurationMonths,
     'grounds-type': data.groundsType,
-    'irreconcilable-duration': data.irreconcilableDuration,
     'has-children': data.hasChildren ? 'yes' : 'no',
     'number-of-children': data.numberOfChildren,
-  }
+  })
 }
 
 /**
@@ -332,6 +331,8 @@ export async function generateFilledPetitionFromQuestionnaire(
   hasChildren: boolean,
   options: FillPetitionOptions = { flatten: true }
 ): Promise<Uint8Array> {
+  const currentGrounds = normalizeIllinoisPetitionResponses(questionnaireResponses)["grounds-type"]
+
   // Transform questionnaire responses to PetitionData format
   const petitionData: PetitionData = {
     petitionerFirstName: questionnaireResponses['petitioner-first-name'] || '',
@@ -345,8 +346,7 @@ export async function generateFilledPetitionFromQuestionnaire(
     petitionerAddress: questionnaireResponses['petitioner-address'] || '',
     spouseAddress: questionnaireResponses['spouse-address'],
     residencyDurationMonths: parseInt(questionnaireResponses['residency-duration-months']) || 0,
-    groundsType: questionnaireResponses['grounds-type'] || 'irreconcilable',
-    irreconcilableDuration: questionnaireResponses['irreconcilable-duration'],
+    groundsType: currentGrounds,
     hasChildren: hasChildren,
     numberOfChildren: hasChildren ? parseInt(questionnaireResponses['number-of-children']) || 0 : 0,
   }

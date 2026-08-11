@@ -4,6 +4,7 @@
 
 import { QuestionnaireStructure } from "@/types/questionnaire";
 import { prisma } from "@/lib/db";
+import { ILLINOIS_DIVORCE_GROUNDS_OPTIONS } from "@/lib/questionnaires/illinois-divorce-grounds";
 
 const sampleQuestionnaires: Array<{
   name: string;
@@ -150,39 +151,8 @@ const sampleQuestionnaires: Array<{
               label: "Grounds for Divorce",
               fieldName: "groundsType",
               required: true,
-              options: [
-                { label: "Irreconcilable Differences (No-Fault)", value: "irreconcilable" },
-                { label: "Impotence", value: "impotence" },
-                { label: "Bigamy", value: "bigamy" },
-                { label: "Adultery", value: "adultery" },
-                { label: "Desertion", value: "desertion" },
-                { label: "Habitual Drunkenness or Drug Use", value: "substance" },
-                { label: "Cruelty", value: "cruelty" },
-                { label: "Attempted Murder", value: "attempted_murder" },
-                { label: "Conviction of a Felony", value: "felony" },
-              ],
+              options: [...ILLINOIS_DIVORCE_GROUNDS_OPTIONS],
               helpText: "Most divorces in Illinois are filed under 'Irreconcilable Differences' (no-fault)",
-            },
-            {
-              id: "irreconcilable-duration",
-              type: "number",
-              label: "If Irreconcilable Differences, how long have differences existed? (in months)",
-              fieldName: "irreconcilableDuration",
-              conditionalLogic: [
-                {
-                  field: "grounds-type",
-                  operator: "equals",
-                  value: "irreconcilable",
-                  action: "show",
-                },
-              ],
-              validation: [
-                {
-                  type: "min",
-                  value: 2,
-                  message: "Differences must have existed for at least 2 months",
-                },
-              ],
             },
           ],
         },
