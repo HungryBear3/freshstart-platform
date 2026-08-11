@@ -5,9 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { sanitizeString } from "@/lib/security/validation";
+import { normalizeIllinoisPetitionResponseData } from "@/lib/questionnaires/illinois-divorce-grounds";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const formType = searchParams.get("formType");
 
-    const where: any = {
+    const where: Prisma.QuestionnaireResponseWhereInput = {
       userId: session.user.id,
     };
 
@@ -34,7 +36,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ responses });
+    return NextResponse.json({
+      responses: responses.map(response => ({
+        ...response,
+        responses: normalizeIllinoisPetitionResponseData(response.formType, response.responses),
+      })),
+    });
   } catch (error) {
     console.error("Error fetching responses:", error);
     return NextResponse.json(
@@ -52,7 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    let { formType, responses, currentSection, status, questionnaireId } = body;
+    let { formType, responses } = body;
+    const { currentSection, status, questionnaireId } = body;
 
     if (!formType || !responses) {
       return NextResponse.json(
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Sanitize all string values in responses object
     if (responses && typeof responses === "object") {
-      const sanitizedResponses: Record<string, any> = {};
+      const sanitizedResponses: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(responses)) {
         if (typeof value === "string") {
           sanitizedResponses[key] = sanitizeString(value);
@@ -76,6 +84,8 @@ export async function POST(request: NextRequest) {
       }
       responses = sanitizedResponses;
     }
+
+    responses = normalizeIllinoisPetitionResponseData(formType, responses);
 
     // Check if response already exists
     const existing = await prisma.questionnaireResponse.findFirst({

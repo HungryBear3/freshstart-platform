@@ -3,6 +3,7 @@
  */
 
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib"
+import { CURRENT_ILLINOIS_PETITION_GROUNDS_LINES } from "@/lib/questionnaires/illinois-divorce-grounds"
 
 interface PetitionData {
   // Petitioner info
@@ -22,7 +23,6 @@ interface PetitionData {
   
   // Grounds
   "grounds-type"?: string
-  "irreconcilable-duration"?: number
   
   // Children
   "has-children"?: string
@@ -176,19 +176,9 @@ export async function generatePetitionPDF(
   addText("GROUNDS FOR DISSOLUTION:", 70, { font: boldFont })
   yPosition -= lineHeight
 
-  if (data["grounds-type"] === "irreconcilable") {
-    const duration = data["irreconcilable-duration"] || "___"
-    addText(`Irreconcilable differences have caused the irretrievable breakdown of the`, 70, {})
+  for (const line of CURRENT_ILLINOIS_PETITION_GROUNDS_LINES) {
+    addText(line, 70, {})
     yPosition -= lineHeight
-    addText(`marriage. The parties have lived separate and apart for a continuous period`, 70, {})
-    yPosition -= lineHeight
-    addText(`of approximately ${duration} months. Efforts at reconciliation have failed or`, 70, {})
-    yPosition -= lineHeight
-    addText(`future attempts at reconciliation would be impracticable and not in the best`, 70, {})
-    yPosition -= lineHeight
-    addText(`interests of the family.`, 70, {})
-  } else {
-    addText(`[Grounds: ${data["grounds-type"] || "Not specified"}]`, 70, {})
   }
   yPosition -= lineHeight + 10
 

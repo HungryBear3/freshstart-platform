@@ -10,6 +10,7 @@ import { auth } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { sanitizeString } from "@/lib/security/validation";
 import { awardBadge } from "@/lib/badges/award-badge";
+import { normalizeIllinoisPetitionResponseData } from "@/lib/questionnaires/illinois-divorce-grounds";
 
 export async function GET(
   request: NextRequest,
@@ -41,7 +42,12 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ response });
+    return NextResponse.json({
+      response: {
+        ...response,
+        responses: normalizeIllinoisPetitionResponseData(response.formType, response.responses),
+      },
+    });
   } catch (error) {
     console.error("Error fetching response:", error);
     return NextResponse.json(
@@ -83,7 +89,7 @@ export async function PUT(
     // Sanitize responses if provided
     let sanitizedResponses = body.responses ?? existing.responses;
     if (sanitizedResponses && typeof sanitizedResponses === "object") {
-      const sanitized: Record<string, any> = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(sanitizedResponses)) {
         if (typeof value === "string") {
           sanitized[key] = sanitizeString(value);
@@ -93,6 +99,11 @@ export async function PUT(
       }
       sanitizedResponses = sanitized;
     }
+
+    sanitizedResponses = normalizeIllinoisPetitionResponseData(
+      existing.formType,
+      sanitizedResponses
+    );
 
     // Sanitize status if provided
     const sanitizedStatus = body.status 

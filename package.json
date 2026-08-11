@@ -26,6 +26,7 @@
     "db:test": "tsx scripts/test-db-connection.ts",
     "seed:legal": "tsx lib/seed-legal-content.ts",
     "seed:questionnaires": "tsx lib/seed-questionnaires.ts",
+    "remediate:illinois-grounds": "tsx scripts/remediate-current-illinois-grounds.ts",
     "seed:test-user": "tsx lib/seed-test-user.ts",
     "forms:verify:offline": "tsx scripts/verify-illinois-forms.ts --offline",
     "forms:verify:fetch": "tsx scripts/verify-illinois-forms.ts --fetch"
