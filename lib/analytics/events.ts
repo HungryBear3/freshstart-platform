@@ -10,8 +10,8 @@
  */
 
 import { trackMetaEvent, trackMetaCustomEvent } from "@/components/analytics/meta-pixel"
-import { trackGoogleAdsConversion } from "@/components/analytics/google-analytics"
 import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate"
+import { sanitizeClientEventParams } from "@/lib/analytics/ga4-client"
 
 // ============================================================
 // CORE EVENT TRACKING
@@ -26,8 +26,10 @@ export function trackGA4Event(
   params?: Record<string, any>
 ): void {
   if (!isLiveTrackingEnabled()) return
+  const sanitized = sanitizeClientEventParams(eventName, params)
+  if (sanitized === null) return
   if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', eventName, params)
+    window.gtag('event', eventName, sanitized)
   }
 }
 
@@ -211,37 +213,6 @@ export const analytics = {
     })
   },
 
-  /**
-   * Track subscription completed (purchase)
-   */
-  subscriptionComplete: (
-    planName: string,
-    planPrice: number,
-    transactionId?: string
-  ) => {
-    trackEvent('purchase', {
-      currency: 'USD',
-      value: planPrice,
-      transaction_id: transactionId,
-      items: [{
-        item_name: planName,
-        price: planPrice,
-        quantity: 1,
-      }],
-    })
-    trackMetaEvent('Purchase', {
-      content_name: planName,
-      currency: 'USD',
-      value: planPrice,
-    })
-    
-    // Track Google Ads conversion if configured
-    const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
-    const conversionLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
-    if (googleAdsId && conversionLabel) {
-      trackGoogleAdsConversion(googleAdsId, conversionLabel, planPrice)
-    }
-  },
 
   /**
    * Track trial started

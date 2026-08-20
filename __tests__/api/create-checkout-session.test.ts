@@ -135,6 +135,41 @@ describe("POST /api/stripe/create-checkout-session", () => {
     );
   });
 
+  it("propagates only bounded anonymous GA identifiers into checkout metadata", async () => {
+    const gaRequest = new NextRequest("http://localhost:3000/api/stripe/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        cookie: [
+          "_ga=GA1.1.123456789.987654321",
+          "_ga_ABC123XYZ=GS1.1.1724123456.7.1.1724123999.0.0.0",
+          "next-auth.session-token=session_secret",
+        ].join("; "),
+      },
+      body: JSON.stringify({ plan: "one_time", email: "user@example.com" }),
+    });
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-ABC123XYZ";
+
+    const response = await POST(gaRequest);
+
+    expect(response.status).toBe(200);
+    expect(mockCreateCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: {
+        obligationId: "obl_1",
+        gaClientId: "123456789.987654321",
+        gaSessionId: "1724123456",
+        gaSessionNumber: "7",
+      },
+    }), expect.any(Object));
+    expect(mockCreateCheckoutSession).toHaveBeenCalledWith(expect.not.objectContaining({
+      metadata: expect.objectContaining({
+        email: expect.anything(),
+        sessionId: expect.anything(),
+        url: expect.anything(),
+      }),
+    }), expect.any(Object));
+  });
+
   it("retrieves and reuses an already-bound open session on retry", async () => {
     const open = { ...obligation, stripeCustomerId: "cus_1", stripeSessionId: "cs_existing", status: "OPEN" };
     mockObligationFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(open);

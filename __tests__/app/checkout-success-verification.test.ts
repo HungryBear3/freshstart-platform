@@ -9,8 +9,6 @@ describe("verified checkout success analytics", () => {
     const tracker = read("components/analytics/checkout-success-tracker.tsx");
     const route = read("app/api/stripe/create-checkout-session/route.ts");
 
-    const conversionRoute = read("app/api/stripe/checkout-conversion/route.ts");
-
     expect(route).toContain("session_id={CHECKOUT_SESSION_ID}");
     expect(dashboard).toMatch(/checkoutObligation\.findFirst/);
     expect(dashboard).toMatch(/checkoutReturn\?\.status === "PAID"/);
@@ -19,16 +17,13 @@ describe("verified checkout success analytics", () => {
     expect(dashboard).toContain("Please do not pay again");
     expect(tracker).toContain("sessionId: string | null");
     expect(tracker).toContain("router.refresh()");
-    expect(tracker).toContain("/api/stripe/checkout-conversion");
     expect(tracker).toContain("window.history.replaceState");
-    expect(conversionRoute).toMatch(/conversionTrackedAt:\s*null/);
-    expect(conversionRoute).toMatch(/conversionLeaseExpiresAt/);
-    expect(conversionRoute).toMatch(/action === "delivered"/);
-    expect(tracker).toContain('action: "claim"');
-    expect(tracker).toContain('action: "delivered"');
-    expect(tracker).toMatch(/if \(!cancelled && delivery\.delivered\) clearSession\(\)/);
+    expect(tracker).not.toContain("/api/stripe/checkout-conversion");
+    expect(tracker).not.toContain('action: "claim"');
+    expect(tracker).not.toContain('action: "delivered"');
+    expect(tracker).not.toContain("analytics.subscriptionComplete");
+    expect(read("lib/analytics/events.ts")).not.toMatch(/subscriptionComplete|trackEvent\(['"]purchase/);
     expect(tracker).not.toContain(".finally(");
-    expect(conversionRoute).toMatch(/userId:\s*user\.id/);
     expect(tracker).not.toMatch(/success\s*!==\s*["']true["']/);
   });
 });

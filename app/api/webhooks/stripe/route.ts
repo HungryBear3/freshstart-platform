@@ -4,6 +4,8 @@ import Stripe from "stripe"
 import { prisma } from "@/lib/db"
 import { stripe } from "@/lib/stripe/config"
 import { errorTracker } from "@/lib/monitoring/error-tracking"
+import { sendTrustedGa4Purchase } from "@/lib/analytics/ga4-measurement-protocol"
+import { parseGaPositiveInteger } from "@/lib/analytics/ga4-cookies"
 
 const CLAIM_LEASE_MS = 5 * 60 * 1000
 const CONVERTIBLE_LEGACY = ["canceled", "incomplete", "incomplete_expired"]
@@ -76,6 +78,7 @@ async function failEvent(stripeEventId: string, token: string, cause: unknown) {
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get("stripe-signature")
+  const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host")
   let event: Stripe.Event
   try {
     if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Missing webhook configuration")
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded":
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, event.id, token)
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, event.id, token, requestHost)
         break
       case "checkout.session.expired":
         await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session, event.id, token)
@@ -137,7 +140,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string, token: string) {
+async function handleCheckoutCompleted(
+  session: Stripe.Checkout.Session,
+  eventId: string,
+  token: string,
+  requestHost: string | null,
+) {
   // Structurally unrelated or not-yet-settled events are permanent non-actions, not retryable failures.
   if (session.payment_status !== "paid" || session.status !== "complete") return
   if (session.mode !== "payment") {
@@ -291,7 +299,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
   }
 
   await renewEventClaim(eventId, token)
-  await prisma.$transaction(async (tx) => {
+  const settled = await prisma.$transaction(async (tx) => {
     const existing = await tx.subscription.findUnique({ where: { userId: obligation.userId } })
     if (existing?.plan !== "one_time" && existing && BLOCKING_LEGACY.has(existing.status)) {
       throw new Error("Active historical subscription blocks one-time conversion")
@@ -327,7 +335,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
         },
         update: {},
       })
-      return
+      return false
     }
 
     const paid = await tx.checkoutObligation.updateMany({
@@ -373,7 +381,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId
       },
       update: {},
     })
+    return true
   }, { isolationLevel: "Serializable" })
+
+  if (!settled) return
+  const rawGaSessionId = session.metadata?.gaSessionId
+  const rawGaSessionNumber = session.metadata?.gaSessionNumber
+  const gaSessionId = parseMetadataInteger(rawGaSessionId)
+  const gaSessionNumber = parseMetadataInteger(rawGaSessionNumber)
+  if ((rawGaSessionId && gaSessionId === undefined) || (rawGaSessionNumber && gaSessionNumber === undefined)) {
+    return
+  }
+  const gaSent = await sendTrustedGa4Purchase({
+    host: requestHost,
+    gaClientId: session.metadata?.gaClientId,
+    gaSessionId,
+    gaSessionNumber,
+    stripeSessionId: session.id,
+  })
+  if (!gaSent) return
+  try {
+    await prisma.checkoutObligation.updateMany({
+      where: {
+        id: obligation.id,
+        status: "PAID",
+        stripeSessionId: session.id,
+        conversionTrackedAt: null,
+      },
+      data: { conversionTrackedAt: new Date() },
+    })
+  } catch {
+    console.error("[Webhook] Nonfatal post-purchase bookkeeping failed", {
+      reason: "conversion_tracked_at_update_failed",
+    })
+  }
 }
 
 async function recordUnboundSettledSession(session: Stripe.Checkout.Session, eventId: string, token: string) {
@@ -622,6 +663,10 @@ async function handleChargeReversal(
 
 function eventDate(created: number) {
   return new Date(created * 1000)
+}
+
+function parseMetadataInteger(value: string | undefined): number | undefined {
+  return parseGaPositiveInteger(value) ?? undefined
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription, created: number) {
