@@ -68,16 +68,34 @@ import { POST } from "@/app/api/webhooks/stripe/route";
 function req() {
   return new NextRequest("http://localhost/api/webhooks/stripe", { method: "POST", headers: { "stripe-signature": "sig_local" }, body: "signed" });
 }
+function canonicalReq(host = "www.freshstart-il.com") {
+  return new NextRequest("http://localhost/api/webhooks/stripe", {
+    method: "POST",
+    headers: {
+      "stripe-signature": "sig_local",
+      host,
+      "x-forwarded-host": host,
+    },
+    body: "signed",
+  });
+}
 const obligation = {
   id: "obl_1", userId: "user_1", plan: "one_time", cycle: 1, status: "OPEN",
   stripeSessionId: "cs_1", stripeCustomerId: "cus_1", stripePriceId: "price_one_time",
   expectedAmountCents: 14900, expectedCurrency: "usd", quantity: 1,
+  conversionTrackedAt: null,
 };
 function checkoutEvent(overrides: Record<string, unknown> = {}) {
   return { id: "evt_checkout", type: "checkout.session.completed", created: 1000, data: { object: {
     id: "cs_1", mode: "payment", status: "complete", payment_status: "paid",
     customer: "cus_1", payment_intent: "pi_1", amount_total: 14900, currency: "usd",
-    metadata: { obligationId: "obl_1" }, ...overrides,
+    metadata: {
+      obligationId: "obl_1",
+      gaClientId: "123456789.987654321",
+      gaSessionId: "1724123456",
+      gaSessionNumber: "7",
+    },
+    ...overrides,
   } } };
 }
 function annualEvent(type = "customer.subscription.updated", created = 2000) {
@@ -91,6 +109,11 @@ describe("Stripe webhook hardening", () => {
   beforeEach(() => {
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_local";
     process.env.ONE_TIME_PRICE_ID = "price_one_time";
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-ABC123XYZ";
+    process.env.GA4_API_SECRET = "secret_123";
+    process.env.NEXT_PUBLIC_ENABLE_TRACKING = "true";
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    delete process.env.VERCEL_ENV;
     mockConstructEvent.mockReturnValue(checkoutEvent());
     mockStripeEventFindUnique.mockResolvedValue(null);
     mockStripeEventCreate.mockResolvedValue({ id: "local_evt", status: "PROCESSING" });
@@ -112,13 +135,14 @@ describe("Stripe webhook hardening", () => {
     mockRetrieveCharge.mockResolvedValue({ id: "ch_1", payment_intent: "pi_1" });
     mockListLineItems.mockResolvedValue({ data: [{ quantity: 1, amount_total: 14900, currency: "usd", price: { id: "price_one_time", unit_amount: 14900, currency: "usd", type: "one_time" } }] });
     mockTransaction.mockImplementation(async (fn: any) => fn(require("@/lib/db").prisma));
+    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
     jest.spyOn(console, "log").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); });
 
   it("grants 60-day access only after exact paid session/customer/price/amount/currency/quantity validation", async () => {
-    const response = await POST(req());
+    const response = await POST(canonicalReq());
     expect(response.status).toBe(200);
     expect(mockListLineItems).toHaveBeenCalledWith("cs_1", { limit: 10 });
     expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -133,6 +157,28 @@ describe("Stripe webhook hardening", () => {
     const start = mockSubscriptionCreate.mock.calls[0][0].data.currentPeriodStart as Date;
     expect(end.getTime() - start.getTime()).toBe(60 * 24 * 60 * 60 * 1000);
     expect(mockTransaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: "Serializable" });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toContain("measurement_id=G-ABC123XYZ");
+    expect(String(init.body)).toBe(JSON.stringify({
+      client_id: "123456789.987654321",
+      events: [{
+        name: "purchase",
+        params: {
+          currency: "USD",
+          transaction_id: "cs_1",
+          value: 149,
+          ga_session_id: 1724123456,
+          ga_session_number: 7,
+          items: [{
+            item_id: "freshstart-il-one-time-60-day",
+            item_name: "Fresh Start one-time 60-day service access",
+            price: 149,
+            quantity: 1,
+          }],
+        },
+      }],
+    }));
   });
 
   it.each([
@@ -143,7 +189,7 @@ describe("Stripe webhook hardening", () => {
     ["wrong session", { id: "cs_other" }],
   ])("does not grant access for %s checkout", async (_label, override) => {
     mockConstructEvent.mockReturnValue(checkoutEvent(override));
-    const response = await POST(req());
+    const response = await POST(canonicalReq());
     expect(mockSubscriptionCreate).not.toHaveBeenCalled();
     if ("payment_status" in override && override.payment_status === "unpaid") {
       expect(response.status).toBe(200);
@@ -157,6 +203,55 @@ describe("Stripe webhook hardening", () => {
       expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "REVIEW_REQUIRED" }) }));
       expect(mockCaptureError).toHaveBeenCalledWith(expect.any(Error), expect.objectContaining({ mismatch: expect.any(String) }));
     }
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("refuses preview and noncanonical hosts for trusted purchase send", async () => {
+    expect((await POST(req())).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    mockConstructEvent.mockReturnValue(checkoutEvent());
+    expect((await POST(canonicalReq("preview.freshstart-il.test"))).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("refuses Vercel preview and operator opt-out for trusted purchase send without failing the webhook", async () => {
+    process.env.VERCEL_ENV = "preview";
+    expect((await POST(canonicalReq())).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    process.env.VERCEL_ENV = "production";
+    process.env.NEXT_PUBLIC_ENABLE_TRACKING = "false";
+    mockConstructEvent.mockReturnValue(checkoutEvent());
+    expect((await POST(canonicalReq())).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed or oversized signed GA metadata before network send", async () => {
+    mockConstructEvent.mockReturnValue(checkoutEvent({
+      metadata: {
+        obligationId: "obl_1",
+        gaClientId: `123456789.${"9".repeat(300)}`,
+        gaSessionId: "1724123456",
+        gaSessionNumber: "7",
+      },
+    }));
+    expect((await POST(canonicalReq())).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    mockConstructEvent.mockReturnValue(checkoutEvent({
+      metadata: {
+        obligationId: "obl_1",
+        gaClientId: "123456789.987654321",
+        gaSessionId: "9007199254740992",
+        gaSessionNumber: "7",
+      },
+    }));
+    expect((await POST(canonicalReq())).status).toBe(200);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("binds the paid Checkout Session when an unbound pending obligation enters review", async () => {
@@ -305,16 +400,50 @@ describe("Stripe webhook hardening", () => {
     expect(response.status).toBe(200);
     expect(mockObligationFindUnique).not.toHaveBeenCalled();
     expect(mockSubscriptionCreate).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("finishes a retry idempotently when settlement committed before prior event completion", async () => {
     mockStripeEventFindUnique.mockResolvedValue({ id: "local_evt", status: "FAILED", claimToken: null, leaseExpiresAt: null });
     mockObligationFindUnique.mockResolvedValue({ ...obligation, status: "PAID" });
-    const response = await POST(req());
+    const response = await POST(canonicalReq());
     expect(response.status).toBe(200);
     expect(mockTransaction).not.toHaveBeenCalled();
     expect(mockSubscriptionCreate).not.toHaveBeenCalled();
     expect(mockStripeEventUpdateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "COMPLETED" }) }));
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("treats conversionTrackedAt bookkeeping as best-effort after a successful GA send", async () => {
+    const order: string[] = [];
+    mockTransaction.mockImplementationOnce(async (fn: any) => {
+      order.push("transaction");
+      return fn(require("@/lib/db").prisma);
+    });
+    (global.fetch as jest.Mock).mockImplementationOnce(async () => {
+      order.push("fetch");
+      return { ok: true };
+    });
+    mockObligationUpdateMany
+      .mockImplementationOnce(async (...args: unknown[]) => {
+        order.push("settlement_update");
+        return { count: 1 };
+      })
+      .mockImplementationOnce(async (...args: unknown[]) => {
+        order.push("tracked_at_update");
+        throw new Error("connection reset token=secret");
+      });
+
+    const response = await POST(canonicalReq());
+
+    expect(response.status).toBe(200);
+    expect(order).toEqual(["transaction", "settlement_update", "fetch", "tracked_at_update"]);
+    expect(mockStripeEventUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "COMPLETED" }),
+    }));
+    expect(console.error).toHaveBeenCalledWith("[Webhook] Nonfatal post-purchase bookkeeping failed", {
+      reason: "conversion_tracked_at_update_failed",
+    });
   });
 
   it("clears historical annual binding only for safely convertible legacy rows", async () => {
@@ -488,11 +617,12 @@ describe("Stripe webhook hardening", () => {
     expect(mockReversalCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ stripePaymentIntentId: "pi_1", status: "REFUNDED" }),
     }));
-    expect((await POST(req())).status).toBe(200);
+    expect((await POST(canonicalReq())).status).toBe(200);
     expect(mockObligationUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: "REFUNDED", stripePaymentIntentId: "pi_1" }),
     }));
     expect(mockSubscriptionCreate).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it.each([

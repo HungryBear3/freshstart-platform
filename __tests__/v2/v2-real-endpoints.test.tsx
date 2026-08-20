@@ -158,9 +158,10 @@ describe("Essential access grant alignment", () => {
 });
 
 describe("v2 Google Analytics bridge", () => {
-  it("dispatches v2 analytics events to the existing window.gtag surface", () => {
+  it("dispatches v2 analytics events through the shared sanitized GA4 bridge", () => {
     const src = readSource("app/v2/_components/analytics.ts");
-    expect(src).toMatch(/gtag\("event", eventName, params\)/);
+    expect(src).toMatch(/trackGA4Event\(eventName, params\)/);
+    expect(src).not.toMatch(/gtag\(["']event["']/);
     expect(src).toMatch(/select_content/);
     expect(src).toMatch(/generate_lead/);
     expect(src).toMatch(/add_to_cart/);

@@ -126,14 +126,15 @@ describe("downstream helpers do not fire when the gate is closed", () => {
     expect(fbqSpy).not.toHaveBeenCalled()
   })
 
-  it("trackGoogleAdsConversion is a no-op when the gate is closed", async () => {
-    const gtagSpy = jest.fn()
-    ;(window as unknown as { gtag?: unknown }).gtag = gtagSpy
-    const { trackGoogleAdsConversion } = await import(
-      "@/components/analytics/google-analytics"
+  it("keeps the legacy direct Google Ads conversion bypass removed", () => {
+    const fs = require("node:fs") as typeof import("node:fs")
+    const path = require("node:path") as typeof import("node:path")
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "components/analytics/google-analytics.tsx"),
+      "utf8",
     )
-    trackGoogleAdsConversion("AW-123", "abc", 49)
-    expect(gtagSpy).not.toHaveBeenCalled()
+    expect(source).not.toContain("trackGoogleAdsConversion")
+    expect(source).not.toMatch(/gtag\(['"]event['"]/)
   })
 })
 

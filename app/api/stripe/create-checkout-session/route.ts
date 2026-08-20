@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/session"
 import { prisma } from "@/lib/db"
 import { stripe } from "@/lib/stripe/config"
+import { parseGaIdentifiersFromCookieHeader } from "@/lib/analytics/ga4-cookies"
 
 const ONE_TIME_AMOUNT_CENTS = 14_900
 const ONE_TIME_CURRENCY = "usd"
@@ -187,6 +188,10 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "")
+    const gaIdentifiers = parseGaIdentifiersFromCookieHeader(
+      request.headers.get("cookie"),
+      process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+    )
     const session = await stripe.checkout.sessions.create(
       {
         customer: customerId,
@@ -195,7 +200,12 @@ export async function POST(request: NextRequest) {
         line_items: [{ price: price.id, quantity: 1 }],
         success_url: `${appUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appUrl}/pricing?canceled=true`,
-        metadata: { obligationId: obligation.id },
+        metadata: {
+          obligationId: obligation.id,
+          ...(gaIdentifiers.gaClientId ? { gaClientId: gaIdentifiers.gaClientId } : {}),
+          ...(gaIdentifiers.gaSessionId ? { gaSessionId: String(gaIdentifiers.gaSessionId) } : {}),
+          ...(gaIdentifiers.gaSessionNumber ? { gaSessionNumber: String(gaIdentifiers.gaSessionNumber) } : {}),
+        },
       },
       { idempotencyKey: `${obligation.contractKey}:${obligation.attempt}` },
     )
