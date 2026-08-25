@@ -22,6 +22,7 @@ import {
 } from "@/lib/documents/package-handler";
 import { IWO_PROVENANCE, type IwoRenewalEvidence } from "@/lib/forms/iwo-provenance";
 import { GUARDED_ARTIFACT_DIR } from "@/lib/forms/official-artifact-access";
+import { withheldItemsNotice } from "@/lib/forms/iwo-refusal-copy";
 
 const RENEWAL_CONFIRMED: IwoRenewalEvidence = {
   status: "confirmed",
@@ -484,5 +485,58 @@ describe("unrelated withholding documents are not suppressed", () => {
     expect(z.withheldText).toMatch(/income-withholding-order\.pdf/);
     expect(z.withheldText).not.toMatch(/Employee Tax Withholding Certificate/);
     expect(z.rawHasFakePayload).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T-77 — the disclosure text in a real archive is the approved copy, exactly,
+// and names the cause that actually closed the gate.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("00_WITHHELD_ITEMS.txt carries the approved disclosure verbatim", () => {
+  /** 2026-08-31 00:00 CDT — the first blocked Chicago calendar day. */
+  const EXPIRED_CLOCK = () => new Date("2026-08-31T05:00:00Z");
+
+  it("names the expiration when expiration is what closed the gate", async () => {
+    const z = await openZip(
+      await handlerFor([row(), iwoRow()], { now: EXPIRED_CLOCK })(),
+    );
+
+    expect(z.hasIwoEntry).toBe(false);
+    expect(z.withheldText).not.toBeNull();
+    expect(z.withheldText).toContain(withheldItemsNotice("federal_form_authority_expired")[0]);
+    // The false sentence this PR retired must not appear anywhere in the archive.
+    expect(z.withheldText).not.toMatch(/published information-collection approval/);
+    expect(z.withheldText).not.toMatch(/renewal/i);
+  });
+
+  it("names the renewal review when renewal review is what closed the gate", async () => {
+    const z = await openZip(
+      await handlerFor([row(), iwoRow()], { renewalEvidence: RENEWAL_PENDING })(),
+    );
+
+    expect(z.hasIwoEntry).toBe(false);
+    expect(z.withheldText).toContain(withheldItemsNotice("federal_form_renewal_pending")[0]);
+    expect(z.withheldText).not.toMatch(/published information-collection approval/);
+  });
+
+  it("names the missing file when the artifact is absent", async () => {
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), "pkg-withheld-copy-"));
+    const z = await openZip(
+      await handlerFor([row(), iwoRow()], { artifactDir: empty })(),
+    );
+
+    expect(z.hasIwoEntry).toBe(false);
+    expect(z.withheldText).toContain(withheldItemsNotice("federal_artifact_missing")[0]);
+  });
+
+  it("ships ZERO IWO bytes alongside the disclosure", async () => {
+    const z = await openZip(
+      await handlerFor([row(), iwoRow()], { now: EXPIRED_CLOCK })(),
+    );
+
+    expect(z.entries.some((e) => /withholding/i.test(e))).toBe(false);
+    expect(z.coverText).not.toMatch(/withholding/i);
+    // The petition still ships; only the IWO is withheld.
+    expect(z.entries).toContain("documents/petition.pdf");
   });
 });

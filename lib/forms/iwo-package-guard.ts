@@ -17,6 +17,10 @@ import crypto from "node:crypto"
 import { isCanonicalCountyId } from "@/lib/counties/county-iwo-workflow"
 import { getIwoAvailability } from "@/lib/forms/official-artifact-access"
 import { IWO_PROVENANCE, type IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
+import {
+  withheldItemsNotice,
+  type IwoOperativeRefusal,
+} from "@/lib/forms/iwo-refusal-copy"
 
 export interface PackageDocumentLike {
   type: string
@@ -132,13 +136,30 @@ const CANONICAL_IWO_IDENTITIES: ReadonlySet<string> = new Set([
   "income withholding for support order",
 ])
 
-/** OMB control number, however it was punctuated. A bounded, specific signal. */
-const OMB_CONTROL_NUMBER = /\b0970 ?0154\b/
+/**
+ * OMB control number, however it was punctuated. A bounded, specific signal.
+ *
+ * `normalizeLabel` has already collapsed separators to single spaces by the time
+ * this runs, so `0970-0154`, `0970 0154`, and `09700154` all reach it in the
+ * same shape. The hyphen alternative is carried anyway so the pattern is correct
+ * against a RAW value too — this is the single shared classifier expression, and
+ * the generation route reuses it rather than keeping a narrower copy that could
+ * drift into accepting an identity the packager withholds.
+ */
+const OMB_CONTROL_NUMBER = /\b0970[-\s]?0154\b/
 
 /** Whole-word acronym: matches "iwo.pdf" and "type: iwo", never "kiwo". */
 const IWO_ACRONYM = /\biwo\b/
 
-function fieldIdentifiesIwo(value: string): boolean {
+/**
+ * Does ONE free-form label name the federal instrument?
+ *
+ * Exported because the document-generation route must reject a caller-supplied
+ * `documentType` using the SAME predicate that decides whether a stored row is
+ * an IWO. Two predicates would eventually disagree, and the gap between them is
+ * a row this guard withholds but the route was willing to create.
+ */
+export function identifiesIwo(value: string): boolean {
   const normalized = normalizeLabel(value)
   if (!normalized) return false
   // Bounded signals: a whole-word acronym or the exact federal control number
@@ -165,7 +186,7 @@ export function isIwoDocument(doc: PackageDocumentLike): boolean {
   // first could manufacture an identity present in neither field — type
   // "income" plus fileName "withholding.pdf" would spell "income withholding"
   // across the seam and misclassify two unrelated values.
-  return fieldIdentifiesIwo(doc.type) || fieldIdentifiesIwo(doc.fileName)
+  return identifiesIwo(doc.type) || identifiesIwo(doc.fileName)
 }
 
 export interface WithheldIwoItem<T> {
@@ -180,6 +201,8 @@ export interface IwoPackageFilter<T> {
   /** Neutral explanatory copy for the disclosure file, when anything was withheld. */
   notice: string[] | null
   refusal: string | null
+  /** Which federal cause closed the gate, when the federal gate is what closed. */
+  operativeRefusal?: IwoOperativeRefusal | null
 }
 
 export interface IwoPackageFilterInput {
@@ -216,8 +239,14 @@ export function filterIwoFromPackage<T extends PackageDocumentLike>(
     return {
       included: documents.filter((d) => !withheldAll.has(d)),
       withheld: candidates.map((doc) => ({ doc, reason: availability.refusal! })),
-      notice: availability.copy,
+      // A federal-artifact refusal carries the approved package disclosure,
+      // which names the operative cause. A county refusal keeps its own copy.
+      notice:
+        availability.operativeRefusal === null
+          ? availability.copy
+          : withheldItemsNotice(availability.operativeRefusal),
       refusal: availability.refusal,
+      operativeRefusal: availability.operativeRefusal,
     }
   }
 

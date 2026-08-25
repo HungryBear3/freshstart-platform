@@ -20,6 +20,10 @@ import {
   type CourtForm,
 } from "@/lib/forms/illinois-court-forms"
 import { validateIwo, type IwoRenewalEvidence, type IwoValidation } from "@/lib/forms/iwo-provenance"
+import {
+  operativeRefusalCopy,
+  selectOperativeRefusal,
+} from "@/lib/forms/iwo-refusal-copy"
 
 /** Catalog id of the federal IWO in ILLINOIS_COURT_FORMS. */
 export const IWO_FORM_ID = "income-withholding-order"
@@ -125,11 +129,7 @@ const STATEWIDE_EVIDENCE_SOURCES = [
  * Neutral explanatory copy. Procedural description of what the sources say —
  * no recommendation, no guarantee, no universal-procedure claim.
  */
-export const IWO_NEUTRAL_COPY: Record<"will" | "statewide_default" | "federal_gate_closed", string[]> = {
-  federal_gate_closed: [
-    "The federal Income Withholding for Support form (OMB 0970-0154) is not being included right now. Its published information-collection approval is under renewal review, so Fresh Start is not distributing this version.",
-    "This is procedural information about the form's federal approval status, not legal advice.",
-  ],
+export const IWO_NEUTRAL_COPY: Record<"will" | "statewide_default", string[]> = {
   will: [
     "Will County's published local rule (Rule 8.09(C)) directs that the Income Withholding for Support be filed with the Circuit Clerk after it is served on the employer. The statewide form instruction (ATJ 127.3) states that this form is not filed with the Circuit Clerk.",
     "The Circuit Clerk's office has described actual practice as varying between filers, and reported that filing happens less often than not filing.",
@@ -236,12 +236,58 @@ function federalFormState(
   }
 }
 
+/**
+ * Approved refusal copy for a closed federal artifact gate, selected by the
+ * operative blocker. Empty only for a blocker outside `validateIwo`'s
+ * vocabulary, which it cannot emit — refusing with no message beats borrowing
+ * another cause's message and stating something untrue.
+ */
+function federalGateCopy(blockers: readonly string[]): string[] {
+  const operative = selectOperativeRefusal(blockers)
+  return operative === null ? [] : operativeRefusalCopy(operative)
+}
+
 export function resolveIwoWorkflow(input: ResolveIwoWorkflowInput): ResolvedIwoWorkflow {
   const today = input.today ?? new Date()
   const workflow = getCountyIwoWorkflow(input.countyId)
   const federalForm = federalFormState(input.artifactDir, today, input.renewalEvidence)
 
   if (workflow.disposition !== "manual_conditional") {
+    // ── Statewide-default county, federal gate CLOSED ────────────────────────
+    // The county's procedural default is irrelevant while the federal artifact
+    // gate is shut: there is no form to serve on anybody. Returning the open
+    // path here (`statewide_serve_employer_do_not_file`, no reason codes, no
+    // manual review, and the statewide "served on the employer" copy) told a
+    // caller the exact opposite of the gate's actual state, and did it while
+    // `federalForm.usable` was false. Every field below moves to the refusing
+    // side, and the copy states the cause that actually closed the gate.
+    if (!federalForm.usable) {
+      const blockedLane = (note: string): IwoLane => ({
+        decision: "conditional_unresolved",
+        autoDecided: false,
+        note,
+      })
+      const gateNote =
+        "The federal Income Withholding for Support artifact is not available for distribution, so this lane is not resolved."
+      return {
+        countyId: input.countyId,
+        disposition: workflow.disposition,
+        pathDecision: "undetermined_manual_review",
+        requiresManualReview: true,
+        completed: false,
+        reasonCodes: ["federal_artifact_gate_closed"],
+        lanes: {
+          employerService: blockedLane(gateNote),
+          postServiceFiling: blockedLane(gateNote),
+          proposedOrder: blockedLane(gateNote),
+          noticeProof: blockedLane(gateNote),
+        },
+        federalForm,
+        copy: federalGateCopy(federalForm.blockers),
+        evidence: workflow.evidence,
+      }
+    }
+
     const lane = (note: string): IwoLane => ({
       decision: "statewide_default_serve_employer",
       autoDecided: false,
@@ -413,7 +459,9 @@ function composePacket(
         formId: IWO_FORM_ID,
         disposition: workflow.disposition,
         reasonCodes: [...new Set(reasonCodes)].sort(),
-        copy: countyAllows ? IWO_NEUTRAL_COPY.federal_gate_closed : IWO_NEUTRAL_COPY.will,
+        // A closed federal gate no longer borrows one fixed sentence: the
+        // deferred item states the cause that actually closed it.
+        copy: countyAllows ? federalGateCopy(federal.blockers) : IWO_NEUTRAL_COPY.will,
       },
     ],
   }
