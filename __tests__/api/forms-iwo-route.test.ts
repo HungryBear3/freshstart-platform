@@ -73,6 +73,10 @@ async function expectRefused(res: Response, expectedRefusal?: string) {
   expect(buf.includes(Buffer.from("%PDF"))).toBe(false);
   expect(buf.length).toBeLessThan(2000);
   expect(res.headers.get("Content-Type")).toMatch(/application\/json/);
+  // T-15 is E (403) / N (200): the 200 path already asserted `no-store`, the
+  // refusal path did not. A cached refusal is as much a correctness problem as
+  // a cached artifact — it can outlive the state that produced it.
+  expect(res.headers.get("Cache-Control")).toMatch(/no-store/);
   const body = await res.json();
   expect(body.available).toBe(false);
   if (expectedRefusal) expect(body.refusal).toBe(expectedRefusal);
@@ -167,8 +171,11 @@ describe("county substitution is impossible", () => {
 describe("closed states return 403 and zero PDF bytes", () => {
   it("missing case / no session", async () => {
     const handler = openHandler({ resolveCounty: failingResolver("no_authenticated_case") });
-    const body = await expectRefused(await handler(req()), "county_unknown_or_noncanonical");
+    const res = await handler(req());
+    const body = await expectRefused(res, "county_unknown_or_noncanonical");
     expect(body.countyResolution).toBe("no_authenticated_case");
+    // Stated explicitly for the unauthenticated case, not only via the helper.
+    expect(res.headers.get("Cache-Control")).toBe("no-store, max-age=0, must-revalidate");
   });
 
   it("no stored county", async () => {

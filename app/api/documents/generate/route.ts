@@ -24,6 +24,7 @@ import {
   type OfficialFormType,
 } from "@/lib/document-generation/official-forms";
 import { awardBadge } from "@/lib/badges/award-badge";
+import { identifiesIwo } from "@/lib/forms/iwo-package-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing required fields: questionnaireResponseId, documentType" },
         { status: 400 }
+      );
+    }
+
+    // ── Federal IWO containment ───────────────────────────────────────────────
+    // `documentType` is caller-controlled and is persisted verbatim onto
+    // `Document.type`, and the unallowlisted `default:` branch below will happily
+    // create a `ready` row for ANY value. A caller could therefore mint a row
+    // that `isIwoDocument` later classifies as the federal Income Withholding for
+    // Support form — a row the package guard would then have to withhold, and
+    // whose mere existence mislabels a text summary as a federal instrument.
+    //
+    // Rejected here, BEFORE any database write: no `Document` row, and no
+    // auto-created placeholder `FormTemplate` either. Deliberately NOT renamed
+    // to "summary" or any other type — a silent rename would hide from the
+    // caller that the request named an instrument this product does not produce.
+    //
+    // The predicate is imported, not re-implemented: a route-local regex would
+    // eventually accept an identity the packager withholds.
+    if (identifiesIwo(documentType)) {
+      return NextResponse.json(
+        {
+          error: "Unsupported document type",
+          documentType,
+          message:
+            "Fresh Start does not generate the federal Income Withholding for Support form (OMB 0970-0154). No document was created.",
+        },
+        { status: 403, headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } }
       );
     }
 

@@ -36,6 +36,11 @@ import {
   isCanonicalCountyId,
   type IwoDisposition,
 } from "@/lib/counties/county-iwo-workflow"
+import {
+  operativeRefusalCopy,
+  selectOperativeRefusal,
+  type IwoOperativeRefusal,
+} from "@/lib/forms/iwo-refusal-copy"
 
 /** Default location of the guarded artifact. Outside public/ by design. */
 export const GUARDED_ARTIFACT_DIR = path.join(process.cwd(), "private", "official-forms")
@@ -52,6 +57,13 @@ export interface IwoAvailability {
   /** True only when every gate is open. Fail-closed default. */
   available: boolean
   refusal: IwoAccessRefusal | null
+  /**
+   * Which federal-artifact cause actually closed the gate, when one did. This
+   * selects the user-visible copy; `refusal` remains the coarse identity that
+   * callers and snapshots report. Null for county refusals and for the open
+   * state.
+   */
+  operativeRefusal: IwoOperativeRefusal | null
   blockers: string[]
   disposition: IwoDisposition | null
   requiresManualReview: boolean
@@ -73,15 +85,33 @@ export interface GuardedArtifactInput {
   renewalEvidence?: IwoRenewalEvidence
 }
 
-const REFUSAL_COPY: Record<IwoAccessRefusal, string[]> = {
+/**
+ * Copy for the two COUNTY refusals. The federal-artifact refusal deliberately
+ * has no entry here: it no longer has one message. Its copy is selected from
+ * `lib/forms/iwo-refusal-copy` by the operative cause, because the single
+ * sentence that used to sit here asserted a renewal review for every cause and
+ * was untrue for a missing file, a byte mismatch, and a reached expiration.
+ */
+const COUNTY_REFUSAL_COPY: Record<
+  Exclude<IwoAccessRefusal, "federal_artifact_gate_closed">,
+  string[]
+> = {
   county_unknown_or_noncanonical: [
     "This form's handling depends on the county, and the county for this case has not been identified from the supported list. This item is set aside for manual review.",
   ],
   county_manual_conditional: IWO_NEUTRAL_COPY.will,
-  federal_artifact_gate_closed: [
-    "The federal Income Withholding for Support form (OMB 0970-0154) is not being offered right now. Its published information-collection approval is under renewal review, so Fresh Start is not distributing this version.",
-    "This is procedural information about the form's federal approval status, not legal advice.",
-  ],
+}
+
+/**
+ * Copy for a closed federal gate, chosen by the operative blocker.
+ *
+ * `selectOperativeRefusal` returns null only for a blocker outside
+ * `validateIwo`'s vocabulary, which it cannot produce — an invariant test pins
+ * that. If it ever did, this still refuses with zero bytes and says nothing
+ * untrue rather than borrowing another cause's message.
+ */
+function federalGateCopy(operative: IwoOperativeRefusal | null): string[] {
+  return operative === null ? [] : operativeRefusalCopy(operative)
 }
 
 /**
@@ -97,10 +127,11 @@ export function getIwoAvailability(input: GuardedArtifactInput): IwoAvailability
     return {
       available: false,
       refusal: "county_unknown_or_noncanonical",
+      operativeRefusal: null,
       blockers: ["county_unknown_or_noncanonical"],
       disposition: null,
       requiresManualReview: true,
-      copy: REFUSAL_COPY.county_unknown_or_noncanonical,
+      copy: COUNTY_REFUSAL_COPY.county_unknown_or_noncanonical,
       validation: null,
     }
   }
@@ -121,22 +152,25 @@ export function getIwoAvailability(input: GuardedArtifactInput): IwoAvailability
     return {
       available: false,
       refusal: "county_manual_conditional",
+      operativeRefusal: null,
       blockers: allBlockers,
       disposition: workflow.disposition,
       requiresManualReview: true,
-      copy: REFUSAL_COPY.county_manual_conditional,
+      copy: COUNTY_REFUSAL_COPY.county_manual_conditional,
       validation,
     }
   }
 
   if (validation.blockers.length > 0) {
+    const operative = selectOperativeRefusal(validation.blockers)
     return {
       available: false,
       refusal: "federal_artifact_gate_closed",
+      operativeRefusal: operative,
       blockers: allBlockers,
       disposition: workflow.disposition,
       requiresManualReview: false,
-      copy: REFUSAL_COPY.federal_artifact_gate_closed,
+      copy: federalGateCopy(operative),
       validation,
     }
   }
@@ -144,6 +178,7 @@ export function getIwoAvailability(input: GuardedArtifactInput): IwoAvailability
   return {
     available: true,
     refusal: null,
+    operativeRefusal: null,
     blockers: [],
     disposition: workflow.disposition,
     requiresManualReview: false,
@@ -161,7 +196,13 @@ export type GuardedArtifactRead =
       contentType: "application/pdf"
       filename: string
     }
-  | { allowed: false; refusal: IwoAccessRefusal; blockers: string[]; copy: string[] }
+  | {
+      allowed: false
+      refusal: IwoAccessRefusal
+      operativeRefusal: IwoOperativeRefusal | null
+      blockers: string[]
+      copy: string[]
+    }
 
 /**
  * Read the guarded artifact. Returns bytes ONLY when every gate is open;
@@ -173,6 +214,7 @@ export function readGuardedIwoArtifact(input: GuardedArtifactInput): GuardedArti
     return {
       allowed: false,
       refusal: availability.refusal!,
+      operativeRefusal: availability.operativeRefusal,
       blockers: availability.blockers,
       copy: availability.copy,
     }
@@ -190,8 +232,11 @@ export function readGuardedIwoArtifact(input: GuardedArtifactInput): GuardedArti
     return {
       allowed: false,
       refusal: "federal_artifact_gate_closed",
+      // The bytes on disk changed under us between validation and read. That is
+      // exactly the provenance case, and its copy says so.
+      operativeRefusal: "federal_artifact_provenance_failed",
       blockers: ["invalid_federal_iwo_provenance"],
-      copy: REFUSAL_COPY.federal_artifact_gate_closed,
+      copy: operativeRefusalCopy("federal_artifact_provenance_failed"),
     }
   }
 
