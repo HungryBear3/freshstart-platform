@@ -7,12 +7,12 @@
 
 ## VERDICT: LOCAL CANDIDATE ONLY — RELEASE HELD FOR EXACT-SHA ACCEPTANCE
 
-### Amendment 2, 2026-09-01 — this commit
+### Amendment 2, 2026-09-01 — commit `0f0e371dcb41576136a053b979736160fc65fbf2`
 
 Applied on top of the reviewed commit `f2a233043500936a64db0d0a6dfd1270dae69a8c`
 (tree `8b6986ac45a899739094645e6142a8ca35ca216d`) as a **new commit**; that
 commit was not reset, rebased, amended, squashed, or rewritten, and remains in
-this branch's history.
+this branch's history. Later commits may sit on top of `0f0e371` — see §1.
 
 Closes the three in-branch items in the frozen review
 `handoffs/cc-reviews-20260901/fs-pr2a-f2a2330-review.md`
@@ -53,32 +53,45 @@ report does not claim it is. See §7.
 
 ## 1. Identity
 
-|                   |                                                                       |
-| ----------------- | --------------------------------------------------------------------- |
-| Repository        | `https://github.com/HungryBear3/freshstart-platform.git`              |
-| Exact base commit | `c84e9a7cfb09a4e6aa68906383afa578e9691ce2`                            |
-| Exact base tree   | `3593f2c53315c6efe69162902df4ecc31262cd60`                            |
-| Branch            | `cc/fs-iwo-pr2a-omb-transition-20260901`                              |
-| Worktree          | `/Users/abigailclaw/cc-worktrees/fs-iwo-pr2a-omb-transition-20260901` |
-| Parent commit     | `f2a233043500936a64db0d0a6dfd1270dae69a8c`                            |
-| Parent tree       | `8b6986ac45a899739094645e6142a8ca35ca216d`                            |
-| Final commit      | see note below                                                        |
-| Final tree        | see note below                                                        |
+|                    |                                                                       |
+| ------------------ | --------------------------------------------------------------------- |
+| Repository         | `https://github.com/HungryBear3/freshstart-platform.git`              |
+| Exact base commit  | `c84e9a7cfb09a4e6aa68906383afa578e9691ce2`                            |
+| Exact base tree    | `3593f2c53315c6efe69162902df4ecc31262cd60`                            |
+| Branch             | `cc/fs-iwo-pr2a-omb-transition-20260901`                              |
+| Worktree           | `/Users/abigailclaw/cc-worktrees/fs-iwo-pr2a-omb-transition-20260901` |
+| Amendment 2 commit | `0f0e371dcb41576136a053b979736160fc65fbf2`                            |
+| Amendment 2 parent | `f2a233043500936a64db0d0a6dfd1270dae69a8c` (tree `8b6986ac…`)         |
+| Current HEAD/tree  | reproduce from Git — see note below                                   |
 
-**On the final commit/tree identities.** This report is itself inside the commit,
-so it cannot state its own commit or tree hash — writing either value in would
-change both. The exact final identities are emitted by the terminal handoff
-summary that accompanies this report, and are reproducible at any time with:
+**On the current commit/tree identities.** This report is itself inside the
+commit, so it cannot state its own commit or tree hash — writing either value in
+would change both. Each commit's identities are emitted by the terminal handoff
+summary that accompanied it, and the current ones are reproducible at any time
+with:
 
 ```
 git -C /Users/abigailclaw/cc-worktrees/fs-iwo-pr2a-omb-transition-20260901 rev-parse HEAD HEAD^{tree}
 ```
 
-The branch now has exactly **two** commits on top of the pinned base — the
-reviewed `f2a2330` and this amendment on top of it. `f2a2330` was not reset,
-rebased, amended, squashed, or rewritten;
-`git rev-list --count c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD` is `2`, and
-`git rev-parse HEAD^` is `f2a233043500936a64db0d0a6dfd1270dae69a8c`.
+The reviewed commit `f2a233043500936a64db0d0a6dfd1270dae69a8c` remains in this
+branch's history. It was not reset, rebased, amended, squashed, or rewritten, and
+neither was any commit built on it.
+
+This report deliberately does **not** state how long the branch currently is or
+what the current `HEAD`'s parent is. Both are facts about the branch at the
+moment you read it, and a report that lives inside the branch cannot state them
+without invalidating itself the instant it is committed — which is exactly what
+happened to the count this paragraph replaces. Reproduce them from Git instead:
+
+```
+git rev-list --count c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD
+git log --format='%H %P' c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD
+```
+
+The second command prints each commit with its parent, so the chain back to the
+pinned base — and the presence and position of `f2a2330` in it — is verifiable
+directly rather than taken from this document.
 
 ### Preflight gates — all passed before any edit
 
@@ -104,7 +117,7 @@ rebased, amended, squashed, or rewritten;
 
 ## 2. Changed files and diffstat
 
-Cumulative, base → this commit:
+Cumulative, base → `0f0e371` (the last commit that changed code or evidence):
 
 ```
  __tests__/api/documents-package-iwo.test.ts        |   5 +-
@@ -121,7 +134,7 @@ Cumulative, base → this commit:
  11 files changed, 1490 insertions(+), 80 deletions(-)
 ```
 
-This amendment alone, `f2a2330` → this commit:
+Amendment 2 alone, `f2a2330` → `0f0e371`:
 
 ```
  .../lib/counties/will-iwo-conditional.test.ts      |   6 +-
@@ -411,7 +424,7 @@ destructive action occurred.**
 - Writes were confined to the new isolated worktree. The primary checkout and
   every other existing worktree were left untouched (`node_modules` was read
   through a symlink; no tracked file in another worktree was read or written).
-- Two local commits on the branch; both local only.
+- All commits on this branch remain local only.
 - No network retrieval of official sources was performed by this session.
 
 ## 9. Open items for the owner
