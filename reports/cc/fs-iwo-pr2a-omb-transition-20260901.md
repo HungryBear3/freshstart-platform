@@ -5,22 +5,46 @@
 **Ownership:** ABBY OWNER RETAINS
 **Overlap key:** `fs:iwo-pr2a-omb-transition`
 
-## VERDICT: LOCAL CANDIDATE ONLY — RELEASE BLOCKED
+## VERDICT: LOCAL CANDIDATE ONLY — RELEASE HELD FOR EXACT-SHA ACCEPTANCE
 
-### Amendment, 2026-09-01
+### Amendment 2, 2026-09-01 — this commit
 
-This commit supersedes `bc450e83594d1df17cccddea8e25dca3ca2634cd`
-(tree `021a0b46c1fe8b04056b8f18dffefbbf7f4485cb`), which is retired and must not
-be reviewed. Four owner-required changes were applied and the full gate set
-re-run:
+Applied on top of the reviewed commit `f2a233043500936a64db0d0a6dfd1270dae69a8c`
+(tree `8b6986ac45a899739094645e6142a8ca35ca216d`) as a **new commit**; that
+commit was not reset, rebased, amended, squashed, or rewritten, and remains in
+this branch's history.
 
-1. `legacyTransitionEnd` renamed to `legacyTransitionFirstBlockedDate`, with the
-   derived surfaced names aligned to the same semantics (§3).
-2. The `federal_form_authority_expired` first paragraph replaced with the safer
-   conduct-only sentence, pinned by exact-copy tests (§3).
-3. The three files this slice creates are now Prettier-clean; the repo-wide count
-   returns to the base's 524, a zero delta (§5).
-4. All gates re-run against the amended tree (§5).
+Closes the three in-branch items in the frozen review
+`handoffs/cc-reviews-20260901/fs-pr2a-f2a2330-review.md`
+(SHA-256 `93af8cb97fbe7f3e260299bb07b24959ffb3ff96094ea789be6c6b3327659004`),
+against the frozen acceptance sheet
+`fs-pr2a-frozen-sha-acceptance.md`
+(SHA-256 `4d31ddc01fc86b7770a2ade90a79268e687a4a53b9e2cb881df0d27dd72044b4`):
+
+1. **Acceptance-sheet name set finished** — `printedLegacyPdfDate`,
+   `collectionApprovalExpiresOn`, `legacyTransitionFirstBlockedDate`. No
+   ambiguous public alias is retained and no compatibility mapping was needed
+   (§3).
+2. **Stale contradictory comment block removed** from
+   `lib/forms/iwo-refusal-copy.ts` — the paragraph that still asserted the
+   retired authorization-period sentence "remains accurate" and "required no
+   edit". The truthful supersession block and the renewal-pending explanation are
+   kept (§3).
+3. **Artifact-gate status corrected** — the 2026-09-01 `HTTP 200` queryless ACF
+   retrieval is recorded, and the report no longer says the branch-cut retrieval
+   is outstanding (§7).
+
+Review item 4 (the durable copy-approval ledger) was **deliberately not done in
+this branch**: see §9.3.
+
+### Amendment 1, 2026-09-01
+
+`f2a2330` superseded `bc450e83594d1df17cccddea8e25dca3ca2634cd`
+(tree `021a0b46c1fe8b04056b8f18dffefbbf7f4485cb`) — retired, do not review. It
+renamed `legacyTransitionEnd` to `legacyTransitionFirstBlockedDate` with the
+derived names aligned, replaced the `federal_form_authority_expired` first
+paragraph with the conduct-only sentence pinned by exact-copy tests, and made the
+three files this slice creates Prettier-clean (repo-wide back to the base's 524).
 
 The code is complete and green locally. It is **not** release-ready, and this
 report does not claim it is. See §7.
@@ -36,6 +60,8 @@ report does not claim it is. See §7.
 | Exact base tree   | `3593f2c53315c6efe69162902df4ecc31262cd60`                            |
 | Branch            | `cc/fs-iwo-pr2a-omb-transition-20260901`                              |
 | Worktree          | `/Users/abigailclaw/cc-worktrees/fs-iwo-pr2a-omb-transition-20260901` |
+| Parent commit     | `f2a233043500936a64db0d0a6dfd1270dae69a8c`                            |
+| Parent tree       | `8b6986ac45a899739094645e6142a8ca35ca216d`                            |
 | Final commit      | see note below                                                        |
 | Final tree        | see note below                                                        |
 
@@ -48,9 +74,11 @@ summary that accompanies this report, and are reproducible at any time with:
 git -C /Users/abigailclaw/cc-worktrees/fs-iwo-pr2a-omb-transition-20260901 rev-parse HEAD HEAD^{tree}
 ```
 
-The branch has exactly one commit on top of the pinned base, so
-`git rev-parse cc/fs-iwo-pr2a-omb-transition-20260901` is that commit and
-`git rev-list --count c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD` is `1`.
+The branch now has exactly **two** commits on top of the pinned base — the
+reviewed `f2a2330` and this amendment on top of it. `f2a2330` was not reset,
+rebased, amended, squashed, or rewritten;
+`git rev-list --count c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD` is `2`, and
+`git rev-parse HEAD^` is `f2a233043500936a64db0d0a6dfd1270dae69a8c`.
 
 ### Preflight gates — all passed before any edit
 
@@ -76,21 +104,35 @@ The branch has exactly one commit on top of the pinned base, so
 
 ## 2. Changed files and diffstat
 
+Cumulative, base → this commit:
+
 ```
  __tests__/api/documents-package-iwo.test.ts        |   5 +-
- __tests__/api/forms-iwo-route.test.ts              |  39 ++-
- __tests__/lib/counties/will-iwo-conditional.test.ts|  127 ++++++--
- __tests__/lib/forms/iwo-omb-transition.test.ts     | 334 +++++++++++++++++++++
- __tests__/lib/forms/iwo-refusal-copy.test.ts       |   8 +-
- docs/legal-audit/iwo-omb-renewal-transition-2026-09-01.md | 234 +++++++++++++
+ __tests__/api/forms-iwo-route.test.ts              |  39 +-
+ .../lib/counties/will-iwo-conditional.test.ts      | 127 +++++--
+ __tests__/lib/forms/iwo-omb-transition.test.ts     | 413 ++++++++++++++++++++
+ __tests__/lib/forms/iwo-refusal-copy.test.ts       |  23 +-
+ .../iwo-omb-renewal-transition-2026-09-01.md       | 260 +++++++++++++
  lib/counties/county-iwo-workflow.ts                |  10 +-
- lib/forms/iwo-provenance.ts                        | 184 ++++++++++--
- lib/forms/iwo-refusal-copy.ts                      |  25 ++
+ lib/forms/iwo-provenance.ts                        | 203 ++++++++--
+ lib/forms/iwo-refusal-copy.ts                      |  44 ++-
  lib/forms/official-artifact-access.ts              |  31 +-
- 10 files changed, 922 insertions(+), 75 deletions(-)
+ reports/cc/fs-iwo-pr2a-omb-transition-20260901.md  | 415 +++++++++++++++++++++
+ 11 files changed, 1490 insertions(+), 80 deletions(-)
 ```
 
-Plus this report (`reports/cc/fs-iwo-pr2a-omb-transition-20260901.md`).
+This amendment alone, `f2a2330` → this commit:
+
+```
+ .../lib/counties/will-iwo-conditional.test.ts      |   6 +-
+ __tests__/lib/forms/iwo-omb-transition.test.ts     |  28 ++--
+ .../iwo-omb-renewal-transition-2026-09-01.md       |  41 ++++--
+ lib/forms/iwo-provenance.ts                        |  50 ++++---
+ lib/forms/iwo-refusal-copy.ts                      |  21 +--
+ lib/forms/official-artifact-access.ts              |   4 +-
+ reports/cc/fs-iwo-pr2a-omb-transition-20260901.md  | 148 +++++++++++++++------
+ 7 files changed, 193 insertions(+), 105 deletions(-)
+```
 
 Every path is inside the allowlist. No file outside it was modified. **No
 dependency, Prisma/database, `public/forms`, PDF artifact, mapping, unrelated
@@ -103,9 +145,19 @@ operative cutoff. It is retired and split:
 
 | Fact                                | Field                              | Value        | Governs                                                              |
 | ----------------------------------- | ---------------------------------- | ------------ | -------------------------------------------------------------------- |
-| Printed legacy-PDF date             | `printedExpirationDate`            | `2026-08-31` | Nothing — display metadata                                           |
-| OIRA collection approval expiration | `collectionApprovalExpiration`     | `2029-08-31` | When a renewal review is next due                                    |
+| Printed legacy-PDF date             | `printedLegacyPdfDate`             | `2026-08-31` | Nothing — display metadata                                           |
+| OIRA collection approval expiration | `collectionApprovalExpiresOn`      | `2029-08-31` | When a renewal review is next due                                    |
 | Legacy-form transition end          | `legacyTransitionFirstBlockedDate` | `2027-08-25` | **The operative cutoff**, whole-day fail closed in `America/Chicago` |
+
+**The public vocabulary is exactly these three names**, per the frozen acceptance
+sheet §5. No ambiguous alias survives anywhere — provenance, validation, reporting
+output, docs, tests, and this report all use them. No internal compatibility
+mapping was introduced, because no real contract required one: every consumer of
+the retired names is inside this allowlist. `PINNED_OIRA_APPROVAL` previously
+carried the same 2029 date under a second name (`collectionExpiration`); it now
+uses `collectionApprovalExpiresOn` too, so one fact has one name. The Notice of
+Action prints that date under the label "Expiration"; the field comment records
+that without reproducing the ambiguous label as an identifier.
 
 The cutoff field is named **first blocked date**, not "end": an "end date" reads
 as either the last allowed day or the first disallowed one, and a gate cannot be
@@ -113,9 +165,10 @@ ambiguous about which. The last ALLOWED day is `2027-08-24`; the last allowed
 instant is `2027-08-25T04:59:59.999Z`. The derived surfaces carry the same
 semantics — `IwoValidation.legacyTransitionBlocked` and
 `IwoValidation.daysToLegacyTransitionFirstBlockedDate` — and
-`describeIwoProvenance()` surfaces `printedLegacyFormDate`,
-`collectionApprovalExpiration`, `legacyTransitionFirstBlockedDate`, and
-`transitionTimeZone`.
+`describeIwoProvenance()` surfaces `printedLegacyPdfDate`,
+`collectionApprovalExpiresOn`, `legacyTransitionFirstBlockedDate`,
+`transitionTimeZone`, `oiraApproval`, and `renewal`, with no single ambiguous
+`expiration` key.
 
 Pinned in `PINNED_OIRA_APPROVAL`: ICR `202607-0970-002`, action
 `approved_without_change`, approval date `2026-08-25`, collection expiration
@@ -211,7 +264,7 @@ is not a legal-acceptance conclusion.
 | Focused, serial    | `jest --runInBand` × 6 suites | **6 suites / 291 tests passed**, exit 0                                                               |
 | Full suite, normal | `jest`                        | **62 passed, 5 skipped of 67 suites; 875 passed, 34 skipped of 909 tests**, exit 0                    |
 | Full suite, serial | `jest --runInBand`            | **62 passed, 5 skipped of 67 suites; 875 passed, 34 skipped of 909 tests**, exit 0                    |
-| Production build   | `next build`                  | **exit 0**                                                                                            |
+| Production build   | `next build`                  | **exit 0**, 126/126 static pages                                                                      |
 | Type check         | `tsc --noEmit`                | **exit 0, zero errors**                                                                               |
 | Lint               | `eslint .`                    | 560 problems (398 errors, 162 warnings) — **identical at base and on the candidate**; zero regression |
 | Format             | `prettier --check .`          | 524 dirty files at base → **524** on the candidate; **zero delta**                                    |
@@ -244,6 +297,12 @@ stashed, to separate pre-existing failure from regression:
 - Prettier: **all nine** pre-existing allowlisted files were already
   Prettier-dirty at the base commit and are left exactly as they were. Repo-wide
   the candidate is **524 dirty files, the same as base — zero delta.**
+
+Scoped format check on every file this amendment touched: the four pre-existing
+allowlisted files (`iwo-provenance.ts`, `iwo-refusal-copy.ts`,
+`official-artifact-access.ts`, `will-iwo-conditional.test.ts`) remain dirty
+exactly as they were at base and were **not** reformatted; the report was
+re-formatted after editing, so all three slice-created files stay clean.
 
 The three files this slice _creates_ are Prettier-clean:
 `__tests__/lib/forms/iwo-omb-transition.test.ts`,
@@ -292,27 +351,50 @@ carries changing view-state, so repeated GETs of unchanged records yield
 different whole-body hashes.
 
 The overlay explicitly states that the later WAF response **does not disprove**
-the earlier exact PDF retrieval, and equally that it is not a substitute for a
-fresh one.
+the earlier exact PDF retrieval, and records the 2026-09-01 `HTTP 200` retrieval
+receipt that discharges the fresh-retrieval gate.
 
-## 7. Release blocker
+## 7. Artifact-gate status and residual release gates
 
-The latest ACF request hit an **AWS WAF challenge (`HTTP 202`, zero PDF bytes)**.
-That does not block creating this local candidate from the pinned evidence, and
-it does not disprove the earlier `HTTP 200` / `application/pdf` retrieval.
+### The branch-cut artifact evidence is SATISFIED
 
-It **does** block any claim that this branch is release-ready.
+The fresh exact-retrieval blocker recorded against the first candidate is
+**cleared**. An official queryless ACF retrieval was performed on 2026-09-01 at
+approximately 12:00 CDT, after `bc450e8`:
 
-> **LOCAL CANDIDATE ONLY / RELEASE BLOCKED**, pending either a fresh
-> `HTTP 200` `application/pdf` retrieval whose bytes reproduce
-> `2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551` at 505,412
-> bytes, or a newly reviewed official replacement packet that changes the
-> evidence.
+- URL `https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1`
+- **`HTTP 200`**, `Content-Type: application/pdf`
+- **505,412 bytes**
+- SHA-256 **`2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551`**
+- Exact match to the pinned 4-page, 112-field legacy ACF artifact.
 
-No live ACF retrieval was attempted from this session; the pinned evidence in
-`SOURCE-PACKET.md` was used as supplied. The branch-cut retrieval named in the
-packet's §5 checklist therefore remains **outstanding** and is the owner's to
-run.
+Receipt of record:
+`handoffs/cc-reviews-20260901/fs-acf-retrieval-receipt-20260901.md`.
+
+**The branch-cut retrieval named in the packet's §5 checklist is therefore no
+longer outstanding.** Earlier text in this report that said otherwise was written
+before the retrieval existed and is retired.
+
+### The later WAF challenges do not undo it
+
+Two subsequent checks — including the independent review after `f2a2330` —
+returned the **AWS WAF `HTTP 202` challenge with zero PDF bytes**. A WAF
+interstitial is a statement about the request, not about the document. It does
+**not** invalidate the captured `HTTP 200` branch-cut evidence above, and this
+report does not treat it as doing so. Equally, the challenge is not itself
+evidence of continuity: the receipt above is what discharges that gate.
+
+### What release is still held on
+
+> **LOCAL CANDIDATE ONLY / RELEASE HELD** — not for want of artifact evidence,
+> but pending independent exact-SHA acceptance of this tree and the later
+> explicit release gates (push/PR, Preview and live-like smokes, merge,
+> Production). Those are gates 2–6 of the packet's §7 and none of them is
+> satisfied by this commit.
+
+The artifact gate would re-open only if ACF bytes drift: the exact hash gate
+refuses on drift by design, and the response is to investigate and prepare PR-2B
+or a new evidence repin — never an auto-update.
 
 Rollback is code-only and immediate: revert this commit and the released baseline
 resumes refusing the IWO for every county. No data migration or artifact
@@ -337,12 +419,16 @@ destructive action occurred.**
 1. **Adopt or correct `2027-08-25`.** It is a conservative derivation, not a
    published ACF date. This is approval gate 1 in the packet and it is not
    satisfied by this commit.
-2. **Run the branch-cut ACF retrieval** (§7). Until it returns `HTTP 200` and the
-   pinned hash, this stays release-blocked.
-3. **Log the copy re-approval.** The `federal_form_authority_expired` first
-   paragraph was replaced on owner instruction (§3). It needs recording against
-   `OWNER-COPY-APPROVAL-20260824.md`; the module header carries the supersession
-   and its reason inline.
+2. ~~Run the branch-cut ACF retrieval.~~ **Done** — `HTTP 200`, exact pinned hash
+   and length, 2026-09-01 (§7). No longer an open item.
+3. **Log the copy re-approval — SEPARATE OWNER-DOC STEP, deliberately not done
+   here.** The `federal_form_authority_expired` first paragraph was replaced on
+   owner instruction of 2026-09-01 (§3). The durable ledger
+   `OWNER-COPY-APPROVAL-20260824.md` is **outside this branch's allowlist**, and
+   this branch was not widened to reach it. The supersession, the retired
+   sentence, and the reason are recorded inline in the
+   `lib/forms/iwo-refusal-copy.ts` header and in §3 of this report, so the
+   owner-doc update has its exact source text. It remains an open owner action.
 4. **Decide on the pre-existing lint/format state** (§5). The nine untouched
    allowlisted files are still Prettier-dirty, exactly as at base.
 5. `IWO_PROVENANCE.canonicalUrl` still points at the `acf.hhs.gov` host, while

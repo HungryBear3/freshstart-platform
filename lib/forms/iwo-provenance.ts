@@ -29,9 +29,9 @@
  *      DIFFERENT facts are now modelled under three different names, because
  *      collapsing them into one date is what made the gate refuse for a reason
  *      that had stopped being true:
- *        - `printedExpirationDate` (2026-08-31) — the date printed on the
+ *        - `printedLegacyPdfDate` (2026-08-31) — the date printed on the
  *          legacy PDF. DISPLAY METADATA. Never an operative cutoff.
- *        - `collectionApprovalExpiration` (2029-08-31) — OIRA's expiration for
+ *        - `collectionApprovalExpiresOn` (2029-08-31) — OIRA's expiration for
  *          information collection 0970-0154. Governs when a renewal review is
  *          next due. It NEVER authorizes the legacy artifact.
  *        - `legacyTransitionFirstBlockedDate` (2027-08-25) — the FIRST Chicago
@@ -103,10 +103,10 @@ export const IWO_PROVENANCE = {
    * precisely because readers were treating a printed date as a termination
    * date; FreshStart made the same mistake in code. The artifact's authority is
    * `legacyTransitionFirstBlockedDate`; the collection's approval is
-   * `collectionApprovalExpiration`. This value is carried so provenance
+   * `collectionApprovalExpiresOn`. This value is carried so provenance
    * reporting can still say what the paper in hand says.
    */
-  printedExpirationDate: '2026-08-31',
+  printedLegacyPdfDate: '2026-08-31',
   /**
    * OIRA's expiration for information collection 0970-0154, from the pinned
    * Notice of Action (see PINNED_OIRA_APPROVAL).
@@ -116,7 +116,7 @@ export const IWO_PROVENANCE = {
    * distributed: an approval that runs to 2029 does not extend a legacy print
    * whose transition period ends in 2027.
    */
-  collectionApprovalExpiration: '2029-08-31',
+  collectionApprovalExpiresOn: '2029-08-31',
   /**
    * THE OPERATIVE CUTOFF, and the FIRST BLOCKED DAY — not the last allowed one.
    * The gate fails closed on and after this Chicago calendar date, for the whole
@@ -142,7 +142,7 @@ export const IWO_PROVENANCE = {
   // below. Keeping it in one place prevents a caller or a stale copy from
   // disagreeing with the evidence of record.
   //
-  // The window is measured against `collectionApprovalExpiration`, because that
+  // The window is measured against `collectionApprovalExpiresOn`, because that
   // is the date a renewal review actually concerns. Measuring it against the
   // legacy transition end would raise "renewal review pending" while renewal is
   // confirmed — the exact untruth PR-1 removed from the copy.
@@ -163,8 +163,16 @@ export interface IwoOiraApproval {
   action: 'approved_without_change'
   /** OIRA conclusion date. */
   approvalDate: string
-  /** Expiration OIRA set for the COLLECTION (not for this legacy artifact). */
-  collectionExpiration: string
+  /**
+   * The date OIRA set for the COLLECTION — not for this legacy artifact.
+   *
+   * Named to match `IWO_PROVENANCE.collectionApprovalExpiresOn` exactly: this is
+   * the same date, and one vocabulary for one fact is the whole point of PR-2A.
+   * The Notice of Action itself prints it under the label "Expiration"; that
+   * label is not reproduced as a field name, because a bare "expiration" next to
+   * a legacy print is the ambiguity this module exists to remove.
+   */
+  collectionApprovalExpiresOn: string
   noticeOfActionUrl: string
   noticeOfActionSha256: string
   noticeOfActionBytes: number
@@ -174,9 +182,15 @@ export interface IwoOiraApproval {
 
 export const PINNED_OIRA_APPROVAL: IwoOiraApproval = {
   icrReferenceNumber: '202607-0970-002',
+  /**
+   * The ICR ACTION OIRA recorded. It is NOT a statement that the legacy PDF's
+   * bytes are approved through `collectionApprovalExpiresOn`: it describes what
+   * OIRA did with the information collection. The legacy print's own window is
+   * `IWO_PROVENANCE.legacyTransitionFirstBlockedDate`.
+   */
   action: 'approved_without_change',
   approvalDate: '2026-08-25',
-  collectionExpiration: '2029-08-31',
+  collectionApprovalExpiresOn: '2029-08-31',
   noticeOfActionUrl: 'https://www.reginfo.gov/public/do/DownloadNOA?requestID=1826353',
   noticeOfActionSha256: 'c2b68202cf4741b0f0a811457e40e6470b1fadce4a3a2f781e5dcb6b2c0df652',
   noticeOfActionBytes: 97827,
@@ -243,8 +257,8 @@ export interface IwoValidation {
   legacyTransitionBlocked: boolean
   /** Whole days from today (Chicago) to `legacyTransitionFirstBlockedDate`. Negative after. */
   daysToLegacyTransitionFirstBlockedDate: number | null
-  /** Whole days from today (Chicago) to `collectionApprovalExpiration`. */
-  daysToCollectionApprovalExpiration: number | null
+  /** Whole days from today (Chicago) to `collectionApprovalExpiresOn`. */
+  daysToCollectionApprovalExpiresOn: number | null
   renewalReviewDue: boolean
   blockers: string[]
 }
@@ -262,7 +276,7 @@ export function validateIwo(
     blockers.push('missing_federal_iwo')
     return { present: false, sha256: null, sha256Match: false, bytes: null, bytesMatch: false,
       provenanceValid: false, legacyTransitionBlocked: false, daysToLegacyTransitionFirstBlockedDate: null,
-      daysToCollectionApprovalExpiration: null, renewalReviewDue: true, blockers }
+      daysToCollectionApprovalExpiresOn: null, renewalReviewDue: true, blockers }
   }
   const buf = fs.readFileSync(p)
   const sha256 = crypto.createHash('sha256').update(buf).digest('hex')
@@ -276,8 +290,8 @@ export function validateIwo(
   //
   // Read this next line carefully before changing it. The operative cutoff is
   // `legacyTransitionFirstBlockedDate` and nothing else. It is deliberately NOT
-  // `printedExpirationDate` (that date is on the paper, not in the authority)
-  // and deliberately NOT `collectionApprovalExpiration` (a collection approved
+  // `printedLegacyPdfDate` (that date is on the paper, not in the authority)
+  // and deliberately NOT `collectionApprovalExpiresOn` (a collection approved
   // through 2029 does not license a legacy print through 2029). Substituting
   // either one re-opens a defect: the printed date refuses while the form is
   // still distributable, the collection expiration serves it long after it is
@@ -287,9 +301,9 @@ export function validateIwo(
     localDate,
     IWO_PROVENANCE.legacyTransitionFirstBlockedDate,
   )
-  const daysToCollectionApprovalExpiration = wholeDaysBetweenDates(
+  const daysToCollectionApprovalExpiresOn = wholeDaysBetweenDates(
     localDate,
-    IWO_PROVENANCE.collectionApprovalExpiration,
+    IWO_PROVENANCE.collectionApprovalExpiresOn,
   )
   const legacyTransitionBlocked = localDate >= IWO_PROVENANCE.legacyTransitionFirstBlockedDate
   if (legacyTransitionBlocked) blockers.push('federal_iwo_expired')
@@ -301,10 +315,10 @@ export function validateIwo(
   // legacy print is running out. That refusal has its own code and its own copy.
   const renewalReviewDue =
     renewal.status !== 'confirmed' ||
-    daysToCollectionApprovalExpiration <= IWO_PROVENANCE.renewalReviewWindowDays
+    daysToCollectionApprovalExpiresOn <= IWO_PROVENANCE.renewalReviewWindowDays
   if (renewalReviewDue && !legacyTransitionBlocked) blockers.push('omb_renewal_review_pending')
   return { present: true, sha256, sha256Match, bytes: buf.length, bytesMatch, provenanceValid,
-    legacyTransitionBlocked, daysToLegacyTransitionFirstBlockedDate, daysToCollectionApprovalExpiration,
+    legacyTransitionBlocked, daysToLegacyTransitionFirstBlockedDate, daysToCollectionApprovalExpiresOn,
     renewalReviewDue, blockers }
 }
 

@@ -133,12 +133,28 @@ Two things must both be said, and neither may be dropped:
 
 1. That transient challenge **does not disprove** the earlier exact-byte
    retrieval in §3.3. A WAF interstitial is not evidence about the document.
-2. It is **not a substitute for a fresh retrieval either.** PR-2A must not be
-   released unless a fresh GET again returns `HTTP 200`, `application/pdf`, and
-   the exact pinned hash and length — or a newly reviewed official replacement
-   packet changes the evidence.
+2. It is **not a substitute for a fresh retrieval either.** That gate needed an
+   actual `HTTP 200` — and it has one, below.
 
 The Illinois link alone is **not** byte-continuity proof.
+
+### 3.4.1 Fresh retrieval of record — gate discharged (2026-09-01, ~12:00 CDT)
+
+An official queryless retrieval returned:
+
+- URL `https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1`
+- `HTTP 200`, `Content-Type: application/pdf`
+- 505,412 bytes
+- SHA-256 `2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551`
+- Exact match to the pinned 4-page, 112-field legacy ACF artifact.
+
+Receipt: `handoffs/cc-reviews-20260901/fs-acf-retrieval-receipt-20260901.md`.
+
+Two later checks returned the WAF `HTTP 202` challenge again. Ordering matters
+and is recorded deliberately: the `HTTP 200` above is the evidence of record, and
+a subsequent interstitial does not retract it. This discharges the
+fresh-exact-retrieval blocker **only**; it authorizes no code acceptance, merge,
+deployment, Production, customer, provider, or court action.
 
 ### 3.5 The revised successor is DOCX-only — do not ship it
 
@@ -191,13 +207,13 @@ Federal renewal changes nothing about the direct clerk evidence. Will remains
 ## 4. What PR-2A changed in code
 
 - `lib/forms/iwo-provenance.ts` — the single `expiration` field is retired and
-  replaced by `printedExpirationDate`, `collectionApprovalExpiration`, and
+  replaced by `printedLegacyPdfDate`, `collectionApprovalExpiresOn`, and
   `legacyTransitionFirstBlockedDate`. `PINNED_OIRA_APPROVAL` pins the ICR, action, approval
   date, collection expiration, and the NOA URL/hash/length.
   `PINNED_RENEWAL_EVIDENCE` moves to `confirmed`, reviewed 2026-09-01. The
   operative cutoff is `legacyTransitionFirstBlockedDate`, evaluated as a whole
   America/Chicago calendar day, fail closed. The renewal-review window is
-  measured against `collectionApprovalExpiration`, so a confirmed renewal is
+  measured against `collectionApprovalExpiresOn`, so a confirmed renewal is
   never reported as pending.
 - `lib/forms/official-artifact-access.ts` — gate documentation corrected;
   `describeIwoProvenance()` surfaces the three dates under three distinct names
@@ -229,12 +245,15 @@ Federal renewal changes nothing about the direct clerk evidence. Will remains
 
 ## 6. Release gate
 
-Even a green local candidate is **RELEASE BLOCKED** until either:
+The fresh-exact-retrieval condition is **satisfied** as of 2026-09-01 (§3.4.1).
 
-1. a fresh ACF retrieval returns `HTTP 200`, `application/pdf`, and reproduces
-   `2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551` at
-   505,412 bytes; or
-2. a newly reviewed official replacement packet changes the evidence above.
+A green local candidate nonetheless remains **RELEASE HELD**, now for the
+remaining process gates rather than for artifact evidence: independent exact-SHA
+acceptance of the candidate tree, then push/PR, Preview and live-like smokes,
+merge, and the Production decision. Each is a separate explicit approval.
+
+If ACF bytes drift, the exact hash gate refuses by design — investigate and
+prepare PR-2B or a new evidence repin. Never auto-update.
 
 Rollback is code-only: reverting PR-2A restores the released baseline, which
 refuses the IWO for every county. No data migration or artifact replacement is

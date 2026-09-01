@@ -273,9 +273,9 @@ export function describeIwoProvenance() {
     ombNumber: IWO_PROVENANCE.ombNumber,
     provenanceClass: IWO_PROVENANCE.provenanceClass,
     /** What the legacy PDF has printed on it. Display metadata; gates nothing. */
-    printedLegacyFormDate: IWO_PROVENANCE.printedExpirationDate,
+    printedLegacyPdfDate: IWO_PROVENANCE.printedLegacyPdfDate,
     /** OIRA's expiration for the information collection. Never an authority to distribute. */
-    collectionApprovalExpiration: IWO_PROVENANCE.collectionApprovalExpiration,
+    collectionApprovalExpiresOn: IWO_PROVENANCE.collectionApprovalExpiresOn,
     /** The operative cutoff for distributing this legacy print. */
     legacyTransitionFirstBlockedDate: IWO_PROVENANCE.legacyTransitionFirstBlockedDate,
     /** The whole-day, fail-closed evaluation zone for the cutoff above. */

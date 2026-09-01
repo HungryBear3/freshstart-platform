@@ -40,26 +40,19 @@
  * carries no filesystem, county, or policy logic, so both the access boundary
  * and the county workflow can import it without a cycle.
  *
- * PR-2A (2026-09-01) — what the two authority codes now MEAN. No approved
- * string changed; the strings were written to describe Fresh Start's own
- * conduct, and they remain true under the corrected evidence model. What
- * changed is which fact reaches them:
+ * PR-2A (2026-09-01) — which fact now reaches each authority code:
  *
- *   `federal_form_authority_expired` — "the period Fresh Start is authorized to
- *   distribute the selected version has ended" is now driven by
- *   `IWO_PROVENANCE.legacyTransitionFirstBlockedDate`, the first day the legacy
- *   print may no longer be distributed. It
- *   was previously driven by the date printed on the form. The sentence was
- *   accurate for the old cause and is accurate for the new one: it names an
- *   authorization period ending, and never a printed date, an OMB status, or a
- *   court outcome. Editing it would need a fresh owner copy approval; nothing
- *   here required an edit.
+ *   `federal_form_authority_expired` is driven by
+ *   `IWO_PROVENANCE.legacyTransitionFirstBlockedDate`, the first Chicago
+ *   calendar day the legacy print may no longer be distributed. It was
+ *   previously driven by the date printed on the form. Its copy was replaced —
+ *   see the EXCEPTION block above for the retired sentence and why it had to go.
  *
  *   `federal_form_renewal_pending` — "Fresh Start's most recently verified
  *   federal record showed the selected version under renewal review" is now
  *   UNREACHABLE IN PRODUCTION. `PINNED_RENEWAL_EVIDENCE` is `confirmed` as of
  *   2026-09-01 (OIRA ICR 202607-0970-002), and the review window is measured
- *   against the 2029-08-31 collection expiration, so `validateIwo` cannot emit
+ *   against `collectionApprovalExpiresOn` (2029-08-31), so `validateIwo` cannot emit
  *   `omb_renewal_review_pending` from pinned evidence. The code and its copy are
  *   retained deliberately: it is written in the past tense about Fresh Start's
  *   own record, so it stays truthful if a future review re-pins renewal to

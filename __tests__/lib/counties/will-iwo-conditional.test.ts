@@ -333,8 +333,8 @@ describe("legacy-transition boundary — America/Chicago calendar date", () => {
   const dir = tmpDirWithRealIwo();
 
   it("pins the three dates under three distinct names", () => {
-    expect(IWO_PROVENANCE.printedExpirationDate).toBe("2026-08-31");
-    expect(IWO_PROVENANCE.collectionApprovalExpiration).toBe("2029-08-31");
+    expect(IWO_PROVENANCE.printedLegacyPdfDate).toBe("2026-08-31");
+    expect(IWO_PROVENANCE.collectionApprovalExpiresOn).toBe("2029-08-31");
     expect(IWO_PROVENANCE.legacyTransitionFirstBlockedDate).toBe("2027-08-25");
     // The retired single `expiration` field must not come back: one generic name
     // for three different facts is the defect PR-2A closed.
@@ -376,7 +376,7 @@ describe("legacy-transition boundary — America/Chicago calendar date", () => {
   it("the 2029 collection approval does not authorize the legacy print past 2027-08-25", () => {
     // Well inside the collection's approval window, well past the transition end.
     const v = validateIwo(dir, new Date("2028-06-01T12:00:00Z"));
-    expect(v.daysToCollectionApprovalExpiration).toBeGreaterThan(0);
+    expect(v.daysToCollectionApprovalExpiresOn).toBeGreaterThan(0);
     expect(v.legacyTransitionBlocked).toBe(true);
     expect(v.blockers).toContain("federal_iwo_expired");
   });

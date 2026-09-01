@@ -63,8 +63,8 @@ const TRANSITION_CUTOFF = new Date("2027-08-25T05:00:00Z")
 // ─────────────────────────────────────────────────────────────────────────────
 describe("the three dates are distinct and separately named", () => {
   it("pins each date to its own field", () => {
-    expect(IWO_PROVENANCE.printedExpirationDate).toBe("2026-08-31")
-    expect(IWO_PROVENANCE.collectionApprovalExpiration).toBe("2029-08-31")
+    expect(IWO_PROVENANCE.printedLegacyPdfDate).toBe("2026-08-31")
+    expect(IWO_PROVENANCE.collectionApprovalExpiresOn).toBe("2029-08-31")
     expect(IWO_PROVENANCE.legacyTransitionFirstBlockedDate).toBe("2027-08-25")
   })
 
@@ -74,8 +74,8 @@ describe("the three dates are distinct and separately named", () => {
 
   it("keeps the three values genuinely different", () => {
     const dates = new Set([
-      IWO_PROVENANCE.printedExpirationDate,
-      IWO_PROVENANCE.collectionApprovalExpiration,
+      IWO_PROVENANCE.printedLegacyPdfDate,
+      IWO_PROVENANCE.collectionApprovalExpiresOn,
       IWO_PROVENANCE.legacyTransitionFirstBlockedDate,
     ])
     expect(dates.size).toBe(3)
@@ -85,10 +85,10 @@ describe("the three dates are distinct and separately named", () => {
     // printed < transition end < collection approval expiration. If a re-pin ever
     // inverts this, the gate would be authorising a print past its own collection.
     expect(
-      IWO_PROVENANCE.printedExpirationDate < IWO_PROVENANCE.legacyTransitionFirstBlockedDate
+      IWO_PROVENANCE.printedLegacyPdfDate < IWO_PROVENANCE.legacyTransitionFirstBlockedDate
     ).toBe(true)
     expect(
-      IWO_PROVENANCE.legacyTransitionFirstBlockedDate < IWO_PROVENANCE.collectionApprovalExpiration
+      IWO_PROVENANCE.legacyTransitionFirstBlockedDate < IWO_PROVENANCE.collectionApprovalExpiresOn
     ).toBe(true)
   })
 
@@ -111,7 +111,7 @@ describe("pinned OIRA approval", () => {
     expect(PINNED_OIRA_APPROVAL.icrReferenceNumber).toBe("202607-0970-002")
     expect(PINNED_OIRA_APPROVAL.action).toBe("approved_without_change")
     expect(PINNED_OIRA_APPROVAL.approvalDate).toBe("2026-08-25")
-    expect(PINNED_OIRA_APPROVAL.collectionExpiration).toBe("2029-08-31")
+    expect(PINNED_OIRA_APPROVAL.collectionApprovalExpiresOn).toBe("2029-08-31")
     expect(PINNED_OIRA_APPROVAL.reviewedOn).toBe("2026-09-01")
   })
 
@@ -126,8 +126,8 @@ describe("pinned OIRA approval", () => {
   })
 
   it("agrees with the collection expiration used by the provenance model", () => {
-    expect(PINNED_OIRA_APPROVAL.collectionExpiration).toBe(
-      IWO_PROVENANCE.collectionApprovalExpiration
+    expect(PINNED_OIRA_APPROVAL.collectionApprovalExpiresOn).toBe(
+      IWO_PROVENANCE.collectionApprovalExpiresOn
     )
   })
 
@@ -224,14 +224,14 @@ describe("neither of the other two dates can drive the gate", () => {
   })
 
   it("the printed date is still carried, exactly, as display metadata", () => {
-    expect(describeIwoProvenance().printedLegacyFormDate).toBe("2026-08-31")
+    expect(describeIwoProvenance().printedLegacyPdfDate).toBe("2026-08-31")
   })
 
   it("the 2029 collection approval cannot authorize the legacy print past 2027-08-25", () => {
     // Deep inside the collection's approval window; well past the transition end.
     const at = new Date("2028-06-01T12:00:00Z")
     const v = validateIwo(dir, at)
-    expect(v.daysToCollectionApprovalExpiration).toBeGreaterThan(0)
+    expect(v.daysToCollectionApprovalExpiresOn).toBeGreaterThan(0)
     expect(v.legacyTransitionBlocked).toBe(true)
     expect(v.blockers).toContain("federal_iwo_expired")
 
@@ -242,7 +242,7 @@ describe("neither of the other two dates can drive the gate", () => {
 
   it("still refuses on the day before the collection approval itself expires", () => {
     const v = validateIwo(dir, new Date("2029-08-30T12:00:00Z"))
-    expect(v.daysToCollectionApprovalExpiration).toBe(1)
+    expect(v.daysToCollectionApprovalExpiresOn).toBe(1)
     expect(v.legacyTransitionBlocked).toBe(true)
   })
 })
@@ -313,8 +313,8 @@ describe("pinned evidence never states a renewal is pending", () => {
 describe("describeIwoProvenance", () => {
   it("surfaces the three dates under three distinct names", () => {
     const d = describeIwoProvenance()
-    expect(d.printedLegacyFormDate).toBe("2026-08-31")
-    expect(d.collectionApprovalExpiration).toBe("2029-08-31")
+    expect(d.printedLegacyPdfDate).toBe("2026-08-31")
+    expect(d.collectionApprovalExpiresOn).toBe("2029-08-31")
     expect(d.legacyTransitionFirstBlockedDate).toBe("2027-08-25")
     expect(d.transitionTimeZone).toBe("America/Chicago")
   })
