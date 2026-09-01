@@ -411,7 +411,7 @@ destructive action occurred.**
 - Writes were confined to the new isolated worktree. The primary checkout and
   every other existing worktree were left untouched (`node_modules` was read
   through a symlink; no tracked file in another worktree was read or written).
-- One local commit on `cc/fs-iwo-pr2a-omb-transition-20260901`. Local only.
+- Two local commits on the branch; both local only.
 - No network retrieval of official sources was performed by this session.
 
 ## 9. Open items for the owner
