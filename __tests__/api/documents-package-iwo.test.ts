@@ -493,8 +493,9 @@ describe("unrelated withholding documents are not suppressed", () => {
 // and names the cause that actually closed the gate.
 // ─────────────────────────────────────────────────────────────────────────────
 describe("00_WITHHELD_ITEMS.txt carries the approved disclosure verbatim", () => {
-  /** 2026-08-31 00:00 CDT — the first blocked Chicago calendar day. */
-  const EXPIRED_CLOCK = () => new Date("2026-08-31T05:00:00Z");
+  /** 2027-08-25 00:00 CDT — the legacy transition end, the first blocked
+   *  Chicago calendar day. Not the 2026-08-31 date printed on the form. */
+  const EXPIRED_CLOCK = () => new Date("2027-08-25T05:00:00Z");
 
   it("names the expiration when expiration is what closed the gate", async () => {
     const z = await openZip(

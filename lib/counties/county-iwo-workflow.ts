@@ -180,8 +180,10 @@ export function getCountyIwoWorkflow(countyId: string): CountyIwoWorkflow {
 }
 
 export interface IwoFederalFormState {
-  /** True only when the pinned print is present, provenance-valid, unexpired,
-   *  and OMB renewal review is not outstanding. Fail-closed. */
+  /** True only when the pinned print is present, provenance-valid, still inside
+   *  its legacy transition period (see IWO_PROVENANCE.legacyTransitionFirstBlockedDate — not
+   *  the date printed on the form), and OMB renewal review is not outstanding.
+   *  Fail-closed. */
   usable: boolean
   /** The product does not fill this PDF. No field mappings exist for it. */
   fillable: boolean
@@ -227,8 +229,8 @@ function federalFormState(
 ): IwoFederalFormState {
   const validation = validateIwo(artifactDir, today, renewal)
   return {
-    // Any blocker — missing, invalid provenance, expired, renewal pending —
-    // keeps the form from being presented as current/ready.
+    // Any blocker — missing, invalid provenance, legacy transition ended,
+    // renewal pending — keeps the form from being presented as current/ready.
     usable: validation.blockers.length === 0,
     fillable: false,
     blockers: validation.blockers,

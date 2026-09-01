@@ -13,8 +13,16 @@
  *   1. county identity is canonical and known           (else refuse)
  *   2. county disposition is not manual_conditional      (else refuse)
  *   3. on-disk bytes match the pinned SHA-256 and length (else refuse)
- *   4. the printed expiration has not been reached       (else refuse)
+ *   4. the legacy transition period has not ended        (else refuse)
  *   5. OMB renewal review is not outstanding             (else refuse)
+ *
+ * Gate 4 is NOT the date printed on the form. PR-2A separated three dates that
+ * were previously one: the printed date (display metadata), the OIRA collection
+ * approval expiration (governs gate 5's review window), and the legacy
+ * transition end (governs gate 4). Only the last one closes this gate, and the
+ * 2029 collection approval never opens it past that date. See
+ * `lib/forms/iwo-provenance.ts` and
+ * `docs/legal-audit/iwo-omb-renewal-transition-2026-09-01.md`.
  *
  * Nothing is cached: the hash is recomputed from disk on each call, so a
  * swapped or corrupted file cannot ride on an earlier success.
@@ -24,7 +32,9 @@ import fs from "node:fs"
 import path from "node:path"
 
 import {
+  FORM_EXPIRATION_TIME_ZONE,
   IWO_PROVENANCE,
+  PINNED_OIRA_APPROVAL,
   getRenewalEvidence,
   validateIwo,
   type IwoRenewalEvidence,
@@ -250,13 +260,28 @@ export function readGuardedIwoArtifact(input: GuardedArtifactInput): GuardedArti
   }
 }
 
-/** Reporting helper: the pinned federal provenance surfaced without bytes. */
+/**
+ * Reporting helper: the pinned federal provenance surfaced without bytes.
+ *
+ * There is deliberately no single `expiration` key. Three different dates apply
+ * to this artifact and a reader who is handed one of them under a generic name
+ * will act on the wrong one — which is the defect PR-2A exists to close. Each is
+ * surfaced under the name of the fact it actually is.
+ */
 export function describeIwoProvenance() {
   return {
     ombNumber: IWO_PROVENANCE.ombNumber,
     provenanceClass: IWO_PROVENANCE.provenanceClass,
-    expiration: IWO_PROVENANCE.expiration,
+    /** What the legacy PDF has printed on it. Display metadata; gates nothing. */
+    printedLegacyFormDate: IWO_PROVENANCE.printedExpirationDate,
+    /** OIRA's expiration for the information collection. Never an authority to distribute. */
+    collectionApprovalExpiration: IWO_PROVENANCE.collectionApprovalExpiration,
+    /** The operative cutoff for distributing this legacy print. */
+    legacyTransitionFirstBlockedDate: IWO_PROVENANCE.legacyTransitionFirstBlockedDate,
+    /** The whole-day, fail-closed evaluation zone for the cutoff above. */
+    transitionTimeZone: FORM_EXPIRATION_TIME_ZONE,
     canonicalUrl: IWO_PROVENANCE.canonicalUrl,
+    oiraApproval: { ...PINNED_OIRA_APPROVAL },
     renewal: getRenewalEvidence(),
   }
 }

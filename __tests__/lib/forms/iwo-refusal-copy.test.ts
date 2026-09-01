@@ -63,10 +63,12 @@ const RENEWAL_PENDING = {
   source: "test-injected",
 };
 
-/** >60 days before expiry: the renewal-review window is not open on its own. */
+/** Inside the legacy transition window, >60 days before the 2029 collection
+ *  approval expiration: the renewal-review window is not open on its own. */
 const OPEN_CLOCK = new Date("2026-05-01T12:00:00Z");
-/** 2026-08-31 00:00 CDT — the first blocked Chicago calendar day. */
-const EXPIRED_CLOCK = new Date("2026-08-31T05:00:00Z");
+/** 2027-08-25 00:00 CDT — the first blocked Chicago calendar day, i.e. the end
+ *  of the LEGACY TRANSITION period. Not the date printed on the form. */
+const EXPIRED_CLOCK = new Date("2027-08-25T05:00:00Z");
 
 /** A canonical statewide-default county. Not Will, not free text. */
 const STATEWIDE_COUNTY = "cook";
@@ -83,7 +85,7 @@ const ALL_CODES: IwoOperativeRefusal[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 const APPROVED = {
   federal_form_authority_expired: [
-    "The federal Income Withholding for Support form (OMB 0970-0154) is not being offered right now because the period Fresh Start is authorized to distribute the selected version has ended.",
+    "The federal Income Withholding for Support form (OMB 0970-0154) is not being offered right now because Fresh Start has stopped distributing the selected version of this form.",
     "Fresh Start is not able to tell you whether a court, clerk, or employer will accept a particular version of this form. This is procedural information about what Fresh Start distributes, not legal advice.",
   ],
   federal_form_renewal_pending: [
@@ -123,9 +125,20 @@ describe("operative code selection", () => {
   it("T-68: post-cutoff copy does NOT claim a renewal review", () => {
     const copy = operativeRefusalCopy("federal_form_authority_expired").join(" ");
     expect(copy).not.toMatch(/renewal/i);
-    expect(copy).toMatch(
+    expect(copy).toMatch(/Fresh Start has stopped distributing the selected version of this form/);
+  });
+
+  it("post-cutoff copy claims no external authorization period, only FS conduct", () => {
+    // PR-2A: the cutoff is FreshStart's own conservative derivation, not a
+    // published ACF expiry, so the copy must not assert that an authorization
+    // period existed or ended. The retired 2026-08-24 sentence did.
+    const copy = operativeRefusalCopy("federal_form_authority_expired").join(" ");
+    expect(copy).not.toMatch(
       /the period Fresh Start is authorized to distribute the selected version has ended/,
     );
+    expect(copy).not.toMatch(/\bauthoriz/i);
+    expect(copy).not.toMatch(/\bexpir/i);
+    expect(copy).not.toMatch(/\bperiod\b/i);
   });
 
   it("T-70: renewal-pending-before-cutoff copy still says renewal review", () => {
