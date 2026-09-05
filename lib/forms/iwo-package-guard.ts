@@ -17,6 +17,7 @@ import crypto from "node:crypto"
 import { isCanonicalCountyId } from "@/lib/counties/county-iwo-workflow"
 import { getIwoAvailability } from "@/lib/forms/official-artifact-access"
 import { IWO_PROVENANCE, type IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
+import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
 import {
   withheldItemsNotice,
   type IwoOperativeRefusal,
@@ -212,6 +213,8 @@ export interface IwoPackageFilterInput {
   artifactDir?: string
   /** Injected ONLY by test factories. */
   renewalEvidence?: IwoRenewalEvidence
+  /** Injected ONLY by test factories. */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
 export function filterIwoFromPackage<T extends PackageDocumentLike>(
@@ -231,6 +234,7 @@ export function filterIwoFromPackage<T extends PackageDocumentLike>(
     today: input.today,
     artifactDir: input.artifactDir,
     renewalEvidence: input.renewalEvidence,
+    disclosureApproval: input.disclosureApproval,
   })
 
   // Gate 1 — policy. Closed policy withholds every IWO candidate outright.

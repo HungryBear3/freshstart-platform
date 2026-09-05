@@ -240,8 +240,23 @@ Federal renewal changes nothing about the direct clerk evidence. Will remains
 - No new IWO field mappings; the IWO is still never filled or generated.
 - No change to the PDF bytes, path, hash, byte length, MIME, or metadata.
 - No Illinois or Will workflow change; Will stays `manual_conditional`.
-- No static/public artifact path; no universal packet inclusion.
+- No static/public artifact path.
+- No change to the underlying county classifications. The actual conditional
+  packet behavior is set out in §5.1.
 - No customer, court, provider, payment, database, or deployment action.
+
+## 5.1 Actual packet behavior and open-path disclosure hold
+
+When the federal artifact gate is open **and** the exact successful-path
+disclosure has owner approval, the IWO is auto-composed into the opening and prove-up packets
+for canonical non-Will counties. Will and unknown/noncanonical counties remain withheld
+under their independent county gates.
+
+That disclosure is not currently approved. Fresh Start's own release hold,
+`open_path_disclosure_unapproved`, therefore keeps the otherwise-open path
+closed at production defaults. This hold is not an expiry, OMB action, renewal
+status, or agency determination. It cannot be cleared by configuration; it
+requires an exact owner-approved copy decision and a durable approval record.
 
 ## 6. Release gate
 

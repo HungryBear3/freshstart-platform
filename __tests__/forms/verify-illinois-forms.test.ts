@@ -122,8 +122,11 @@ describe("catalogFromForms (integration with real catalog)", () => {
         // The IWO is a FEDERAL ACF/OMB form, not an Illinois ATJ form. Its
         // official source is the pinned federal canonical URL — pointing it at
         // illinoiscourts.gov would misstate its provenance.
+        //
+        // Reconciled 2026-09-05 to the address this branch's evidence pins:
+        // iwo-omb-renewal-transition-2026-09-01.md §3.3/§3.4.1/§3.6.
         expect(entry.officialUrl).toBe(
-          "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+          "https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1",
         );
       } else {
         expect(entry.officialUrl).toMatch(/^https:\/\/(www\.)?illinoiscourts\.gov\//);

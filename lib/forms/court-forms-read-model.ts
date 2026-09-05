@@ -30,6 +30,7 @@ import {
   type IwoAccessRefusal,
 } from "@/lib/forms/official-artifact-access"
 import type { IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
+import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
 
 /** The guarded route that serves the federal IWO. Never a static path. */
 export const GUARDED_IWO_HREF = "/api/forms/iwo"
@@ -79,6 +80,8 @@ export interface CourtFormsReadModelInput {
   artifactDir?: string
   /** Injected ONLY by test factories. */
   renewalEvidence?: IwoRenewalEvidence
+  /** Injected ONLY by test factories. */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
 function toDto(form: CourtForm, downloadHref: string | null): RenderedFormDTO {
@@ -106,6 +109,7 @@ export function getCourtFormsReadModel(
     today: input.today,
     artifactDir: input.artifactDir,
     renewalEvidence: input.renewalEvidence,
+    disclosureApproval: input.disclosureApproval,
   })
 
   const forms: RenderedFormDTO[] = []

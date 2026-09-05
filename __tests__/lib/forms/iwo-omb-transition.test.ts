@@ -33,6 +33,7 @@ import {
   validateIwo,
 } from "@/lib/forms/iwo-provenance"
 import { describeIwoProvenance, getIwoAvailability } from "@/lib/forms/official-artifact-access"
+import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
 import {
   operativeRefusalCopy,
   selectOperativeRefusal,
@@ -57,6 +58,13 @@ const STATEWIDE_COUNTY = "cook"
 // date; the offset is asserted below rather than assumed.
 const LAST_ALLOWED_INSTANT = new Date("2027-08-25T04:59:59.999Z")
 const TRANSITION_CUTOFF = new Date("2027-08-25T05:00:00Z")
+
+const DISCLOSURE_APPROVED_FOR_TEST: IwoOpenPathDisclosureApproval = {
+  status: "approved",
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Three facts, three names.
@@ -218,6 +226,7 @@ describe("neither of the other two dates can drive the gate", () => {
       countyId: STATEWIDE_COUNTY,
       artifactDir: dir,
       today: new Date("2026-08-31T05:00:00Z"),
+      disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     })
     expect(a.available).toBe(true)
     expect(a.operativeRefusal).toBeNull()

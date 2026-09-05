@@ -22,6 +22,7 @@ import { getCountyById, getCountyInstructions } from "@/lib/counties/illinois-co
 import { getDisclaimerText } from "@/components/legal/disclaimer"
 import { filterIwoFromPackage, isIwoDocument } from "@/lib/forms/iwo-package-guard"
 import type { IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
+import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
 
 export interface PackageDocumentRow {
   id?: string
@@ -45,6 +46,8 @@ export interface PackageHandlerDeps {
   renewalEvidence?: IwoRenewalEvidence
   /** Injected ONLY by test factories. */
   artifactDir?: string
+  /** Injected ONLY by test factories. Defaults to the pinned `pending` hold. */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
 export function createDocumentPackageHandler(deps: PackageHandlerDeps) {
@@ -75,6 +78,7 @@ export function createDocumentPackageHandler(deps: PackageHandlerDeps) {
         today: now,
         renewalEvidence: deps.renewalEvidence,
         artifactDir: deps.artifactDir,
+        disclosureApproval: deps.disclosureApproval,
       })
       const documents = iwoFilter.included
 

@@ -23,6 +23,7 @@ import {
   type CountyResolutionFailure,
 } from "@/lib/forms/authoritative-county"
 import type { IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
+import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
 
 export interface IwoRouteDeps {
   /** SERVER-side county lookup. The only source of county truth. */
@@ -31,6 +32,11 @@ export interface IwoRouteDeps {
   now?: () => Date
   /** Injectable pinned renewal evidence. Defaults to the pinned constant. */
   renewalEvidence?: IwoRenewalEvidence
+  /**
+   * Injectable open-path disclosure approval. Defaults to the pinned constant,
+   * which is `pending` — so the production route is held closed.
+   */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
   /** Injectable artifact directory. Defaults to the guarded dir. */
   artifactDir?: string
 }
@@ -76,6 +82,7 @@ export function createIwoRouteHandler(deps: IwoRouteDeps) {
       today: deps.now?.() ?? new Date(),
       artifactDir: deps.artifactDir,
       renewalEvidence: deps.renewalEvidence,
+      disclosureApproval: deps.disclosureApproval,
     })
 
     if (!result.allowed) {

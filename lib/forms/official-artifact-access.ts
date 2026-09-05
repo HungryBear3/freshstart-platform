@@ -15,6 +15,16 @@
  *   3. on-disk bytes match the pinned SHA-256 and length (else refuse)
  *   4. the legacy transition period has not ended        (else refuse)
  *   5. OMB renewal review is not outstanding             (else refuse)
+ *   6. the open-path disclosure copy is owner-approved   (else refuse)
+ *
+ * Gate 6 is LAST on purpose. It is Fresh Start's own release decision — NOT an
+ * expiry, an OMB status, or an agency action — and it exists because gates 1-5
+ * only ever governed refusals: on the successful path a customer received the
+ * legacy print, with a past printed date on its face and an approved revised
+ * successor in existence, and was told nothing. Putting it last means a genuine
+ * county or artifact problem still reports its own truthful, approved cause; the
+ * hold only closes the outcome that would otherwise have been OPEN. See
+ * `lib/forms/iwo-distribution-hold.ts`.
  *
  * Gate 4 is NOT the date printed on the form. PR-2A separated three dates that
  * were previously one: the printed date (display metadata), the OIRA collection
@@ -51,6 +61,11 @@ import {
   selectOperativeRefusal,
   type IwoOperativeRefusal,
 } from "@/lib/forms/iwo-refusal-copy"
+import {
+  IWO_OPEN_PATH_DISCLOSURE_REFUSAL,
+  isOpenPathDisclosureHeld,
+  type IwoOpenPathDisclosureApproval,
+} from "@/lib/forms/iwo-distribution-hold"
 
 /** Default location of the guarded artifact. Outside public/ by design. */
 export const GUARDED_ARTIFACT_DIR = path.join(process.cwd(), "private", "official-forms")
@@ -62,6 +77,12 @@ export type IwoAccessRefusal =
   | "county_manual_conditional"
   /** Federal provenance / expiration / renewal gate is closed. */
   | "federal_artifact_gate_closed"
+  /**
+   * Fresh Start has not yet approved the exact disclosure shown to a customer on
+   * the SUCCESSFUL path, so distribution is held. Deliberately not an expiry,
+   * OMB, renewal, or agency statement of any kind.
+   */
+  | "open_path_disclosure_unapproved"
 
 export interface IwoAvailability {
   /** True only when every gate is open. Fail-closed default. */
@@ -93,6 +114,8 @@ export interface GuardedArtifactInput {
   artifactDir?: string
   /** Injected ONLY by test factories; product entry points never pass this. */
   renewalEvidence?: IwoRenewalEvidence
+  /** Injected ONLY by test factories; product entry points never pass this. */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
 /**
@@ -103,7 +126,10 @@ export interface GuardedArtifactInput {
  * was untrue for a missing file, a byte mismatch, and a reached expiration.
  */
 const COUNTY_REFUSAL_COPY: Record<
-  Exclude<IwoAccessRefusal, "federal_artifact_gate_closed">,
+  Exclude<
+    IwoAccessRefusal,
+    "federal_artifact_gate_closed" | "open_path_disclosure_unapproved"
+  >,
   string[]
 > = {
   county_unknown_or_noncanonical: [
@@ -181,6 +207,29 @@ export function getIwoAvailability(input: GuardedArtifactInput): IwoAvailability
       disposition: workflow.disposition,
       requiresManualReview: false,
       copy: federalGateCopy(operative),
+      validation,
+    }
+  }
+
+  // 6. Open-path disclosure hold. Reached only when every other gate is OPEN.
+  //
+  // It carries NO copy on purpose. The exact wording is owner-gated, inventing
+  // it here would be writing unapproved customer-facing text, and borrowing
+  // another cause's approved sentence would apply an approval granted for a
+  // different cause — and would say something untrue, since nothing is expired,
+  // missing, mismatched, or under renewal review. Refusing silently is the only
+  // truthful option until the owner approves a variant.
+  if (isOpenPathDisclosureHeld(input.disclosureApproval)) {
+    return {
+      available: false,
+      refusal: IWO_OPEN_PATH_DISCLOSURE_REFUSAL,
+      operativeRefusal: null,
+      blockers: [IWO_OPEN_PATH_DISCLOSURE_REFUSAL],
+      disposition: workflow.disposition,
+      // Nothing here needs a human to look at a case. It is a global release
+      // decision, not a per-case referral.
+      requiresManualReview: false,
+      copy: [],
       validation,
     }
   }

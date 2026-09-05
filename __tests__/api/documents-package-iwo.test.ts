@@ -35,6 +35,23 @@ const RENEWAL_PENDING: IwoRenewalEvidence = {
   source: "test-only injected evidence",
 };
 
+/**
+ * TEST-ONLY open-path disclosure approval.
+ *
+ * The pinned product state is `pending`, so distribution is held closed for
+ * every real caller. These fixtures inject an approved state ONLY where the test
+ * needs the authorized-open path in order to exercise something else — the
+ * payload pin, the alias classifier, the exact archive bytes. It asserts nothing
+ * about whether the owner has approved anything; it is a dependency, and the
+ * `productionLike*` helpers below deliberately do not pass it.
+ */
+const DISCLOSURE_APPROVED_FOR_TEST = {
+  status: "approved" as const,
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
+};
+
 /** >60 days before expiry so the renewal-review window is not open. */
 const OPEN_CLOCK = () => new Date("2026-05-01T12:00:00Z");
 
@@ -75,6 +92,11 @@ function handlerFor(
     loadUser: async () => ({ name: "Test User", email: "t@example.test" }),
     now: OPEN_CLOCK,
     renewalEvidence: RENEWAL_CONFIRMED,
+    // This helper means "every policy gate open". Since PR-2A's disclosure hold
+    // is one of those gates, it has to be opened here too — otherwise the tests
+    // below would pass for the wrong reason, withholding on the hold and never
+    // reaching the payload pin they exist to prove.
+    disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     ...over,
   });
 }

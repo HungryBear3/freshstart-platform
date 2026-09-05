@@ -133,7 +133,23 @@ export const IWO_PROVENANCE = {
    * implementation notice.
    */
   legacyTransitionFirstBlockedDate: '2027-08-25',
-  canonicalUrl: 'https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf',
+  /**
+   * The ACF address this branch's evidence actually pins.
+   *
+   * Reconciled 2026-09-05 from `https://www.acf.hhs.gov/...` — which the catalog,
+   * the manifest, and this constant all still named — to the address recorded in
+   * `docs/legal-audit/iwo-omb-renewal-transition-2026-09-01.md`: §3.3 labels it
+   * the canonical ACF PDF, §3.4.1 records the retrieval of record against it
+   * (HTTP 200, application/pdf, 505,412 bytes, the pinned SHA-256), and §3.6
+   * records the Illinois Courts approved-forms page as linking it.
+   *
+   * This asserts nothing new and nothing about the old host: the 2026-07-21
+   * provenance JSON already records `www.acf.hhs.gov` resolving by 301 to
+   * `acf.gov`, and no evidence in this branch says it stopped. The change is only
+   * that one address is named in one form, and it is the one that was retrieved.
+   * No fetch was performed to make it.
+   */
+  canonicalUrl: 'https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1',
   expectedSha256: '2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551',
   expectedBytes: 505412,
   companionAuthority: 'DV-WI 130.3 (03/23) — Illinois "How to Fill Out the IWO Form" field-semantics companion',

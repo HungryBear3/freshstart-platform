@@ -38,6 +38,21 @@ const RENEWAL_PENDING: IwoRenewalEvidence = {
   source: "test-only injected evidence",
 };
 
+/**
+ * TEST-ONLY open-path disclosure approval.
+ *
+ * Product state is pinned `pending`, so every real caller is held closed. This
+ * is injected only where a test's subject is the AUTHORIZED-OPEN path — the
+ * exact bytes, the guarded href, the boundary instants. It asserts nothing about
+ * whether an owner approval exists.
+ */
+const DISCLOSURE_APPROVED_FOR_TEST = {
+  status: "approved" as const,
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
+};
+
 /** Inside the legacy transition window, and >60 days before the 2029-08-31
  *  collection approval expiration, so the renewal-review window is not open. */
 const OPEN_CLOCK = () => new Date("2026-05-01T12:00:00Z");
@@ -66,6 +81,7 @@ function openHandler(overrides: Partial<Parameters<typeof createIwoRouteHandler>
     resolveCounty: resolverFor("cook"),
     now: OPEN_CLOCK,
     renewalEvidence: RENEWAL_CONFIRMED,
+    disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     ...overrides,
   });
 }
@@ -292,6 +308,7 @@ describe("court forms read model", () => {
       countyId: "cook",
       today: OPEN_CLOCK(),
       renewalEvidence: RENEWAL_CONFIRMED,
+      disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     });
     const iwo = model.forms.find((f) => f.id === "income-withholding-order");
     expect(iwo).toBeDefined();
@@ -456,9 +473,27 @@ describe("document package boundary", () => {
       storedCounty: "cook",
       today: OPEN_CLOCK(),
       renewalEvidence: RENEWAL_CONFIRMED,
+      disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     });
     expect(r.included).toEqual([PETITION_DOC, IWO_DOC]);
     expect(r.withheld).toEqual([]);
+  });
+
+  it("holds it back on the same inputs when the disclosure approval is absent", () => {
+    // Identical to the case above except that the pinned (pending) hold applies,
+    // exactly as it does for the real route. Nothing federal or county-related
+    // has changed — the county is canonical, renewal is confirmed, the clock is
+    // inside the window — so this pins the hold as the operative cause.
+    const r = filterIwoFromPackage([PETITION_DOC, IWO_DOC], {
+      storedCounty: "cook",
+      today: OPEN_CLOCK(),
+      renewalEvidence: RENEWAL_CONFIRMED,
+    });
+    expect(withheldDocs(r)).toEqual([IWO_DOC]);
+    expect(r.refusal).toBe("open_path_disclosure_unapproved");
+    expect(r.operativeRefusal).toBeNull();
+    // No invented copy, and no other cause's approved sentence borrowed.
+    expect(r.notice).toEqual([]);
   });
 
   it("leaves packages without an IWO untouched", () => {

@@ -345,8 +345,8 @@ export const ILLINOIS_COURT_FORMS: CourtForm[] = [
       'Federal form used to direct an employer to withhold support from wages. It follows a signed Order for Support (ATJ 129.5), which is a separate document.',
     category: 'support',
     filename: 'income-withholding-order.pdf',
-    officialUrl: 'https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf',
-    version: 'OMB 0970-0154 (printed expiration 2026-08-31)',
+    officialUrl: 'https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1',
+    version: 'OMB 0970-0154 (printed date 2026-08-31)',
     lastUpdated: '2026-07-21',
     requiredFor: ['with_children'],
     instructions:

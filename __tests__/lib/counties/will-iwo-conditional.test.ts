@@ -74,6 +74,21 @@ const PENDING_RENEWAL = {
   source: "test-only injected evidence",
 };
 
+/**
+ * TEST-ONLY open-path disclosure approval.
+ *
+ * Product state is pinned `pending`, so automatic packet composition is held
+ * closed for every real caller. Injected here only where the test's subject is
+ * the AUTHORIZED-OPEN composition path. It asserts nothing about whether an
+ * owner approval exists.
+ */
+const DISCLOSURE_APPROVED_FOR_TEST = {
+  status: "approved" as const,
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
+};
+
 /** Renewal is injected as a dependency; there is no mutable global to toggle. */
 function withOpenFederalGate<T>(fn: () => T): T {
   return fn();
@@ -82,6 +97,8 @@ const OPEN_GATE_OPTS = {
   artifactDir: REAL_ARTIFACT_DIR,
   today: WELL_BEFORE_EXPIRY,
   renewalEvidence: CONFIRMED_RENEWAL,
+  // "Open gate" now means every gate, including PR-2A's disclosure hold.
+  disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
 };
 /**
  * A closed federal gate under the CURRENT evidence. Renewal is confirmed in
