@@ -217,6 +217,41 @@ export interface IwoPackageFilterInput {
   disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
+/**
+ * Gate 1 — the authoritative POLICY decision, resolved from the stored county.
+ *
+ * `CaseInfo.county` is free text, so canonical syntax is checked here and
+ * anything else collapses to `""`, which `getIwoAvailability` refuses. This is
+ * the single place that translation happens; every IWO release boundary reaches
+ * the same `getIwoAvailability` through it rather than resolving a county of
+ * its own.
+ */
+function iwoPolicyAvailability(input: IwoPackageFilterInput) {
+  const stored = input.storedCounty ?? ""
+  const countyId = isCanonicalCountyId(stored) ? stored : ""
+
+  return getIwoAvailability({
+    countyId,
+    today: input.today,
+    artifactDir: input.artifactDir,
+    renewalEvidence: input.renewalEvidence,
+    disclosureApproval: input.disclosureApproval,
+  })
+}
+
+/**
+ * Is the federal instrument releasable AT ALL for this case right now?
+ *
+ * Policy only — the same Gate 1 the packager applies, and deliberately not the
+ * payload pin. Exported for the legacy `Document` read boundaries
+ * (`/api/documents` and `/api/documents/[id]`), which must make the identical
+ * availability decision. Callers that go on to emit stored bytes must ALSO run
+ * `validateIwoPayload`; policy authorizes the form, never the bytes.
+ */
+export function isIwoReleaseOpen(input: IwoPackageFilterInput): boolean {
+  return iwoPolicyAvailability(input).available
+}
+
 export function filterIwoFromPackage<T extends PackageDocumentLike>(
   documents: T[],
   input: IwoPackageFilterInput,
@@ -226,16 +261,7 @@ export function filterIwoFromPackage<T extends PackageDocumentLike>(
     return { included: documents, withheld: [], notice: null, refusal: null }
   }
 
-  const stored = input.storedCounty ?? ""
-  const countyId = isCanonicalCountyId(stored) ? stored : ""
-
-  const availability = getIwoAvailability({
-    countyId,
-    today: input.today,
-    artifactDir: input.artifactDir,
-    renewalEvidence: input.renewalEvidence,
-    disclosureApproval: input.disclosureApproval,
-  })
+  const availability = iwoPolicyAvailability(input)
 
   // Gate 1 — policy. Closed policy withholds every IWO candidate outright.
   if (!availability.available) {

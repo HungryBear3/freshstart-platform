@@ -22,7 +22,10 @@ import { getCountyById, getCountyInstructions } from "@/lib/counties/illinois-co
 import { getDisclaimerText } from "@/components/legal/disclaimer"
 import { filterIwoFromPackage, isIwoDocument } from "@/lib/forms/iwo-package-guard"
 import type { IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
-import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
+import {
+  IWO_OPEN_PATH_DISCLOSURE_REFUSAL,
+  type IwoOpenPathDisclosureApproval,
+} from "@/lib/forms/iwo-distribution-hold"
 
 export interface PackageDocumentRow {
   id?: string
@@ -142,12 +145,35 @@ export function createDocumentPackageHandler(deps: PackageHandlerDeps) {
       })
       zip.file("00_COVER_SHEET.txt", coverSheet)
 
+      // The open-path disclosure hold is the ONE withholding cause with no
+      // approved customer-facing wording — `filterIwoFromPackage` returns an
+      // empty notice for it by design. A ZIP is a customer-facing artifact, so
+      // there is nothing truthful to write:
+      //
+      //   - the raw refusal token is an internal identifier, not prose, and
+      //     shipping it explains nothing to the person holding the archive;
+      //   - the federal-mismatch fallback below is FALSE here (the pinned
+      //     artifact matches exactly, and nothing is expired, missing, or under
+      //     renewal review); and
+      //   - the proposed open-path wording is UNAPPROVED, so writing it would be
+      //     inventing customer-facing legal-adjacent copy.
+      //
+      // So a hold-withheld row is not disclosed at all, exactly as every other
+      // held surface (availability copy, packet deferral copy, filter notice)
+      // already says nothing. Zero IWO bytes either way — the row was already
+      // excluded from `documents` above. When the owner approves the wording,
+      // `filterIwoFromPackage` starts returning a notice and this branch stops
+      // being reachable.
+      const disclosureHeld = iwoFilter.refusal === IWO_OPEN_PATH_DISCLOSURE_REFUSAL
+      const policyWithheld = disclosureHeld ? [] : iwoFilter.withheld
+
       const withheld = [
-        ...iwoFilter.withheld,
+        ...policyWithheld,
         ...lateWithheld,
       ]
       if (withheld.length > 0) {
-        const notice = iwoFilter.notice ?? [
+        // Reached only for a payload rejection, for which this is true.
+        const notice = (policyWithheld.length > 0 ? iwoFilter.notice : null) ?? [
           "An item stored on this account did not match the verified federal print and was not included.",
           "This is procedural information about file verification, not legal advice.",
         ]
