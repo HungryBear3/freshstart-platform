@@ -7,8 +7,45 @@
  * Every string in this module was approved VERBATIM by the product owner on
  * 2026-08-24 (`OWNER-COPY-APPROVAL-20260824.md`) against the controlling design
  * `COWORK-FINAL-HANDOFF-REVISION-20260824.md`
- * (sha256 b7a465b5d2501d4401aae52628d98d1f43670fd27dad9df5ea5f4e94e3ce187c).
- * Changing a single character of them requires a new copy review and approval.
+ * (sha256 b7a465b5d2501d4401aae52628d98d1f43670fd27dad9df5ea5f4e94e3ce187c),
+ * with ONE exception, below. Changing a single character of any of them requires
+ * a new copy review and approval.
+ *
+ * EXCEPTION — `federal_form_authority_expired`, first paragraph. Changed on
+ * PRODUCT-OWNER INSTRUCTION of 2026-09-01 as part of PR-2A, superseding the
+ * 2026-08-24 wording for this one string. The retired sentence read:
+ *
+ *   "…because the period Fresh Start is authorized to distribute the selected
+ *   version has ended."
+ *
+ * That asserts an external authorization period ended. Under PR-2A the date that
+ * closes this gate is `IWO_PROVENANCE.legacyTransitionFirstBlockedDate`, which is
+ * FreshStart's own conservative derivation (one year from the OIRA approval
+ * date), NOT a published ACF expiry — so the sentence claimed an agency-set fact
+ * that no source states. The replacement describes only Fresh Start's own
+ * conduct and asserts nothing about OMB status, any authorization window, or
+ * acceptance.
+ *
+ * APPROVAL STATE OF THAT ONE STRING — do not overstate it. The change was
+ * owner-directed, but the durable approval record for it is still OWED: no entry
+ * has been written in the owner-held ledger `OWNER-COPY-APPROVAL-20260824.md`,
+ * which is outside this repository. Until that entry exists, this module does
+ * NOT claim the superseding sentence has been re-approved of record. The
+ * outstanding item is tracked in-branch as Entry 1 of
+ * `docs/legal-audit/iwo-copy-approval-ledger.md`, whose status is
+ * `PENDING — REQUESTED, NOT APPROVED`; that ledger is the authority on the
+ * status of this item and this comment must not contradict it.
+ *
+ * That is a DIFFERENT item from Entry 2 of the same ledger, the OPEN-PATH
+ * DISCLOSURE copy. There, no wording has been supplied or chosen at all, nothing
+ * is wired, and no string for it exists in this module: distribution simply
+ * fails closed and says nothing (`lib/forms/iwo-distribution-hold.ts`). Entry 1
+ * is a shipped, owner-directed string awaiting its durable record; Entry 2 is
+ * copy that does not yet exist.
+ *
+ * Both paragraphs are pinned character-for-character by
+ * `__tests__/lib/forms/iwo-refusal-copy.test.ts` and
+ * `__tests__/lib/forms/iwo-omb-transition.test.ts`.
  *
  * WHY THIS EXISTS: a single shared refusal sentence previously claimed that the
  * form's "published information-collection approval is under renewal review"
@@ -20,6 +57,25 @@
  * This module deliberately depends on nothing but the blocker vocabulary. It
  * carries no filesystem, county, or policy logic, so both the access boundary
  * and the county workflow can import it without a cycle.
+ *
+ * PR-2A (2026-09-01) — which fact now reaches each authority code:
+ *
+ *   `federal_form_authority_expired` is driven by
+ *   `IWO_PROVENANCE.legacyTransitionFirstBlockedDate`, the first Chicago
+ *   calendar day the legacy print may no longer be distributed. It was
+ *   previously driven by the date printed on the form. Its copy was replaced —
+ *   see the EXCEPTION block above for the retired sentence and why it had to go.
+ *
+ *   `federal_form_renewal_pending` — "Fresh Start's most recently verified
+ *   federal record showed the selected version under renewal review" is now
+ *   UNREACHABLE IN PRODUCTION. `PINNED_RENEWAL_EVIDENCE` is `confirmed` as of
+ *   2026-09-01 (OIRA ICR 202607-0970-002), and the review window is measured
+ *   against `collectionApprovalExpiresOn` (2029-08-31), so `validateIwo` cannot emit
+ *   `omb_renewal_review_pending` from pinned evidence. The code and its copy are
+ *   retained deliberately: it is written in the past tense about Fresh Start's
+ *   own record, so it stays truthful if a future review re-pins renewal to
+ *   `pending`, and tests still reach it by injecting that evidence. Deleting it
+ *   would mean re-approving copy to get it back.
  */
 
 /**
@@ -37,7 +93,7 @@ export type IwoOperativeRefusal =
 /** Approved refusal copy, keyed by operative code. Paragraph order is fixed. */
 export const IWO_OPERATIVE_REFUSAL_COPY: Record<IwoOperativeRefusal, readonly string[]> = {
   federal_form_authority_expired: [
-    "The federal Income Withholding for Support form (OMB 0970-0154) is not being offered right now because the period Fresh Start is authorized to distribute the selected version has ended.",
+    "The federal Income Withholding for Support form (OMB 0970-0154) is not being offered right now because Fresh Start has stopped distributing the selected version of this form.",
     "Fresh Start is not able to tell you whether a court, clerk, or employer will accept a particular version of this form. This is procedural information about what Fresh Start distributes, not legal advice.",
   ],
   federal_form_renewal_pending: [

@@ -24,6 +24,11 @@ import {
   operativeRefusalCopy,
   selectOperativeRefusal,
 } from "@/lib/forms/iwo-refusal-copy"
+import {
+  IWO_OPEN_PATH_DISCLOSURE_REFUSAL,
+  isOpenPathDisclosureHeld,
+  type IwoOpenPathDisclosureApproval,
+} from "@/lib/forms/iwo-distribution-hold"
 
 /** Catalog id of the federal IWO in ILLINOIS_COURT_FORMS. */
 export const IWO_FORM_ID = "income-withholding-order"
@@ -46,6 +51,12 @@ export type IwoReasonCode =
   | "federal_artifact_gate_closed"
   | "judge_direction_required"
   | "notice_proof_scope_unresolved"
+  /**
+   * Fresh Start's own release hold: the exact disclosure a customer sees on the
+   * SUCCESSFUL path is not owner-approved yet. Not an expiry, OMB, renewal, or
+   * agency state — see lib/forms/iwo-distribution-hold.ts.
+   */
+  | "open_path_disclosure_unapproved"
   | "packet_placement_not_established"
   | "post_service_filing_conditional"
   | "proposed_order_lane_separate"
@@ -180,8 +191,10 @@ export function getCountyIwoWorkflow(countyId: string): CountyIwoWorkflow {
 }
 
 export interface IwoFederalFormState {
-  /** True only when the pinned print is present, provenance-valid, unexpired,
-   *  and OMB renewal review is not outstanding. Fail-closed. */
+  /** True only when the pinned print is present, provenance-valid, still inside
+   *  its legacy transition period (see IWO_PROVENANCE.legacyTransitionFirstBlockedDate — not
+   *  the date printed on the form), and OMB renewal review is not outstanding.
+   *  Fail-closed. */
   usable: boolean
   /** The product does not fill this PDF. No field mappings exist for it. */
   fillable: boolean
@@ -227,8 +240,8 @@ function federalFormState(
 ): IwoFederalFormState {
   const validation = validateIwo(artifactDir, today, renewal)
   return {
-    // Any blocker — missing, invalid provenance, expired, renewal pending —
-    // keeps the form from being presented as current/ready.
+    // Any blocker — missing, invalid provenance, legacy transition ended,
+    // renewal pending — keeps the form from being presented as current/ready.
     usable: validation.blockers.length === 0,
     fillable: false,
     blockers: validation.blockers,
@@ -413,6 +426,8 @@ export interface PacketCompositionOptions {
   today?: Date
   /** Injected ONLY by test factories; product entry points never pass this. */
   renewalEvidence?: IwoRenewalEvidence
+  /** Injected ONLY by test factories; product entry points never pass this. */
+  disclosureApproval?: IwoOpenPathDisclosureApproval
 }
 
 function composePacket(
@@ -424,10 +439,18 @@ function composePacket(
   const federal = validateIwo(options.artifactDir, options.today ?? new Date(), options.renewalEvidence)
   const federalGateOpen = federal.blockers.length === 0
 
+  // Fresh Start's own release hold on the SUCCESSFUL path. Automatic packet
+  // composition IS a distribution path — it is the one that puts the legacy
+  // print in a customer's hands without their asking for it — so the hold has to
+  // reach here and not only the download boundary. It is not an expiry, an OMB
+  // status, or an agency action; the federal evidence above is untouched and
+  // still reported as-is.
+  const disclosureHeld = isOpenPathDisclosureHeld(options.disclosureApproval)
+
   // The federal artifact gate applies to EVERY county. A non-Will county keeps
   // its existing procedural default ONLY while that gate is open.
   const countyAllows = workflow.autoPacketPlacementAllowed
-  if (countyAllows && federalGateOpen) {
+  if (countyAllows && federalGateOpen && !disclosureHeld) {
     return { countyId, forms: baseForms, deferred: [] }
   }
 
@@ -450,6 +473,23 @@ function composePacket(
     }
   }
   if (!federalGateOpen) reasonCodes.push("federal_artifact_gate_closed")
+  if (disclosureHeld) reasonCodes.push(IWO_OPEN_PATH_DISCLOSURE_REFUSAL)
+
+  // Copy precedence, and why the hold contributes none.
+  //
+  // A county refusal keeps Will's own approved copy. A closed federal gate
+  // states the cause that actually closed it. The hold says NOTHING: its exact
+  // wording is owner-gated, inventing it here would be shipping unapproved
+  // customer-facing text, and borrowing another cause's approved sentence would
+  // both misapply that approval and state something untrue — under the hold
+  // nothing is expired, missing, mismatched, or under renewal review. So when
+  // the hold is the only thing closing this packet, the deferred item carries
+  // the reason code and no prose.
+  const copy = !countyAllows
+    ? IWO_NEUTRAL_COPY.will
+    : federalGateOpen
+      ? []
+      : federalGateCopy(federal.blockers)
 
   return {
     countyId,
@@ -459,9 +499,7 @@ function composePacket(
         formId: IWO_FORM_ID,
         disposition: workflow.disposition,
         reasonCodes: [...new Set(reasonCodes)].sort(),
-        // A closed federal gate no longer borrows one fixed sentence: the
-        // deferred item states the cause that actually closed it.
-        copy: countyAllows ? federalGateCopy(federal.blockers) : IWO_NEUTRAL_COPY.will,
+        copy,
       },
     ],
   }

@@ -38,10 +38,30 @@ const RENEWAL_PENDING: IwoRenewalEvidence = {
   source: "test-only injected evidence",
 };
 
-/** >60 days before expiry, so the renewal-review window is not open. */
+/**
+ * TEST-ONLY open-path disclosure approval.
+ *
+ * Product state is pinned `pending`, so every real caller is held closed. This
+ * is injected only where a test's subject is the AUTHORIZED-OPEN path — the
+ * exact bytes, the guarded href, the boundary instants. It asserts nothing about
+ * whether an owner approval exists.
+ */
+const DISCLOSURE_APPROVED_FOR_TEST = {
+  status: "approved" as const,
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
+};
+
+/** Inside the legacy transition window, and >60 days before the 2029-08-31
+ *  collection approval expiration, so the renewal-review window is not open. */
 const OPEN_CLOCK = () => new Date("2026-05-01T12:00:00Z");
-const LAST_ALLOWED = () => new Date("2026-08-31T04:59:59.999Z");
-const EXPIRED_CLOCK = () => new Date("2026-08-31T05:00:00Z");
+/** The last instant the legacy print may be distributed: 2027-08-24 23:59:59.999 CDT. */
+const LAST_ALLOWED = () => new Date("2027-08-25T04:59:59.999Z");
+/** The legacy transition cutoff: 2027-08-25 00:00 CDT. */
+const EXPIRED_CLOCK = () => new Date("2027-08-25T05:00:00Z");
+/** The date printed on the form. It must NOT close the gate. */
+const PRINTED_DATE_CLOCK = () => new Date("2026-08-31T05:00:00Z");
 
 function resolverFor(countyId: string): AuthoritativeCountyResolver {
   return async () => ({ ok: true, countyId });
@@ -61,6 +81,7 @@ function openHandler(overrides: Partial<Parameters<typeof createIwoRouteHandler>
     resolveCounty: resolverFor("cook"),
     now: OPEN_CLOCK,
     renewalEvidence: RENEWAL_CONFIRMED,
+    disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     ...overrides,
   });
 }
@@ -104,22 +125,34 @@ describe("authorized open state", () => {
     );
   });
 
-  it("is NOT expired at the last allowed instant, though the renewal window independently closes it", async () => {
-    // 2026-08-31T04:59:59.999Z is 2026-08-30 in Chicago -> not expired. It is
-    // within 60 days of expiry, so the renewal-review blocker applies instead.
-    // Both facts are asserted exactly; neither branch is optional.
+  it("still serves the exact artifact at the last allowed instant", async () => {
+    // 2027-08-25T04:59:59.999Z is 2027-08-24 in Chicago -> inside the transition
+    // window. The renewal-review window is measured against the 2029 collection
+    // expiration, so it does not close the gate here either. Exact bytes, not
+    // merely a 200.
     const res = await openHandler({ now: LAST_ALLOWED })(req());
-    const body = await expectRefused(res, "federal_artifact_gate_closed");
-    expect(body.blockers).toContain("omb_renewal_review_pending");
-    expect(body.blockers).not.toContain("federal_iwo_expired");
+    expect(res.status).toBe(200);
+    const buf = Buffer.from(await res.arrayBuffer());
+    expect(buf.length).toBe(IWO_PROVENANCE.expectedBytes);
+    expect(crypto.createHash("sha256").update(buf).digest("hex")).toBe(
+      IWO_PROVENANCE.expectedSha256,
+    );
   });
 
-  it("becomes expired one millisecond later, at the Chicago cutoff", async () => {
+  it("refuses one millisecond later, at the Chicago transition cutoff", async () => {
     const body = await expectRefused(
       await openHandler({ now: EXPIRED_CLOCK })(req()),
       "federal_artifact_gate_closed",
     );
     expect(body.blockers).toContain("federal_iwo_expired");
+  });
+
+  it("does NOT refuse on the date printed on the form", async () => {
+    // The defect PR-2A closes: 2026-08-31 is display metadata, and after the
+    // confirmed OIRA renewal it no longer closes the gate on its own.
+    const res = await openHandler({ now: PRINTED_DATE_CLOCK })(req());
+    expect(res.status).toBe(200);
+    expect(Buffer.from(await res.arrayBuffer()).length).toBe(IWO_PROVENANCE.expectedBytes);
   });
 });
 
@@ -275,6 +308,7 @@ describe("court forms read model", () => {
       countyId: "cook",
       today: OPEN_CLOCK(),
       renewalEvidence: RENEWAL_CONFIRMED,
+      disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     });
     const iwo = model.forms.find((f) => f.id === "income-withholding-order");
     expect(iwo).toBeDefined();
@@ -439,9 +473,27 @@ describe("document package boundary", () => {
       storedCounty: "cook",
       today: OPEN_CLOCK(),
       renewalEvidence: RENEWAL_CONFIRMED,
+      disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
     });
     expect(r.included).toEqual([PETITION_DOC, IWO_DOC]);
     expect(r.withheld).toEqual([]);
+  });
+
+  it("holds it back on the same inputs when the disclosure approval is absent", () => {
+    // Identical to the case above except that the pinned (pending) hold applies,
+    // exactly as it does for the real route. Nothing federal or county-related
+    // has changed — the county is canonical, renewal is confirmed, the clock is
+    // inside the window — so this pins the hold as the operative cause.
+    const r = filterIwoFromPackage([PETITION_DOC, IWO_DOC], {
+      storedCounty: "cook",
+      today: OPEN_CLOCK(),
+      renewalEvidence: RENEWAL_CONFIRMED,
+    });
+    expect(withheldDocs(r)).toEqual([IWO_DOC]);
+    expect(r.refusal).toBe("open_path_disclosure_unapproved");
+    expect(r.operativeRefusal).toBeNull();
+    // No invented copy, and no other cause's approved sentence borrowed.
+    expect(r.notice).toEqual([]);
   });
 
   it("leaves packages without an IWO untouched", () => {

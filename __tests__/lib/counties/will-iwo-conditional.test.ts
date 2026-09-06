@@ -17,6 +17,7 @@ import path from "node:path";
 
 import {
   IWO_PROVENANCE,
+  REQUIRED_LAUNCH_FORMS,
   calendarDateInTimeZone,
   computeLaunchReadiness,
   getRenewalEvidence,
@@ -51,11 +52,14 @@ function tmpDirWithRealIwo(): string {
 const BEFORE_EXPIRY = new Date("2026-08-10T00:00:00Z");
 const PACKET_OPTS = { artifactDir: REAL_ARTIFACT_DIR, today: BEFORE_EXPIRY };
 
-// Chicago-date expiration policy: the whole 2026-08-31 local day is blocked.
-const LAST_ALLOWED_INSTANT = new Date("2026-08-31T04:59:59.999Z"); // 2026-08-30 CDT
-const EXPIRY_CUTOFF = new Date("2026-08-31T05:00:00Z"); // 2026-08-31 00:00 CDT
-const RETIRED_UTC_CUTOFF = new Date("2026-08-31T23:59:59Z"); // old rule allowed this
-const JUST_AFTER_EXPIRY = new Date("2026-09-01T00:00:00Z");
+// Chicago-date policy applied to the LEGACY TRANSITION END (2027-08-25), which
+// is the operative cutoff — not the 2026-08-31 date printed on the form, and not
+// the 2029-08-31 collection approval expiration. The whole 2027-08-25 local day
+// is blocked.
+const LAST_ALLOWED_INSTANT = new Date("2027-08-25T04:59:59.999Z"); // 2027-08-24 CDT
+const TRANSITION_CUTOFF = new Date("2027-08-25T05:00:00Z"); // 2027-08-25 00:00 CDT
+const RETIRED_UTC_CUTOFF = new Date("2027-08-25T23:59:59Z"); // a UTC-day rule would allow this
+const JUST_AFTER_TRANSITION = new Date("2027-08-26T00:00:00Z");
 
 /** Far enough out that the 60-day renewal-review window is not yet open. */
 const WELL_BEFORE_EXPIRY = new Date("2026-05-01T12:00:00Z");
@@ -63,6 +67,26 @@ const CONFIRMED_RENEWAL = {
   status: "confirmed" as const,
   reviewedOn: "2026-05-01",
   source: "test-only injected evidence",
+};
+const PENDING_RENEWAL = {
+  status: "pending" as const,
+  reviewedOn: "2026-07-21",
+  source: "test-only injected evidence",
+};
+
+/**
+ * TEST-ONLY open-path disclosure approval.
+ *
+ * Product state is pinned `pending`, so automatic packet composition is held
+ * closed for every real caller. Injected here only where the test's subject is
+ * the AUTHORIZED-OPEN composition path. It asserts nothing about whether an
+ * owner approval exists.
+ */
+const DISCLOSURE_APPROVED_FOR_TEST = {
+  status: "approved" as const,
+  requestedOn: "2026-09-05",
+  decisionRecord: "test-only injected approval",
+  ledgerRecord: "test-only injected approval",
 };
 
 /** Renewal is injected as a dependency; there is no mutable global to toggle. */
@@ -73,6 +97,17 @@ const OPEN_GATE_OPTS = {
   artifactDir: REAL_ARTIFACT_DIR,
   today: WELL_BEFORE_EXPIRY,
   renewalEvidence: CONFIRMED_RENEWAL,
+  // "Open gate" now means every gate, including PR-2A's disclosure hold.
+  disclosureApproval: DISCLOSURE_APPROVED_FOR_TEST,
+};
+/**
+ * A closed federal gate under the CURRENT evidence. Renewal is confirmed in
+ * pinned evidence as of 2026-09-01, so a closed gate is now reached by running
+ * the clock past the legacy transition end — not by leaving renewal pending.
+ */
+const CLOSED_GATE_OPTS = {
+  artifactDir: REAL_ARTIFACT_DIR,
+  today: TRANSITION_CUTOFF,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,8 +150,8 @@ describe("non-Will county behavior", () => {
   it.each(["cook", "lake", "dupage", "kane"])(
     "%s withholds the IWO when the federal gate is closed",
     (countyId) => {
-      // Renewal is pending in the pinned evidence, so the gate is closed.
-      const packet = getOpeningPacketForms(countyId, true, PACKET_OPTS);
+      // The legacy transition period has ended, so the gate is closed.
+      const packet = getOpeningPacketForms(countyId, true, CLOSED_GATE_OPTS);
       expect(packet.forms.map((f) => f.id)).not.toContain("income-withholding-order");
       const deferred = packet.deferred.find((d) => d.formId === "income-withholding-order");
       expect(deferred).toBeDefined();
@@ -311,34 +346,56 @@ describe("federal IWO provenance fails closed", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. Chicago-date expiration boundary (controller-adopted policy).
 // ─────────────────────────────────────────────────────────────────────────────
-describe("OMB expiration boundary — America/Chicago calendar date", () => {
+describe("legacy-transition boundary — America/Chicago calendar date", () => {
   const dir = tmpDirWithRealIwo();
 
-  it("pins the expiration to 2026-08-31", () => {
-    expect(IWO_PROVENANCE.expiration).toBe("2026-08-31");
+  it("pins the three dates under three distinct names", () => {
+    expect(IWO_PROVENANCE.printedLegacyPdfDate).toBe("2026-08-31");
+    expect(IWO_PROVENANCE.collectionApprovalExpiresOn).toBe("2029-08-31");
+    expect(IWO_PROVENANCE.legacyTransitionFirstBlockedDate).toBe("2027-08-25");
+    // The retired single `expiration` field must not come back: one generic name
+    // for three different facts is the defect PR-2A closed.
+    expect(IWO_PROVENANCE).not.toHaveProperty("expiration");
   });
 
-  it("maps the cutoff instant to the 2026-08-31 Chicago calendar date", () => {
-    expect(calendarDateInTimeZone(LAST_ALLOWED_INSTANT, "America/Chicago")).toBe("2026-08-30");
-    expect(calendarDateInTimeZone(EXPIRY_CUTOFF, "America/Chicago")).toBe("2026-08-31");
+  it("maps the cutoff instant to the 2027-08-25 Chicago calendar date", () => {
+    expect(calendarDateInTimeZone(LAST_ALLOWED_INSTANT, "America/Chicago")).toBe("2027-08-24");
+    expect(calendarDateInTimeZone(TRANSITION_CUTOFF, "America/Chicago")).toBe("2027-08-25");
   });
 
-  it("is not expired at the last allowed instant, 2026-08-31T04:59:59.999Z", () => {
-    expect(validateIwo(dir, LAST_ALLOWED_INSTANT).expired).toBe(false);
+  it("is not expired at the last allowed instant, 2027-08-25T04:59:59.999Z", () => {
+    const v = validateIwo(dir, LAST_ALLOWED_INSTANT);
+    expect(v.legacyTransitionBlocked).toBe(false);
+    expect(v.blockers).toEqual([]);
   });
 
-  it("is expired at the cutoff, 2026-08-31T05:00:00Z", () => {
-    const v = validateIwo(dir, EXPIRY_CUTOFF);
-    expect(v.expired).toBe(true);
+  it("is expired at the cutoff, 2027-08-25T05:00:00Z", () => {
+    const v = validateIwo(dir, TRANSITION_CUTOFF);
+    expect(v.legacyTransitionBlocked).toBe(true);
     expect(v.blockers).toContain("federal_iwo_expired");
   });
 
-  it("blocks the ENTIRE expiration day — the retired 2026-08-31T23:59:59Z cutoff is expired", () => {
-    expect(validateIwo(dir, RETIRED_UTC_CUTOFF).expired).toBe(true);
+  it("blocks the ENTIRE cutoff day — 2027-08-25T23:59:59Z is expired", () => {
+    expect(validateIwo(dir, RETIRED_UTC_CUTOFF).legacyTransitionBlocked).toBe(true);
   });
 
   it("remains expired the following day", () => {
-    expect(validateIwo(dir, JUST_AFTER_EXPIRY).expired).toBe(true);
+    expect(validateIwo(dir, JUST_AFTER_TRANSITION).legacyTransitionBlocked).toBe(true);
+  });
+
+  it("the printed 2026-08-31 date does not close the gate", () => {
+    // The old operative cutoff, one day into what used to be refusal territory.
+    const v = validateIwo(dir, new Date("2026-08-31T05:00:00Z"));
+    expect(v.legacyTransitionBlocked).toBe(false);
+    expect(v.blockers).toEqual([]);
+  });
+
+  it("the 2029 collection approval does not authorize the legacy print past 2027-08-25", () => {
+    // Well inside the collection's approval window, well past the transition end.
+    const v = validateIwo(dir, new Date("2028-06-01T12:00:00Z"));
+    expect(v.daysToCollectionApprovalExpiresOn).toBeGreaterThan(0);
+    expect(v.legacyTransitionBlocked).toBe(true);
+    expect(v.blockers).toContain("federal_iwo_expired");
   });
 });
 
@@ -348,14 +405,14 @@ describe("OMB expiration boundary — America/Chicago calendar date", () => {
 describe("launch readiness", () => {
   const dir = tmpDirWithRealIwo();
 
-  it("holds after expiration even with every other confirmation supplied", () => {
+  it("holds after the legacy transition ends, even with every other confirmation supplied", () => {
     const r = withOpenFederalGate(() =>
       computeLaunchReadiness({
         brokenActive: 0,
         unsupportedGaps: 0,
         formsDir: dir,
         iwoArtifactDir: dir,
-        today: EXPIRY_CUTOFF,
+        today: TRANSITION_CUTOFF,
         countyPacketComposition: "confirmed",
         countyEfilingTreatment: "confirmed",
       }),
@@ -364,7 +421,9 @@ describe("launch readiness", () => {
     expect(r.blockers).toContain("federal_iwo:federal_iwo_expired");
   });
 
-  it("holds while OMB renewal review is pending, even before expiration", () => {
+  it("holds while OMB renewal review is pending, even inside the transition window", () => {
+    // Renewal is now CONFIRMED in pinned evidence, so this branch is reached by
+    // injecting pending evidence — the state a future re-pin would restore.
     const r = computeLaunchReadiness({
       brokenActive: 0,
       unsupportedGaps: 0,
@@ -373,6 +432,7 @@ describe("launch readiness", () => {
       today: BEFORE_EXPIRY,
       countyPacketComposition: "confirmed",
       countyEfilingTreatment: "confirmed",
+      renewalEvidence: PENDING_RENEWAL,
     });
     expect(r.launchReadiness).toBe("HOLD");
     expect(r.blockers).toContain("omb_renewal_review:pending");
@@ -390,8 +450,13 @@ describe("launch readiness", () => {
   });
 
   it("pins renewal as evidence, not a caller argument", () => {
-    expect(getRenewalEvidence().status).toBe("pending");
-    // The public input type has no ombRenewalReview field; passing one is inert.
+    // Pinned evidence moved to confirmed on 2026-09-01 (OIRA ICR 202607-0970-002).
+    expect(getRenewalEvidence().status).toBe("confirmed");
+    expect(getRenewalEvidence().reviewedOn).toBe("2026-09-01");
+
+    // The invariant is unchanged and still asserted the same way: with pending
+    // evidence in force, the public input type has no ombRenewalReview field and
+    // passing one is inert — a caller cannot clear a pending renewal.
     const r = computeLaunchReadiness({
       brokenActive: 0,
       unsupportedGaps: 0,
@@ -400,6 +465,7 @@ describe("launch readiness", () => {
       today: BEFORE_EXPIRY,
       countyPacketComposition: "confirmed",
       countyEfilingTreatment: "confirmed",
+      renewalEvidence: PENDING_RENEWAL,
       // @ts-expect-error runtime callers must not be able to clear a pending renewal
       ombRenewalReview: "resolved",
     });
@@ -407,10 +473,34 @@ describe("launch readiness", () => {
     expect(r.blockers).toContain("omb_renewal_review:pending");
   });
 
+  it("can reach READY on confirmed evidence inside the transition window", () => {
+    // Proof the gate can actually move: this is the state PR-2A creates, and it
+    // is why the evidence split matters. Not a legal-acceptance conclusion.
+    //
+    // The non-IWO required forms are presence-checked only, so placeholders are
+    // sufficient here; the IWO itself is still the byte-exact pinned print.
+    const readyDir = tmpDirWithRealIwo();
+    for (const f of REQUIRED_LAUNCH_FORMS) {
+      if (f === IWO_PROVENANCE.file) continue;
+      fs.writeFileSync(path.join(readyDir, f), "placeholder");
+    }
+    const r = computeLaunchReadiness({
+      brokenActive: 0,
+      unsupportedGaps: 0,
+      formsDir: readyDir,
+      iwoArtifactDir: readyDir,
+      today: BEFORE_EXPIRY,
+      countyPacketComposition: "confirmed",
+      countyEfilingTreatment: "confirmed",
+    });
+    expect(r.launchReadiness).toBe("READY");
+    expect(r.blockers).toEqual([]);
+  });
+
   it("exposes no mutable global renewal override", async () => {
     const mod = await import("@/lib/forms/iwo-provenance");
     expect(Object.keys(mod)).not.toContain("__withRenewalEvidenceForTests");
-    expect(getRenewalEvidence().status).toBe("pending");
+    expect(getRenewalEvidence().status).toBe("confirmed");
   });
 });
 
