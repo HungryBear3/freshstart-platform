@@ -68,9 +68,13 @@ export function trackMetaEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
-  if (!isLiveTrackingEnabled()) return
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('track', eventName, params)
+  try {
+    if (!isLiveTrackingEnabled()) return
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', eventName, params)
+    }
+  } catch {
+    // Measurement must never propagate a failure into product behavior.
   }
 }
 
@@ -84,9 +88,13 @@ export function trackMetaCustomEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
-  if (!isLiveTrackingEnabled()) return
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('trackCustom', eventName, params)
+  try {
+    if (!isLiveTrackingEnabled()) return
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('trackCustom', eventName, params)
+    }
+  } catch {
+    // Measurement must never propagate a failure into product behavior.
   }
 }
 

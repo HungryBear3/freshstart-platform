@@ -20,16 +20,24 @@ import { sanitizeClientEventParams } from "@/lib/analytics/ga4-client"
 /**
  * Track an event to Google Analytics 4. No-op when the production tracking
  * gate is closed (Preview, localhost, dev, missing opt-in env var).
+ *
+ * Measurement is never allowed to interfere with the journey it measures, so
+ * a misbehaving tag is swallowed here rather than surfacing to the intake,
+ * document, or checkout caller.
  */
 export function trackGA4Event(
   eventName: string,
   params?: Record<string, any>
 ): void {
-  if (!isLiveTrackingEnabled()) return
-  const sanitized = sanitizeClientEventParams(eventName, params)
-  if (sanitized === null) return
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', eventName, sanitized)
+  try {
+    if (!isLiveTrackingEnabled()) return
+    const sanitized = sanitizeClientEventParams(eventName, params)
+    if (sanitized === null) return
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', eventName, sanitized)
+    }
+  } catch {
+    // Never propagate an analytics failure into product behavior.
   }
 }
 
@@ -90,12 +98,15 @@ export const analytics = {
   // ========== QUESTIONNAIRE EVENTS ==========
 
   /**
-   * Track questionnaire started
+   * Track questionnaire started.
+   *
+   * Only the bounded questionnaire type is reported. The human-readable
+   * questionnaire title is deliberately not sent: it is free-form copy, it
+   * fails the client sanitizer, and it would drop the whole event.
    */
-  questionnaireStart: (questionnaireType: string, questionnaireName: string) => {
+  questionnaireStart: (questionnaireType: string) => {
     trackEvent('questionnaire_start', {
       questionnaire_type: questionnaireType,
-      questionnaire_name: questionnaireName,
     })
     trackMetaCustomEvent('QuestionnaireStart', {
       questionnaire_type: questionnaireType,
@@ -103,7 +114,8 @@ export const analytics = {
   },
 
   /**
-   * Track questionnaire section completed
+   * Track questionnaire section completed. `sectionIndex` is the zero-based
+   * index of the section that was just cleared, so progress counts it.
    */
   questionnaireSectionComplete: (
     questionnaireType: string,
@@ -114,17 +126,16 @@ export const analytics = {
       questionnaire_type: questionnaireType,
       section_index: sectionIndex,
       total_sections: totalSections,
-      progress_percent: Math.round((sectionIndex / totalSections) * 100),
+      progress_percent: Math.round(((sectionIndex + 1) / totalSections) * 100),
     })
   },
 
   /**
-   * Track questionnaire completed
+   * Track questionnaire completed. Bounded type only — see `questionnaireStart`.
    */
-  questionnaireComplete: (questionnaireType: string, questionnaireName: string) => {
+  questionnaireComplete: (questionnaireType: string) => {
     trackEvent('questionnaire_complete', {
       questionnaire_type: questionnaireType,
-      questionnaire_name: questionnaireName,
     })
     trackMetaEvent('CompleteRegistration', {
       content_name: questionnaireType,

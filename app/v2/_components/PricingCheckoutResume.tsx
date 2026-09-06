@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useSession } from "next-auth/react";
+import { analytics } from "@/lib/analytics/events";
 import {
   clearPendingCheckoutIntent,
   getPendingCheckoutIntent,
@@ -35,6 +36,7 @@ export function PricingCheckoutResume() {
           throw new Error(data?.error || "Unable to start checkout");
         }
 
+        analytics.subscriptionStart("one_time", 149);
         clearPendingCheckoutIntent();
         if (!cancelled) window.location.href = data.url;
       } catch (error) {

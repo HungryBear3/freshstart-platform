@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { QuestionnaireForm } from "@/components/questionnaires/questionnaire-form";
 import { QuestionnaireStructure, QuestionnaireResponse } from "@/types/questionnaire";
@@ -15,6 +15,7 @@ import { PrenupGuidanceBanner } from "@/components/prenup/prenup-guidance-banner
 import { SafetyResources } from "@/components/prenup/safety-resources";
 import { getPrenupStatus, checkPrenupSafetyConcerns, PrenupContext } from "@/lib/prenup/branching";
 import { analytics } from "@/lib/analytics/events";
+import { IntakeFunnelTracker, type IntakeFunnelEmission } from "@/lib/analytics/intake-funnel";
 
 export default function QuestionnairePage() {
   const params = useParams();
@@ -34,9 +35,45 @@ export default function QuestionnairePage() {
   const responseIdFromUrl = searchParams.get("responseId");
   const returnTo = searchParams.get("returnTo");
 
+  // One funnel tracker per route type. It holds the exactly-once guards, so it
+  // must survive re-renders and only be rebuilt when the intake itself changes.
+  const funnelRef = useRef<{ key: string; tracker: IntakeFunnelTracker } | null>(null);
+  if (funnelRef.current?.key !== type) {
+    funnelRef.current = { key: type, tracker: new IntakeFunnelTracker(type) };
+  }
+  const funnel = funnelRef.current.tracker;
+
+  // Measurement is never allowed to affect the intake it measures.
+  const emitFunnel = (emission: IntakeFunnelEmission | null) => {
+    if (!emission) return;
+    try {
+      switch (emission.name) {
+        case "questionnaire_start":
+          analytics.questionnaireStart(emission.questionnaireType);
+          break;
+        case "questionnaire_section_complete":
+          analytics.questionnaireSectionComplete(
+            emission.questionnaireType,
+            emission.sectionIndex,
+            emission.totalSections,
+          );
+          break;
+        case "questionnaire_complete":
+          analytics.questionnaireComplete(emission.questionnaireType);
+          break;
+      }
+    } catch {
+      // Swallow — analytics must not alter intake behavior.
+    }
+  };
+
   // Load questionnaire structure and existing responses
   useEffect(() => {
     async function loadQuestionnaire() {
+      // Any persisted response row means this intake is being resumed, not
+      // started. Recorded locally so the tracker is told once, after both the
+      // structure and the response lookup have settled.
+      let persistedSection: number | null = null;
       try {
         // Load questionnaire structure
         const res = await fetch(`/api/questionnaires/${type}`);
@@ -57,6 +94,7 @@ export default function QuestionnairePage() {
               setResponses(loadedResponses);
               setCurrentSection(r.currentSection || 0);
               setResponseId(r.id);
+              persistedSection = r.currentSection || 0;
               if (type === "petition") {
                 const prenupContext = extractPrenupContext(loadedResponses);
                 setPrenupStatus(getPrenupStatus(prenupContext));
@@ -75,6 +113,7 @@ export default function QuestionnairePage() {
               setResponses(loadedResponses);
               setCurrentSection(latestResponse.currentSection || 0);
               setResponseId(latestResponse.id);
+              persistedSection = latestResponse.currentSection || 0;
               if (type === "petition") {
                 const prenupContext = extractPrenupContext(loadedResponses);
                 setPrenupStatus(getPrenupStatus(prenupContext));
@@ -88,6 +127,10 @@ export default function QuestionnairePage() {
         setError(err.message || "Failed to load questionnaire");
       } finally {
         setLoading(false);
+        funnel.markLoaded({
+          hasPersistedProgress: persistedSection !== null,
+          resumedSectionIndex: persistedSection ?? 0,
+        });
       }
     }
 
@@ -211,6 +254,9 @@ export default function QuestionnairePage() {
         throw new Error("Failed to submit");
       }
 
+      // Server-confirmed completion only — never a client guess.
+      emitFunnel(funnel.recordConfirmedCompletion());
+
       // Redirect to documents page (or returnTo if specified)
       router.push(returnTo === "documents" ? "/documents" : "/documents");
     } catch (err) {
@@ -298,6 +344,11 @@ export default function QuestionnairePage() {
           initialResponses={responses}
           onSave={handleSave}
           onSubmit={handleSubmit}
+          onUserEdit={() => emitFunnel(funnel.recordUserInput())}
+          onSectionLeave={(sectionIndex, totalSections, complete) => {
+            if (!complete) return;
+            emitFunnel(funnel.recordSectionCleared({ sectionIndex, totalSections }));
+          }}
           onResponsesChange={(newResponses) => {
             setResponses(newResponses);
             // Update prenup status and safety concerns in real-time for petition questionnaires

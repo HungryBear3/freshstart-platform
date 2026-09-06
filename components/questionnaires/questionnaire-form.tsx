@@ -42,6 +42,18 @@ interface QuestionnaireFormProps {
   onSave?: (responses: QuestionnaireResponse, currentSection: number) => Promise<void>;
   onSubmit?: (responses: QuestionnaireResponse) => Promise<void>;
   onResponsesChange?: (responses: QuestionnaireResponse) => void; // Callback when responses change
+  /**
+   * Fired for a genuine user edit of an answer. Carries no answer value — it
+   * exists so a caller can tell real input apart from hydration or a resumed
+   * draft, which watching response state cannot do.
+   */
+  onUserEdit?: () => void;
+  /**
+   * Fired when the user navigates away from a section: the index of the
+   * section being left, the visible section count, and whether that section's
+   * required questions were all answered.
+   */
+  onSectionLeave?: (sectionIndex: number, totalSections: number, complete: boolean) => void;
   autoSave?: boolean;
   autoSaveDelay?: number; // milliseconds
   relatedFormId?: string;  // ID of related official court form
@@ -54,6 +66,8 @@ export function QuestionnaireForm({
   onSave,
   onSubmit,
   onResponsesChange,
+  onUserEdit,
+  onSectionLeave,
   autoSave = true,
   autoSaveDelay = 2000,
   relatedFormId,
@@ -106,6 +120,11 @@ export function QuestionnaireForm({
   const handleResponseChange = (questionId: string, value: any) => {
     const newResponses = { ...responses, [questionId]: value };
     setResponses(newResponses);
+
+    // Genuine user edit — reported without any answer content.
+    if (onUserEdit) {
+      onUserEdit();
+    }
 
     // Notify parent of response changes
     if (onResponsesChange) {
@@ -208,6 +227,10 @@ export function QuestionnaireForm({
   // Navigation
   const goToSection = (index: number) => {
     if (index >= 0 && index < visibleSections.length) {
+      // Report the section being left before the index moves.
+      if (onSectionLeave && index !== currentSection) {
+        onSectionLeave(currentSection, visibleSections.length, isSectionComplete(currentSection));
+      }
       // Save before navigating
       if (onSave && !isSaving) {
         handleAutoSave();
