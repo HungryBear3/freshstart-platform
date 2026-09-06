@@ -23,6 +23,22 @@ recorded in the owner-held ledger, not a repository edit.
 - **Status:** PENDING — REQUESTED, NOT APPROVED
 - **What this entry records:** that a durable ledger entry is **owed** and has not
   been written. It does not itself grant, confirm, or substitute for approval.
+- **What is not in dispute:** the change itself was made on product-owner
+  instruction of 2026-09-01. What is pending is the **durable record** of that
+  instruction in the owner-held ledger, not the instruction. This entry is
+  therefore not a claim that the string was changed without direction; it is a
+  claim that the string has no approval of record. The module header of
+  `lib/forms/iwo-refusal-copy.ts` states the same thing and must not be edited to
+  say the string was "re-approved" while this entry stands.
+- **How this differs from Entry 2:** this entry is a **shipped, owner-directed
+  string awaiting its durable record**. Entry 2 is copy that **does not exist
+  yet** — no wording has been supplied or chosen, and nothing is wired. Do not
+  merge the two: clearing this one is a bookkeeping action in the owner-held
+  ledger; clearing Entry 2 requires the owner to author or select wording first.
+- **Reachability:** this string is emitted only once `federal_iwo_expired` fires,
+  i.e. on or after `2027-08-25` in `America/Chicago`. It is not reachable on the
+  current release, so the outstanding item is a governance record, not live
+  unapproved copy. That does not make it optional.
 - **Surface:** `lib/forms/iwo-refusal-copy.ts`,
   `IWO_OPERATIVE_REFUSAL_COPY.federal_form_authority_expired[0]`
 - **Change made in code on 2026-09-01, retired sentence:**

@@ -11,9 +11,9 @@
  * with ONE exception, below. Changing a single character of any of them requires
  * a new copy review and approval.
  *
- * EXCEPTION — `federal_form_authority_expired`, first paragraph. Re-approved by
- * the product owner on 2026-09-01 as part of PR-2A, superseding the 2026-08-24
- * wording for this one string. The retired sentence read:
+ * EXCEPTION — `federal_form_authority_expired`, first paragraph. Changed on
+ * PRODUCT-OWNER INSTRUCTION of 2026-09-01 as part of PR-2A, superseding the
+ * 2026-08-24 wording for this one string. The retired sentence read:
  *
  *   "…because the period Fresh Start is authorized to distribute the selected
  *   version has ended."
@@ -24,7 +24,25 @@
  * date), NOT a published ACF expiry — so the sentence claimed an agency-set fact
  * that no source states. The replacement describes only Fresh Start's own
  * conduct and asserts nothing about OMB status, any authorization window, or
- * acceptance. It must be logged against `OWNER-COPY-APPROVAL-20260824.md`.
+ * acceptance.
+ *
+ * APPROVAL STATE OF THAT ONE STRING — do not overstate it. The change was
+ * owner-directed, but the durable approval record for it is still OWED: no entry
+ * has been written in the owner-held ledger `OWNER-COPY-APPROVAL-20260824.md`,
+ * which is outside this repository. Until that entry exists, this module does
+ * NOT claim the superseding sentence has been re-approved of record. The
+ * outstanding item is tracked in-branch as Entry 1 of
+ * `docs/legal-audit/iwo-copy-approval-ledger.md`, whose status is
+ * `PENDING — REQUESTED, NOT APPROVED`; that ledger is the authority on the
+ * status of this item and this comment must not contradict it.
+ *
+ * That is a DIFFERENT item from Entry 2 of the same ledger, the OPEN-PATH
+ * DISCLOSURE copy. There, no wording has been supplied or chosen at all, nothing
+ * is wired, and no string for it exists in this module: distribution simply
+ * fails closed and says nothing (`lib/forms/iwo-distribution-hold.ts`). Entry 1
+ * is a shipped, owner-directed string awaiting its durable record; Entry 2 is
+ * copy that does not yet exist.
+ *
  * Both paragraphs are pinned character-for-character by
  * `__tests__/lib/forms/iwo-refusal-copy.test.ts` and
  * `__tests__/lib/forms/iwo-omb-transition.test.ts`.

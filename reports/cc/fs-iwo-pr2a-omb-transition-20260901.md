@@ -117,7 +117,9 @@ directly rather than taken from this document.
 
 ## 2. Changed files and diffstat
 
-Cumulative, base → `0f0e371` (the last commit that changed code or evidence):
+Cumulative, base → `0f0e371`. **This is no longer the whole branch:** `0f0e371`
+was the last code/evidence commit *at the time this section was written*, and two
+later commits changed code — see the second table below and §3.1–§3.2.
 
 ```
  __tests__/api/documents-package-iwo.test.ts        |   5 +-
@@ -147,9 +149,79 @@ Amendment 2 alone, `f2a2330` → `0f0e371`:
  7 files changed, 193 insertions(+), 105 deletions(-)
 ```
 
+Cumulative, base → `d1a2005` (the branch's last code commit — 29 files,
++3846 / −180):
+
+```
+ __tests__/api/documents-by-id-iwo-gate.test.ts     | 282 +++++++++++++
+ __tests__/api/documents-by-id-iwo-payload.test.ts  | 214 ++++++++++
+ __tests__/api/documents-list-iwo-gate.test.ts      | 229 ++++++++++
+ .../api/documents-package-disclosure-hold.test.ts  | 244 +++++++++++
+ __tests__/api/documents-package-iwo.test.ts        |  27 +-
+ __tests__/api/forms-iwo-route.test.ts              |  74 +++-
+ __tests__/forms/verify-illinois-forms.test.ts      |   5 +-
+ .../lib/counties/will-iwo-conditional.test.ts      | 144 +++++--
+ __tests__/lib/forms/iwo-omb-transition.test.ts     | 422 ++++++++++++++++++
+ .../forms/iwo-open-path-disclosure-hold.test.ts    | 470 +++++++++++++++++++++
+ __tests__/lib/forms/iwo-refusal-copy.test.ts       |  23 +-
+ app/api/documents/[id]/route.ts                    | 100 ++---
+ app/api/documents/route.ts                         |  83 +++-
+ .../legal-audit/illinois-court-forms-manifest.json |   4 +-
+ docs/legal-audit/iwo-copy-approval-ledger.md       |  78 ++++
+ .../iwo-omb-renewal-transition-2026-09-01.md       | 275 ++++++++++++
+ ...pen-path-disclosure-copy-decision-2026-09-05.md | 109 +++++
+ lib/counties/county-iwo-workflow.ts                |  54 ++-
+ lib/documents/package-handler.ts                   |  34 +-
+ lib/documents/serve-document-handler.ts            | 200 +++++++++
+ lib/forms/court-forms-read-model.ts                |   4 +
+ lib/forms/illinois-court-forms.ts                  |   4 +-
+ lib/forms/iwo-distribution-hold.ts                 |  93 ++++
+ lib/forms/iwo-package-guard.ts                     |  48 ++-
+ lib/forms/iwo-provenance.ts                        | 221 ++++++++--
+ lib/forms/iwo-refusal-copy.ts                      |  44 +-
+ lib/forms/iwo-route-factory.ts                     |   7 +
+ lib/forms/official-artifact-access.ts              |  82 +++-
+ reports/cc/fs-iwo-pr2a-omb-transition-20260901.md  | 452 ++++++++++++++++++++
+ 29 files changed, 3846 insertions(+), 180 deletions(-)
+```
+
+Rather than trust any of the three tables above — a diffstat inside the diff it
+describes goes stale the moment anything else lands — reproduce them:
+
+```
+git diff --stat c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD
+git log --oneline c84e9a7cfb09a4e6aa68906383afa578e9691ce2..HEAD
+git show --stat ef5a3be
+git show --stat d1a2005
+```
+
 Every path is inside the allowlist. No file outside it was modified. **No
 dependency, Prisma/database, `public/forms`, PDF artifact, mapping, unrelated
 county policy, or customer-copy file was touched.**
+
+`app/api/documents/route.ts` and `app/api/documents/[id]/route.ts` were added to
+the touched set by `d1a2005` (§3.2). Both are IWO read boundaries, but they are
+**not** IWO-only files, and this report will not claim the change is invisible to
+non-IWO rows. The observable deltas for a non-IWO document are, in full:
+
+1. **The listing no longer returns `content`.** It previously returned whole
+   `Document` rows, base64 payload included; it now selects and re-projects six
+   metadata fields. Any consumer that read `content` off `/api/documents` loses
+   it — deliberate, and the point of the change (§3.2). The dashboard renders
+   only the six.
+2. **Whitespace-only `content` is now the pre-existing 404** instead of being
+   served as a body. Same 404, same copy, wider condition
+   (`!content || content.trim().length === 0`).
+3. **An undecodable base64 PDF is now that same 404** instead of a `200` with a
+   zero-byte body. `Buffer.from` is lenient and does not throw, so the old path
+   handed the browser an empty "PDF" that fails to open.
+4. **The ownership-failure `403` now carries `no-store`.** Body and status
+   unchanged.
+5. A verbose per-request `console.log` of document metadata was removed.
+
+No copy string was added or changed on any of these paths; 2 and 3 reuse the
+existing 404 text verbatim. Nothing here touches pricing, payment, schema, env,
+or dependencies.
 
 ## 3. The model implemented
 
@@ -235,9 +307,22 @@ sentence is gone and that the copy matches none of
 `/authoriz/`, `/expir/`, `/period/`, `/renewal/`, `/OMB (has|approved|extended)/`,
 `/no longer (valid|current)/`.
 
-**Owner action required:** log this re-approval against
+**Approval state, stated exactly once so it cannot drift.** The change was made
+on product-owner instruction of 2026-09-01. It has **no approval of record**: no
+entry has been written in the owner-held durable ledger
+`OWNER-COPY-APPROVAL-20260824.md`, which is outside this repository. This report
+does not claim the string is re-approved, and neither does the module header of
+`lib/forms/iwo-refusal-copy.ts`. The single in-branch authority on the status is
+`docs/legal-audit/iwo-copy-approval-ledger.md`, Entry 1, which reads
+`PENDING — REQUESTED, NOT APPROVED`.
+
+That is a different item from the **open-path disclosure** copy (Entry 2 of the
+same ledger, §3.1 below): Entry 1 is a shipped, owner-directed string awaiting
+its durable record; Entry 2 is copy that does not yet exist and is not wired.
+
+**Owner action required:** log this supersession against
 `OWNER-COPY-APPROVAL-20260824.md`. The module header records the supersession and
-its reason inline.
+its reason inline, so the owner-doc entry has its exact source text.
 
 - `federal_form_authority_expired` — now driven by
   `legacyTransitionFirstBlockedDate` instead of the printed date, and re-worded as
@@ -247,6 +332,130 @@ its reason inline.
   it stays truthful if a future review re-pins renewal to `pending`, and deleting
   it would require re-approving copy to get it back. Tests still reach it by
   injecting pending evidence.
+
+## 3.1 Commit `ef5a3be` — the global open-path disclosure hold
+
+This is the largest behavioral change in the branch, and §3 above does not
+describe it: §3 was written at `2e165d2` and stops there.
+
+**What it does.** Gates 1–5 of `getIwoAvailability` only ever governed
+*refusals*. On the SUCCESSFUL path a customer received the legacy ACF print —
+which carries a now-past date on its face and for which an approved revised
+successor exists — and was told nothing. `ef5a3be` adds **gate 6**: the exact
+disclosure for that successful path must be owner-approved, and it is not.
+
+**What it is not.** It is not an expiry, an OMB status, a renewal state, or an
+agency action. The pinned federal evidence is untouched: OIRA concluded ICR
+`202607-0970-002` on `2026-08-25`, approved without change through `2029-08-31`;
+the legacy print's transition boundary is still `2027-08-25`; the on-disk bytes
+still match the pinned SHA-256. `lib/forms/iwo-distribution-hold.ts` says this in
+its first paragraph and no code, comment, log line, refusal code, or
+user-visible string in this branch describes it otherwise.
+
+| | |
+| --- | --- |
+| Refusal identity | `open_path_disclosure_unapproved` |
+| Pinned state | `PINNED_OPEN_PATH_DISCLOSURE_APPROVAL.status = "pending"` (`lib/forms/iwo-distribution-hold.ts`) |
+| Fail-closed on | anything that is not an explicit `"approved"`, **including `undefined`** |
+| Override surface | **none** — no env var, no runtime toggle, no product entry point that accepts one |
+| How it clears | owner approves one exact variant → it is added to the approved-copy module with a ledger entry → `status` moves to `approved` **in the same change** |
+
+**Gate 6 is last on purpose.** A genuine county or artifact problem still reports
+its own truthful, approved cause; the hold only closes the outcome that would
+otherwise have been OPEN.
+
+**It carries no copy, anywhere, on purpose.** Inventing wording here would be
+shipping unapproved customer-facing legal-adjacent text; borrowing another
+cause's approved sentence would misapply an approval granted for a different
+cause *and* state something untrue, since under the hold nothing is expired,
+missing, mismatched, or under renewal review. So every held surface says nothing:
+
+- `getIwoAvailability` returns `copy: []` and `requiresManualReview: false` —
+  this is a global release decision, not a per-case referral
+  (`lib/forms/official-artifact-access.ts`).
+- The packet composer adds the reason code and no prose
+  (`lib/counties/county-iwo-workflow.ts`). Automatic packet composition is a
+  distribution path — the one that puts the legacy print in a customer's hands
+  without their asking — so the hold reaches it, not only the download boundary.
+- The guarded route refuses with its existing 403, `no-store`, zero PDF bytes
+  (`lib/forms/iwo-route-factory.ts`).
+- `/legal-info/court-forms` renders the form with no DTO download href and no
+  external link (`lib/forms/court-forms-read-model.ts`).
+
+**The proposed wording is unapproved and unwired.** The draft variants live in
+`docs/legal-audit/iwo-open-path-disclosure-copy-decision-2026-09-05.md`, and
+`__tests__/lib/forms/iwo-open-path-disclosure-hold.test.ts` asserts that **no
+variant appears in any shipped copy surface**, under either approval state. The
+pending item is Entry 2 of `docs/legal-audit/iwo-copy-approval-ledger.md` — see
+the approval-state paragraph in §3, which distinguishes it from Entry 1.
+
+**Catalog/manifest reconciliation in the same commit.** The IWO's `officialUrl`
+in `lib/forms/illinois-court-forms.ts` and
+`docs/legal-audit/illinois-court-forms-manifest.json` was moved to the retrieved
+`acf.gov/…?download=1` address, and the version label `printed expiration
+2026-08-31` became `printed date 2026-08-31` — the "expiration" label is exactly
+the ambiguity PR-2A retired. Asserted by test; see §9.5.
+
+## 3.2 Commit `d1a2005` — the legacy `Document` read boundaries
+
+`Document` rows are free-form and long-lived. A row created before any of this
+existed can name the federal IWO, and two read paths never consulted the gate.
+`d1a2005` closes both, and adds `lib/documents/serve-document-handler.ts` (new,
+~200 lines) so the direct-serve boundary is a dependency-injected factory whose
+branches can be exercised against the REAL handler without a database or a
+session.
+
+| Surface | Boundary | Behavior when the gate is closed |
+| --- | --- | --- |
+| `GET /api/documents` (list) | `app/api/documents/route.ts` | The IWO-classified row is **omitted outright**. No refusal identity, no explanatory copy — a listing is not the surface that would carry a disclosure even if one existed. |
+| `GET /api/documents/[id]` (direct bytes) | `lib/documents/serve-document-handler.ts`, wired by `app/api/documents/[id]/route.ts` | Generic 403 + `no-store`, zero bytes. |
+| `POST /api/documents/package` (ZIP) | `lib/documents/package-handler.ts` | Row excluded from the archive; under the hold **no** `00_WITHHELD_ITEMS.txt` entry is written at all. |
+
+**The listing carries no bytes by construction, twice over.** `LIST_FIELDS` does
+not select the `content` column, and `toListRow` re-projects at the
+serialization boundary — so a widened select or a helper returning the whole
+record still cannot carry `content` out. "We did not ask for it" is a weaker
+guarantee than "we do not emit it"; both are in place. The availability gate is
+consulted **only** when an IWO-classified row is actually present, so ordinary
+listings do not take on a second query.
+
+**Policy authorizes the form; it never authorizes the bytes.** The new exported
+`isIwoReleaseOpen` (`lib/forms/iwo-package-guard.ts`) is *policy only* — the same
+Gate 1 the packager applies, reached through the same `iwoPolicyAvailability`
+helper and the same authoritative stored county, so the three surfaces cannot
+drift apart. Any caller that then emits stored bytes must **also** run
+`validateIwoPayload`, and the direct-serve path does: strict base64 round-trip,
+exact `505412` bytes, exact SHA-256 `2b15c02a…b551`, `application/pdf`. A row
+that merely *names* the instrument while holding a different, truncated, empty,
+or undecodable payload is refused rather than released as the federal form. The
+rejection reason is internal and deliberately not surfaced.
+
+**Ordering.** Ownership is checked *before* the IWO gate on the direct-serve
+path, so the gate leaks nothing to a non-owner. The refusal is the same 403 body
+the route already returned for an ownership failure — it carries no cause, no
+blocker list, and no refusal identity, because the gate can close for the
+disclosure hold, which has no approved wording at all.
+
+**The ZIP's withheld notice.** `package-handler.ts` now distinguishes the hold
+from a payload rejection: under the hold, `00_WITHHELD_ITEMS.txt` is suppressed
+entirely rather than falling back to the federal-mismatch sentence, which would
+be **false** here (the pinned artifact matches exactly and nothing is expired,
+missing, or under renewal review). The generic fallback is now reached only for a
+payload rejection, for which it is true.
+
+**Non-blocking, pre-existing.** `package-handler.ts` still writes raw internal
+reason tokens (e.g. `county_manual_conditional`, `wrong_sha256`) into the
+customer-facing `00_WITHHELD_ITEMS.txt` for the *other* causes. That predates this
+branch, is on `main`, and is unreachable under the hold — but it is the one place
+an internal identifier can reach a customer artifact. Recorded, not fixed here.
+See §9.7.
+
+**Net effect of `ef5a3be` + `d1a2005`.** Every IWO release path — direct
+download, package ZIP, direct document read, document listing, generate, county
+packet auto-composition, and the public court-forms page — funnels through
+`getIwoAvailability`, and the pinned hold closes it. **Zero IWO bytes are
+distributable on this candidate through any surface.** The failure mode of this
+branch is over-withholding, not leakage.
 
 ## 4. Preserved behavior — asserted, not assumed
 
@@ -444,9 +653,25 @@ destructive action occurred.**
    owner-doc update has its exact source text. It remains an open owner action.
 4. **Decide on the pre-existing lint/format state** (§5). The nine untouched
    allowlisted files are still Prettier-dirty, exactly as at base.
-5. `IWO_PROVENANCE.canonicalUrl` still points at the `acf.hhs.gov` host, while
-   the packet's retrieval used `acf.gov/…?download=1`. Same document; left
-   unchanged because the URL is a pinned identity constant and re-pinning it was
-   outside this slice's scope. Noted so it is a decision, not an oversight.
+5. ~~`IWO_PROVENANCE.canonicalUrl` still points at the `acf.hhs.gov` host.~~
+   **No longer true of this tree — closed at `0f0e371`.** The constant was
+   reconciled to the address that was actually retrieved,
+   `https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1`
+   (`lib/forms/iwo-provenance.ts`), and the catalog
+   (`lib/forms/illinois-court-forms.ts`) and manifest
+   (`docs/legal-audit/illinois-court-forms-manifest.json`) name the same URL, so
+   one document has one address in all three places. A test asserts the
+   three-way match (`__tests__/lib/forms/iwo-omb-transition.test.ts`, "names one
+   URL, in all three places"). Nothing new is asserted about the old host: the
+   2026-07-21 provenance JSON already records `www.acf.hhs.gov` resolving by 301
+   to `acf.gov`, and no fetch was performed to make the change. Verify on any
+   tree with:
+
+   ```
+   grep -rn 'omb_0970_0154.pdf' lib/forms/iwo-provenance.ts lib/forms/illinois-court-forms.ts docs/legal-audit/illinois-court-forms-manifest.json
+   ```
+
+   Left as a struck item rather than deleted so a reader of an earlier revision
+   of this report can see it was resolved, not dropped.
 6. Independent exact-SHA evidence/security review of this tree, then Preview
    smokes, remain gates 2–6 in the packet. None are satisfied by this commit.
