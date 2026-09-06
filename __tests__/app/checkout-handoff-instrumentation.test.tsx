@@ -16,9 +16,16 @@ jest.mock("next-auth/react", () => ({
   useSession: () => ({ status: sessionStatus, data: sessionStatus === "authenticated" ? { user: {} } : null }),
 }))
 
+jest.mock("@/lib/analytics/tracking-gate", () => ({
+  isLiveTrackingEnabled: jest.fn(() => true),
+}))
+
 import { PricingCheckoutResume } from "@/app/v2/_components/PricingCheckoutResume"
 
 const CHECKOUT_URL = "https://checkout.stripe.com/c/pay/cs_test_a1b2c3"
+const trackingGate = jest.requireMock("@/lib/analytics/tracking-gate") as {
+  isLiveTrackingEnabled: jest.Mock
+}
 
 function armPendingIntent() {
   window.sessionStorage.setItem("fs_auto_checkout", "true")
@@ -40,6 +47,7 @@ describe("checkout handoff instrumentation", () => {
     sessionStatus = "authenticated"
     window.sessionStorage.clear()
     window.gtag = jest.fn()
+    trackingGate.isLiveTrackingEnabled.mockReset().mockReturnValue(true)
     ;(window as unknown as { fbq: unknown }).fbq = jest.fn()
     jest.spyOn(console, "error").mockImplementation(() => {})
   })
@@ -88,7 +96,7 @@ describe("checkout handoff instrumentation", () => {
 
     render(<PricingCheckoutResume />)
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/could not start checkout/i))
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/could not start checkout/i))
     expect(beginCheckoutCalls()).toHaveLength(0)
   })
 
@@ -101,25 +109,49 @@ describe("checkout handoff instrumentation", () => {
     expect(beginCheckoutCalls()).toHaveLength(0)
   })
 
-  it("still completes the handoff when the analytics transport throws", async () => {
+  it("still completes the handoff when the analytics gate throws", async () => {
     armPendingIntent()
     global.fetch = jest.fn(async () => ({
       ok: true,
       json: async () => ({ sessionId: "cs_test_a1b2c3", url: CHECKOUT_URL }),
     }) as Response) as unknown as typeof fetch
-    ;(window.gtag as jest.Mock).mockImplementation(() => {
-      throw new Error("tag manager exploded")
+    trackingGate.isLiveTrackingEnabled.mockImplementation(() => {
+      throw new Error("tracking gate exploded")
     })
 
     render(<PricingCheckoutResume />)
 
     // The redirect path is reached regardless of the failing tag.
     await waitFor(() => expect(window.sessionStorage.getItem("fs_auto_checkout")).toBeNull())
-    expect(screen.getByRole("status")).toHaveTextContent(/Redirecting to secure checkout/i)
+    expect(screen.getByRole("status").textContent).toMatch(/Redirecting to secure checkout/i)
+  })
+
+  it("shares one checkout request and event across a StrictMode remount", async () => {
+    armPendingIntent()
+    let resolveFetch!: (response: Response) => void
+    global.fetch = jest.fn(() => new Promise<Response>((resolve) => {
+      resolveFetch = resolve
+    })) as unknown as typeof fetch
+
+    render(
+      <React.StrictMode>
+        <PricingCheckoutResume />
+      </React.StrictMode>,
+    )
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
+    resolveFetch({
+      ok: true,
+      json: async () => ({ sessionId: "cs_test_a1b2c3", url: CHECKOUT_URL }),
+    } as Response)
+    await waitFor(() => expect(beginCheckoutCalls()).toHaveLength(1))
   })
 
   it("dispatches nothing while the production tracking gate is closed", async () => {
+    // The gate module is mocked here, so closing it means closing the mock —
+    // the env var alone would no longer reach the real implementation.
     process.env.NEXT_PUBLIC_ENABLE_TRACKING = "false"
+    trackingGate.isLiveTrackingEnabled.mockReturnValue(false)
     armPendingIntent()
     global.fetch = jest.fn(async () => ({
       ok: true,

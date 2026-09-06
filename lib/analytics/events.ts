@@ -50,8 +50,13 @@ export function trackEvent(
   eventName: string,
   params?: Record<string, any>
 ): void {
-  if (isLiveTrackingEnabled()) {
-    trackGA4Event(eventName, params)
+  try {
+    if (isLiveTrackingEnabled()) {
+      trackGA4Event(eventName, params)
+    }
+  } catch {
+    // The gate itself is part of the analytics boundary: a failure evaluating
+    // it must not surface to the intake, document, or checkout caller.
   }
 
   // Log in development (no live network call).
