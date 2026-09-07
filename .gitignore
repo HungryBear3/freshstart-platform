@@ -24,10 +24,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
-.env
-.env.test
+# local env files — ignore every variant (.env, .env.local, .env.test,
+# .env.development, .env.staging, .env.production and their *.local forms)
+# so a real credential file can never be committed. The tracked template is
+# the single exception.
+.env*
+!.env.example
 
 # vercel
 .vercel

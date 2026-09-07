@@ -24,7 +24,7 @@ The database connection is currently failing. This is likely due to:
 ### Option 2: Use Connection Pooler
 Try using the connection pooler URL from Supabase (port 6543):
 ```
-postgresql://postgres:PRWgCQEQ2RO78zCk@db.oscljrviecbgevotjovj.supabase.co:6543/postgres?sslmode=require&pgbouncer=true
+postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:6543/postgres?sslmode=require&pgbouncer=true
 ```
 
 ### Option 3: Verify Connection String

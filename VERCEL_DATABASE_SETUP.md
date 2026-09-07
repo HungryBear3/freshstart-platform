@@ -45,12 +45,12 @@ The connection string **must** include:
 
 **Correct format:**
 ```
-postgresql://postgres:PRWgCQEQ2RO78zCk@db.oscljrviecbgevotjovj.supabase.co:6543/postgres?sslmode=require&pgbouncer=true
+postgresql://postgres:[YOUR-PASSWORD]@db.xxxxx.supabase.co:6543/postgres?sslmode=require&pgbouncer=true
 ```
 
 **Wrong format (direct connection - won't work on Vercel):**
 ```
-postgresql://postgres:PRWgCQEQ2RO78zCk@db.oscljrviecbgevotjovj.supabase.co:5432/postgres
+postgresql://postgres:[YOUR-PASSWORD]@db.xxxxx.supabase.co:5432/postgres
 ```
 
 ### 4. Redeploy
