@@ -9,7 +9,7 @@
  * of the AnalyticsProvider gate.
  */
 
-import { trackMetaEvent, trackMetaCustomEvent } from "@/components/analytics/meta-pixel"
+import { trackMetaEvent } from "@/components/analytics/meta-pixel"
 import { isLiveTrackingEnabled } from "@/lib/analytics/tracking-gate"
 import { sanitizeClientEventParams } from "@/lib/analytics/ga4-client"
 
@@ -105,15 +105,16 @@ export const analytics = {
   /**
    * Track questionnaire started.
    *
+   * First-party/GA4 only. Starting a legal-service intake is a sensitive fact
+   * about the person, not a page view, so it is never sent to Meta — the
+   * published privacy wording scopes the pixel to viewed activity.
+   *
    * Only the bounded questionnaire type is reported. The human-readable
    * questionnaire title is deliberately not sent: it is free-form copy, it
    * fails the client sanitizer, and it would drop the whole event.
    */
   questionnaireStart: (questionnaireType: string) => {
     trackEvent('questionnaire_start', {
-      questionnaire_type: questionnaireType,
-    })
-    trackMetaCustomEvent('QuestionnaireStart', {
       questionnaire_type: questionnaireType,
     })
   },
@@ -136,14 +137,12 @@ export const analytics = {
   },
 
   /**
-   * Track questionnaire completed. Bounded type only — see `questionnaireStart`.
+   * Track questionnaire completed. First-party/GA4 only and bounded type
+   * only — see `questionnaireStart` for both constraints.
    */
   questionnaireComplete: (questionnaireType: string) => {
     trackEvent('questionnaire_complete', {
       questionnaire_type: questionnaireType,
-    })
-    trackMetaEvent('CompleteRegistration', {
-      content_name: questionnaireType,
     })
   },
 
@@ -176,15 +175,16 @@ export const analytics = {
   },
 
   /**
-   * Track document generated successfully
+   * Track document generated successfully.
+   *
+   * First-party/GA4 only. Which court document a person generated is a fact
+   * about their case, not viewed activity, so it is never sent to Meta — see
+   * `questionnaireStart` for the same constraint on intake milestones.
    */
   documentGenerate: (documentType: string, isOfficialForm: boolean) => {
     trackEvent('document_generate', {
       document_type: documentType,
       is_official_form: isOfficialForm,
-    })
-    trackMetaCustomEvent('DocumentGenerate', {
-      document_type: documentType,
     })
   },
 
@@ -339,15 +339,16 @@ export const analytics = {
   },
 
   /**
-   * Track prenup document uploaded
+   * Track prenup document uploaded.
+   *
+   * First-party/GA4 only. That a person holds and uploaded a prenuptial or
+   * postnuptial agreement is case data, not viewed activity, so it is never
+   * sent to Meta — see `questionnaireStart` for the same constraint.
    */
   prenupDocumentUpload: (documentType: 'prenup' | 'postnup' | 'amendment', fileSize?: number) => {
     trackEvent('prenup_document_upload', {
       document_type: documentType,
       file_size: fileSize,
-    })
-    trackMetaCustomEvent('PrenupDocumentUpload', {
-      document_type: documentType,
     })
   },
 
