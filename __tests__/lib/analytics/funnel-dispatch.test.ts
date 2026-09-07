@@ -77,9 +77,9 @@ describe("funnel event dispatch", () => {
       "questionnaire_start",
       { questionnaire_type: "petition" },
     ])
-    expect((window.fbq as unknown as jest.Mock).mock.calls).toEqual([
-      ["trackCustom", "QuestionnaireStart", { questionnaire_type: "petition" }],
-    ])
+    // Questionnaire milestones are a first-party/GA4 signal only — see
+    // __tests__/lib/analytics/meta-sensitive-events.test.ts.
+    expect((window.fbq as unknown as jest.Mock).mock.calls).toEqual([])
     assertNoPii()
   })
 
@@ -109,9 +109,7 @@ describe("funnel event dispatch", () => {
     expect((window.gtag as jest.Mock).mock.calls).toEqual([
       ["event", "questionnaire_complete", { questionnaire_type: "marital_settlement" }],
     ])
-    expect((window.fbq as unknown as jest.Mock).mock.calls).toEqual([
-      ["track", "CompleteRegistration", { content_name: "marital_settlement" }],
-    ])
+    expect((window.fbq as unknown as jest.Mock).mock.calls).toEqual([])
     assertNoPii()
   })
 
