@@ -26,33 +26,13 @@
 import { execFileSync } from "child_process"
 import { readFileSync, statSync } from "fs"
 import { extname, join } from "path"
+import { MAX_SCANNED_BYTES, MAX_STATEMENT_CHARS } from "@/lib/security/rls-recipe/bounds"
+import { scanFiles } from "@/lib/security/rls-recipe"
 
 const REPO_ROOT = join(__dirname, "..", "..")
 
 /** Operator-runnable SQL lives in `.sql` files and in fenced blocks in runbooks. */
 const SCANNED_EXTENSIONS = [".sql", ".md"]
-
-/** Skip anything too large to be a hand-written runbook or migration. */
-const MAX_SCANNED_BYTES = 2 * 1024 * 1024
-
-/**
- * Grantees that must never hold an unconditional PERMISSIVE policy.
- *
- * `public` is listed because an omitted `TO` clause IS a grant to PUBLIC — the
- * dangerous default, not a neutral one. `anon` is Supabase's unauthenticated
- * Data API role.
- */
-const UNTRUSTED_GRANTEES = ["public", "anon"]
-
-/**
- * How far past `CREATE POLICY` to read when no statement terminator is found.
- * Truncation is deliberately fail-closed: a clipped statement is classified
- * unconditional outright, because the window may have ended after a scoped
- * predicate but before a tautological one, and gets reported rather than
- * silently skipped. Padding a predicate past this limit is therefore not a way
- * around the guard.
- */
-const MAX_STATEMENT_CHARS = 800
 
 /**
  * Sites that are permitted to hold an unconditional untrusted recipe, as
@@ -81,220 +61,10 @@ const readTrackedFile: TrackedFileReader = file => {
   }
 }
 
-/** A statement lifted out of a file, plus whether its terminator was ever found. */
-type ExtractedStatement = { sql: string; truncated: boolean }
-
-/** Opens a dollar-quoted body: `$$` or `$tag$`. */
-const DOLLAR_QUOTE_TAG = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/
-
-/**
- * The statement beginning at `start`.
- *
- * PostgreSQL ends a statement at a `;`, but only at one that is not inside a
- * literal or a comment. This walks the window once, tracking just enough lexical
- * state to answer that single question: single-quoted strings including the
- * doubled-quote escape, double-quoted identifiers, dollar-quoted bodies, line
- * comments and block comments. It is deliberately not a SQL parser — it does not
- * look at keywords, nesting or expression structure, only at where a literal
- * starts and stops.
- *
- * Ending at the first `'` — as this once did, to catch the recipe the retracted
- * script assembled inside `EXECUTE format(...)` — clipped any statement whose
- * scoped `USING` merely mentioned a string, throwing away the `WITH CHECK (true)`
- * that followed and leaving a prefix that read as properly scoped. The
- * `format(...)` shape is still caught, because the scan begins outside the
- * template's quotes: the template's own closing `'` opens a string that never
- * closes, no terminator is found, and `truncated` makes the recipe fail closed.
- */
-const statementAt = (contents: string, start: number): ExtractedStatement => {
-  const window = contents.slice(start, start + MAX_STATEMENT_CHARS)
-  let i = 0
-
-  while (i < window.length) {
-    const char = window[i]
-
-    if (char === ";") return { sql: window.slice(0, i), truncated: false }
-
-    if (char === "'") {
-      i += 1
-      while (i < window.length) {
-        if (window[i] !== "'") {
-          i += 1
-        } else if (window[i + 1] === "'") {
-          // A doubled quote is an escaped quote, not the end of the string. This
-          // branch is stated for the reader rather than for the scanner: closing
-          // and immediately reopening lands on the same index, so no input
-          // distinguishes it. Keep it — it stops being a no-op the moment this
-          // loop tracks anything besides position.
-          i += 2
-        } else {
-          i += 1
-          break
-        }
-      }
-      continue
-    }
-
-    if (char === '"') {
-      const close = window.indexOf('"', i + 1)
-      i = close === -1 ? window.length : close + 1
-      continue
-    }
-
-    if (char === "-" && window[i + 1] === "-") {
-      const newline = window.indexOf("\n", i)
-      i = newline === -1 ? window.length : newline + 1
-      continue
-    }
-
-    if (char === "/" && window[i + 1] === "*") {
-      let depth = 1
-      i += 2
-      while (i < window.length && depth > 0) {
-        if (window[i] === "/" && window[i + 1] === "*") {
-          depth += 1
-          i += 2
-        } else if (window[i] === "*" && window[i + 1] === "/") {
-          depth -= 1
-          i += 2
-        } else {
-          i += 1
-        }
-      }
-      continue
-    }
-
-    if (char === "$") {
-      const tag = DOLLAR_QUOTE_TAG.exec(window.slice(i))
-      if (tag) {
-        const close = window.indexOf(tag[0], i + tag[0].length)
-        i = close === -1 ? window.length : close + tag[0].length
-        continue
-      }
-    }
-
-    i += 1
-  }
-
-  return { sql: window, truncated: true }
-}
-
-/**
- * Double-quoted identifiers are removed before clause analysis so that a policy
- * or table NAME can never be mistaken for a clause keyword — e.g. a policy
- * literally named "Allow all access to users" must not register a `TO` clause.
- */
-const withoutQuotedIdentifiers = (statement: string): string => statement.replace(/"[^"]*"/g, '""')
-
-const granteesOf = (statement: string): string[] => {
-  const match = /\bTO\s+((?:[A-Za-z_][A-Za-z0-9_]*\s*,\s*)*[A-Za-z_][A-Za-z0-9_]*)/i.exec(
-    withoutQuotedIdentifiers(statement)
-  )
-  // No `TO` clause at all is a grant to PUBLIC.
-  if (!match) return ["public"]
-  return match[1].split(",").map(role => role.trim().toLowerCase())
-}
-
-/** The commands a policy can govern; PostgreSQL defaults an omitted `FOR` to `ALL`. */
-type PolicyCommand = "all" | "select" | "insert" | "update" | "delete"
-
-/**
- * The command the statement governs. Anything unrecognised — including a `FOR`
- * clause clipped away by truncation — falls back to `ALL`, the widest and so the
- * fail-closed reading.
- */
-const commandOf = (statement: string): PolicyCommand => {
-  const match = /\bFOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\b/i.exec(
-    withoutQuotedIdentifiers(statement)
-  )
-  return match ? (match[1].toLowerCase() as PolicyCommand) : "all"
-}
-
-/**
- * True when the statement leaves at least one operation it governs
- * unconditionally open.
- *
- * PostgreSQL applies the two predicates to disjoint halves of a policy: `USING`
- * decides which existing rows are visible (SELECT, DELETE, and the read half of
- * UPDATE/ALL), `WITH CHECK` decides which new rows may be written (INSERT and
- * the write half of UPDATE/ALL). They are combined per-operation and never
- * ANDed across both halves: `FOR ALL TO anon USING (true) WITH CHECK (owner =
- * auth.uid())` scopes writes yet still hands every row to anonymous readers, and
- * an AND would have called that safe.
- *
- * A predicate that governs an operation but is absent counts as unconditional:
- * PostgreSQL stores no qual for it and filters nothing, and a statement clipped
- * at MAX_STATEMENT_CHARS loses its predicates the same way. When `WITH CHECK` is
- * omitted PostgreSQL reuses `USING` as the check, so the write half inherits it.
- */
-const isUnconditional = (statement: string): boolean => {
-  const sql = withoutQuotedIdentifiers(statement)
-
-  const usingPresent = /\bUSING\s*\(/i.test(sql)
-  const usingIsTautology = /\bUSING\s*\(\s*true\s*\)/i.test(sql)
-  const checkPresent = /\bWITH\s+CHECK\s*\(/i.test(sql)
-  const checkIsTautology = /\bWITH\s+CHECK\s*\(\s*true\s*\)/i.test(sql)
-
-  const readsUnconditionally = !usingPresent || usingIsTautology
-  const writesUnconditionally = checkPresent ? checkIsTautology : readsUnconditionally
-
-  switch (commandOf(statement)) {
-    case "select":
-    case "delete":
-      return readsUnconditionally
-    case "insert":
-      return writesUnconditionally
-    default:
-      // UPDATE and ALL span both halves, so neither predicate can mask the other.
-      return readsUnconditionally || writesUnconditionally
-  }
-}
-
-/** RESTRICTIVE policies can only ever narrow access, so they are never a grant. */
-const isPermissive = (statement: string): boolean =>
-  !/\bAS\s+RESTRICTIVE\b/i.test(withoutQuotedIdentifiers(statement))
-
-/**
- * A statement whose terminator was never found is treated as unconditional. The
- * window may have ended anywhere — including after a scoped `USING` but before
- * the `WITH CHECK (true)` that follows it — so a truncated statement cannot be
- * read as evidence that a predicate is scoped. Trust and RESTRICTIVE are still
- * judged on what was actually read: a `service_role` grant does not become
- * dangerous by being long.
- */
-const isDangerous = ({ sql, truncated }: ExtractedStatement): boolean =>
-  isPermissive(sql) &&
-  (truncated || isUnconditional(sql)) &&
-  granteesOf(sql).some(role => UNTRUSTED_GRANTEES.includes(role))
-
-/**
- * Returns `path:line` for every tracked SQL recipe that would grant
- * unconditional PERMISSIVE access to PUBLIC or `anon`.
- *
- * The file list and reader are injectable so the detector can be exercised
- * against synthetic fixtures without writing SQL to disk.
- */
 const permissiveUntrustedRecipeSites = (
   files: string[] = trackedFiles(),
   read: TrackedFileReader = readTrackedFile
-): string[] => {
-  const sites: string[] = []
-
-  for (const file of files) {
-    const contents = read(file)
-    if (contents === null || !/CREATE\s+POLICY/i.test(contents)) continue
-
-    const finder = /CREATE\s+POLICY\b/gi
-    let match: RegExpExecArray | null
-    while ((match = finder.exec(contents)) !== null) {
-      if (!isDangerous(statementAt(contents, match.index))) continue
-      const line = contents.slice(0, match.index).split("\n").length
-      sites.push(`${file}:${line}`)
-    }
-  }
-
-  return sites
-}
+): string[] => scanFiles(files, read)
 
 describe("no permissive PUBLIC/anon RLS recipe in tracked SQL", () => {
   it("tracks no SQL recipe granting unconditional permissive access to PUBLIC or anon", () => {
@@ -355,6 +125,20 @@ describe("unconditional untrusted-grantee detector", () => {
         `CREATE POLICY service_role_full_users ON public.users FOR ALL TO service_role USING (true) WITH CHECK (true);`
       )
     ).toEqual([])
+  })
+
+  it("allows a quoted service_role grantee", () => {
+    expect(
+      scan(
+        `CREATE POLICY service_role_full_users ON public.users FOR ALL TO "service_role" USING (true) WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("still flags a quoted anon grantee", () => {
+    expect(scan(`CREATE POLICY p ON public.users FOR SELECT TO "anon" USING (true);`)).toEqual([
+      "fixture.sql:1",
+    ])
   })
 
   it("allows a row-scoped authenticated policy", () => {
@@ -592,6 +376,14 @@ describe("statement extraction is quote- and comment-aware", () => {
     ).toEqual(["fixture.sql:1"])
   })
 
+  it("keeps a doubled quote inside one double-quoted identifier", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING ("AS ""RESTRICTIVE""" = note) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
   it("does not end the statement at a semicolon inside a block comment", () => {
     expect(
       scan(
@@ -780,5 +572,396 @@ describe("statement extraction is quote- and comment-aware", () => {
         `CREATE POLICY safe ON public.documents FOR ALL TO anon USING (kind = 'note') WITH CHECK (kind = 'note');\nCREATE POLICY danger ON public.users FOR ALL USING (true) WITH CHECK (true);`
       )
     ).toEqual(["fixture.sql:2"])
+  })
+})
+
+describe("independent adversarial lexical review", () => {
+  const scanAdversarial = (sql: string) =>
+    permissiveUntrustedRecipeSites(["fixture.sql"], () => sql)
+
+  test.each([
+    [
+      "exact nested-comment reproducer",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (status = 'public') /* outer /* inner */ ; still outer */ WITH CHECK (true);`,
+    ],
+    [
+      "block-comment fake trusted grantee",
+      `CREATE POLICY p ON public.users FOR ALL /* TO service_role */ USING (true) WITH CHECK (true);`,
+    ],
+    [
+      "line-comment fake trusted grantee",
+      `CREATE POLICY p ON public.users FOR ALL -- TO service_role
+USING (true) WITH CHECK (true);`,
+    ],
+    [
+      "block-comment fake restrictive mode",
+      `CREATE POLICY p ON public.users /* AS RESTRICTIVE */ FOR ALL TO anon USING (true) WITH CHECK (true);`,
+    ],
+    [
+      "dollar-string fake restrictive mode",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = $$AS RESTRICTIVE$$) WITH CHECK (true);`,
+    ],
+    [
+      "dollar-string fake trusted grantee",
+      `CREATE POLICY p ON public.users FOR ALL USING (note = $$TO service_role$$) WITH CHECK (true);`,
+    ],
+    [
+      "Unicode-tagged dollar string with internal terminator",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = $é$a;b$é$) WITH CHECK (true);`,
+    ],
+    [
+      "escape string with escaped quote and internal terminator",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = E'a\\';b') WITH CHECK (true);`,
+    ],
+    [
+      "single-string fake SELECT command",
+      `CREATE POLICY p ON public.users TO anon USING (note = 'FOR SELECT') WITH CHECK (true);`,
+    ],
+    [
+      "block-comment fake SELECT command",
+      `CREATE POLICY p ON public.users TO anon USING (owner_id = auth.uid() /* FOR SELECT */) WITH CHECK (true);`,
+    ],
+    [
+      "commented tautology",
+      `CREATE POLICY p ON public.users FOR SELECT TO anon USING (true /* harmless */);`,
+    ],
+    [
+      "nested-parenthesis tautology",
+      `CREATE POLICY p ON public.users FOR SELECT TO anon USING ((true));`,
+    ],
+    ["equivalent tautology", `CREATE POLICY p ON public.users FOR SELECT TO anon USING (1 = 1);`],
+    [
+      "unclosed block-comment fake trusted grantee",
+      `CREATE POLICY p ON public.users FOR ALL /* TO service_role`,
+    ],
+    [
+      "unclosed dollar-string fake trusted grantee",
+      `CREATE POLICY p ON public.users FOR ALL USING ($x$ TO service_role`,
+    ],
+  ])("flags dangerous %s", (_name, sql) => {
+    expect(scanAdversarial(sql)).toEqual(["fixture.sql:1"])
+  })
+
+  test.each([
+    [
+      "service_role with nested comments",
+      `CREATE POLICY svc ON public.users FOR ALL TO service_role USING (true) /* outer /* inner */ outer */ WITH CHECK (true);`,
+    ],
+    [
+      "actual restrictive with lexical noise",
+      `CREATE POLICY p ON public.users AS RESTRICTIVE FOR ALL TO anon USING (note = $$FOR SELECT; TO service_role$$) WITH CHECK (true);`,
+    ],
+    [
+      "scoped anon with commented fake tautology",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (owner_id = auth.uid() /* USING (true) */) WITH CHECK (owner_id = auth.uid());`,
+    ],
+    [
+      "scoped anon with string fake tautology",
+      `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = 'USING (true)') WITH CHECK (owner_id = auth.uid());`,
+    ],
+    [
+      "real statement termination",
+      `CREATE POLICY safe ON public.users FOR ALL TO anon USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid()); CREATE POLICY svc ON public.users FOR ALL TO service_role USING (true);`,
+    ],
+  ])("does not flag safe %s", (_name, sql) => {
+    expect(scanAdversarial(sql)).toEqual([])
+  })
+})
+
+describe("independent hostile probes", () => {
+  const scanProbe = (sql: string) => permissiveUntrustedRecipeSites(["fixture.sql"], () => sql)
+  const scanMarkdown = (markdown: string) =>
+    permissiveUntrustedRecipeSites(["fixture.md"], () => markdown)
+
+  it("scans SQL fences without letting Markdown prose apostrophes blind discovery", () => {
+    expect(
+      scanMarkdown(
+        "Use Option B if the table doesn't exist.\n\n```sql\nCREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true);\n```"
+      )
+    ).toEqual(["fixture.md:4"])
+  })
+
+  it("does not execute an RLS anti-pattern merely documented in Markdown prose", () => {
+    expect(
+      scanMarkdown("Never write CREATE POLICY p ON public.users FOR ALL USING (true);")
+    ).toEqual([])
+  })
+
+  it("fails closed when a truncated grantee list may continue with anon", () => {
+    const padding = Array.from({ length: 100 }, (_, i) => `role_${i}`).join(", ")
+    expect(
+      scanProbe(
+        `CREATE POLICY p ON public.users FOR ALL TO service_role, ${padding}, anon USING (true) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("finds the real WITH CHECK after a nested WITH in USING", () => {
+    expect(
+      scanProbe(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (EXISTS (WITH owned AS (SELECT 1) SELECT 1 FROM owned WHERE owner_id = auth.uid())) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  test.each([
+    `CREATE/* separator */POLICY p ON public.users FOR SELECT TO anon USING (true);`,
+    `CREATE -- separator\nPOLICY p ON public.users FOR SELECT TO anon USING (true);`,
+  ])("recognizes comments separating CREATE and POLICY: %s", sql => {
+    expect(scanProbe(sql)).toEqual(["fixture.sql:1"])
+  })
+
+  test.each([
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (true::boolean);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT false);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (true IS TRUE);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (true OR owner_id = auth.uid());`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (true = true);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (1 <= 1);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (COALESCE(true, owner_id = auth.uid()));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (CASE WHEN true THEN true ELSE owner_id = auth.uid() END);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT NOT true);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT (NOT true));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT (1 = 0));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT (false OR false));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT (false AND owner_id = auth.uid()));`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING (current_date > current_date - 1) WITH CHECK (current_date > current_date - 1);`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING (current_user <> '') WITH CHECK (current_user <> '');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (owner_id = auth.uid() OR session_user <> '');`,
+    `CREATE POLICY p ON public.users FOR ALL USING (localtimestamp > localtimestamp - interval '1 day') WITH CHECK (localtimestamp > localtimestamp - interval '1 day');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (current_time > current_time - interval '1 minute');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (current_timestamp > current_timestamp - interval '1 minute');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (localtime > localtime - interval '1 minute');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (current_role <> '');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (current_catalog <> '');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (current_schema <> '');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (user <> '');`,
+    `DO $$ BEGIN EXECUTE format('CREATE%sPOLICY p ON public.users FOR SELECT TO anon USING (true)', ' '); END $$;`,
+    String.raw`DO $$ BEGIN EXECUTE format(E'CREATE%sPOLICY p ON public.users FOR SELECT TO anon USING (true)', ' '); END $$;`,
+    `DO $$ BEGIN EXECUTE format($fmt$CREATE%sPOLICY p ON public.users FOR SELECT TO anon USING (true)$fmt$, ' '); END $$;`,
+    `DO $$ BEGIN EXECUTE $sql$CREATE POLICY p ON public.users FOR SELECT TO anon USING (true)$sql$; END $$;`,
+    `DO LANGUAGE plpgsql $$ BEGIN CREATE POLICY p ON public.users FOR SELECT TO anon USING (true); END $$;`,
+    `DO $$ DECLARE stmt text; BEGIN stmt := 'CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)'; EXECUTE stmt; END $$;`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING ('a' <> 'b');`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING ($$a$$ <> $$b$$);`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING (1 = '1');`,
+    `CREATE POLICY p ON public.users FOR ALL TO anon USING (true = 'true');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (pg_catalog.current_database() <> '');`,
+    `ALTER POLICY p ON public.users TO anon USING (true) WITH CHECK (true);`,
+  ])("flags a semantically unconditional predicate: %s", sql => {
+    expect(scanProbe(sql)).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not treat trailing file content as statement clipping", () => {
+    const trailingComment = `/* ${"x".repeat(MAX_STATEMENT_CHARS)} */`
+    expect(
+      scanProbe(`CREATE POLICY p ON public.users FOR ALL TO service_role;\n${trailingComment}`)
+    ).toEqual([])
+  })
+
+  test.each([
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (false);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NOT (owner_id = auth.uid()));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (false::boolean);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NULL = NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NULL::boolean = NULL::boolean);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NULL IS NOT NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (NULL IS DISTINCT FROM NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING ('a' = 'b');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING ($$a$$ = $$b$$);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (deleted_at IS NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (tenant_id IS NOT DISTINCT FROM auth.uid());`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (account_id BETWEEN 1 AND 10);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (owner_id::text = auth.uid()::text);`,
+    `CREATE POLICY member_read ON public.documents FOR SELECT USING (EXISTS (SELECT 1 FROM memberships m WHERE m.doc_id = documents.id AND m.user_id = auth.uid()));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (visibility IN ('public', 'unlisted'));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (owner_id = auth.uid() AND deleted_at IS NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (CASE WHEN true THEN false ELSE false END);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (CASE WHEN owner_id = auth.uid() THEN true ELSE false END);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (COALESCE(owner_id = auth.uid(), false));`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (auth.jwt() ->> 'role' = 'admin');`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (auth.uid() IS NOT NULL);`,
+    `DO $$ BEGIN EXECUTE format('CREATE POLICY %I ON %I FOR ALL TO anon USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid())', p, t); END $$;`,
+  ])("does not flag a predicate that still constrains access: %s", sql => {
+    expect(scanProbe(sql)).toEqual([])
+  })
+
+  test.each([
+    `-- CREATE POLICY p ON public.users FOR SELECT TO anon USING (true);`,
+    `/* CREATE POLICY p ON public.users FOR SELECT TO anon USING (true); */`,
+    `SELECT $$CREATE POLICY p ON public.users FOR SELECT TO anon USING (true);$$;`,
+    `SELECT $body$CREATE POLICY p ON public.users FOR SELECT TO anon USING (true);$body$;`,
+    `SELECT 'CREATE POLICY p ON public.users FOR SELECT TO anon USING (true);';`,
+  ])("does not flag non-executable CREATE POLICY text: %s", sql => {
+    expect(scanProbe(sql)).toEqual([])
+  })
+
+  it("fails closed when a tracked file cannot be read or exceeds the reader limit", () => {
+    expect(permissiveUntrustedRecipeSites(["unreadable.sql", "oversized.md"], () => null)).toEqual([
+      "unreadable.sql:unreadable",
+      "oversized.md:unreadable",
+    ])
+  })
+})
+
+describe("span-preserving procedural and dynamic SQL architecture", () => {
+  const scan = (sql: string) => permissiveUntrustedRecipeSites(["fixture.sql"], () => sql)
+
+  test.each([
+    [
+      "single-quoted DO body",
+      `DO 'BEGIN CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true); END';`,
+    ],
+    [
+      "single-quoted DO body with LANGUAGE",
+      `DO LANGUAGE plpgsql 'BEGIN CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true); END';`,
+    ],
+    [
+      "escape-string DO body",
+      `DO E'BEGIN CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true); END';`,
+    ],
+    [
+      "single-quoted function body",
+      `CREATE FUNCTION install_policy() RETURNS void LANGUAGE plpgsql AS 'BEGIN CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true); END';`,
+    ],
+  ])("flags a dangerous policy inside a %s", (_name, sql) => {
+    expect(scan(sql)).toEqual(["fixture.sql:1"])
+  })
+
+  test.each([
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (a = ')' OR true);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (a = ')' OR true);`,
+    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (a = ")" OR true);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (a = ")" OR true);`,
+  ])(
+    "ignores literal and quoted-identifier parentheses when finding predicate boundaries: %s",
+    sql => {
+      expect(scan(sql)).toEqual(["fixture.sql:1"])
+    }
+  )
+
+  it("reports one source site when nested procedural discovery reaches the same policy twice", () => {
+    expect(
+      scan(
+        `DO $o$ BEGIN EXECUTE 'x'; DO $i$ BEGIN CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true); END $i$; END $o$;`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("reports the original source line after doubled-quote decoding inside an EXECUTE literal", () => {
+    expect(
+      scan(
+        `EXECUTE 'SELECT ''x'';\nCREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)';`
+      )
+    ).toEqual(["fixture.sql:2"])
+  })
+
+  test.each([
+    `DO $$ BEGIN EXECUTE 'CREATE ' || 'POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)'; END $$;`,
+    `DO $$ BEGIN EXECUTE format('%s POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)', 'CREATE'); END $$;`,
+    `DO $$ BEGIN EXECUTE format('%2$s POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)', 'ignored', 'CREATE'); END $$;`,
+  ])("reconstructs a bounded constant dynamic-policy expression: %s", sql => {
+    expect(scan(sql)).toEqual(["fixture.sql:1"])
+  })
+})
+
+describe("independent cycle-3 exact-manifest review regressions", () => {
+  const scan = (sql: string) => permissiveUntrustedRecipeSites(["fixture.sql"], () => sql)
+
+  test.each([
+    [
+      "mixed positional and sequential format placeholders",
+      `DO $$ BEGIN EXECUTE format('%2$s%s p ON public.t FOR ALL USING (true)', 'DROP ', 'CREATE ', 'POLICY'); END $$;`,
+      "fixture.sql:1",
+    ],
+    [
+      "SELECT INTO invalidates a tracked constant",
+      `DO $$ DECLARE stmt text := 'SELECT 1'; BEGIN SELECT 'CREATE POLICY p ON public.t FOR ALL USING (true)' INTO stmt; EXECUTE stmt; END $$;`,
+      "fixture.sql:1 — unsupported dynamic SQL",
+    ],
+    [
+      "a FOR query target invalidates a tracked constant",
+      `DO $$ DECLARE stmt text := 'SELECT 1'; BEGIN FOR stmt IN SELECT 'CREATE POLICY p ON public.t FOR ALL USING (true)' LOOP NULL; END LOOP; EXECUTE stmt; END $$;`,
+      "fixture.sql:1 — unsupported dynamic SQL",
+    ],
+    [
+      "a quoted procedural language identifier",
+      `DO LANGUAGE "plpgsql" $$ BEGIN CREATE POLICY p ON public.t FOR ALL USING (true); END $$;`,
+      "fixture.sql:1",
+    ],
+    [
+      "integer constants beyond JavaScript safe precision",
+      `CREATE POLICY p ON public.t FOR SELECT TO anon USING (9007199254740992 <> 9007199254740993);`,
+      "fixture.sql:1",
+    ],
+    [
+      "an anon-wide auth.jwt existence predicate",
+      `CREATE POLICY p ON public.t FOR SELECT TO anon USING (auth.jwt() IS NOT NULL);`,
+      "fixture.sql:1",
+    ],
+    [
+      "nullable-column excluded middle",
+      `CREATE POLICY p ON public.t FOR SELECT TO anon USING (owner_id IS NULL OR owner_id IS NOT NULL);`,
+      "fixture.sql:1",
+    ],
+    [
+      "a SQL line comment terminated by CR",
+      `-- comment\rCREATE POLICY p ON public.t FOR ALL USING (true);`,
+      "fixture.sql:2",
+    ],
+  ])("flags %s", (_name, sql, expected) => {
+    expect(scan(sql)).toEqual([expected])
+  })
+
+  it("scans CR-only Markdown SQL fences", () => {
+    const markdown = "```sql\rCREATE POLICY p ON public.t FOR ALL USING (true);\r```\r"
+    expect(permissiveUntrustedRecipeSites(["fixture.md"], () => markdown)).toEqual(["fixture.md:2"])
+  })
+
+  it("does not treat nullable self-equality as an unconditional predicate", () => {
+    expect(
+      scan(`CREATE POLICY p ON public.t FOR SELECT TO anon USING (owner_id = owner_id);`)
+    ).toEqual([])
+  })
+
+  test.each([
+    [
+      "a Unicode escape-string DO body",
+      `DO U&'BEGIN CREATE POLICY p ON public.t FOR ALL USING (true); END';`,
+      "fixture.sql:1 — unsupported dynamic SQL",
+    ],
+    [
+      "a national-character DO body",
+      `DO N'BEGIN CREATE POLICY p ON public.t FOR ALL USING (true); END';`,
+      "fixture.sql:1",
+    ],
+    [
+      "a Unicode escape-string function body",
+      `CREATE FUNCTION f() RETURNS void AS U&'BEGIN CREATE POLICY p ON public.t FOR ALL USING (true); END' LANGUAGE plpgsql;`,
+      "fixture.sql:1 — unsupported dynamic SQL",
+    ],
+    [
+      "an unconditional bit-string predicate",
+      `CREATE POLICY p ON public.t FOR SELECT TO anon USING (B'1' = B'1');`,
+      "fixture.sql:1",
+    ],
+    [
+      "an unconditional hex-string predicate",
+      `CREATE POLICY p ON public.t FOR SELECT TO anon USING (X'1' = X'1');`,
+      "fixture.sql:1",
+    ],
+    [
+      "a Unicode escaped untrusted grantee",
+      `CREATE POLICY p ON public.t FOR SELECT TO U&"anon" USING (true);`,
+      "fixture.sql:1",
+    ],
+    [
+      "a Unicode escaped procedural-language identifier",
+      `DO LANGUAGE U&"plpgsql" $$ BEGIN CREATE POLICY p ON public.t FOR ALL USING (true); END $$;`,
+      "fixture.sql:1 — unsupported procedural language",
+    ],
+  ])("fails closed on %s", (_name, sql, expected) => {
+    expect(scan(sql)).toEqual([expected])
   })
 })
