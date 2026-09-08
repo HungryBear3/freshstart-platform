@@ -148,8 +148,19 @@ const statementAt = (contents: string, start: number): ExtractedStatement => {
     }
 
     if (char === "/" && window[i + 1] === "*") {
-      const close = window.indexOf("*" + "/", i + 2)
-      i = close === -1 ? window.length : close + 2
+      let depth = 1
+      i += 2
+      while (i < window.length && depth > 0) {
+        if (window[i] === "/" && window[i + 1] === "*") {
+          depth += 1
+          i += 2
+        } else if (window[i] === "*" && window[i + 1] === "/") {
+          depth -= 1
+          i += 2
+        } else {
+          i += 1
+        }
+      }
       continue
     }
 
@@ -589,6 +600,30 @@ describe("statement extraction is quote- and comment-aware", () => {
     ).toEqual(["fixture.sql:1"])
   })
 
+  it("does not end the statement at a semicolon inside a nested block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (status = 'public') /* outer /* inner */ ; still outer */ WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("tracks block-comment nesting beyond one inner level", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (status = 'public') /* one /* two /* three */ two */ ; one */ WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("reports an unclosed nested block comment as a truncated untrusted policy", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (status = 'public') /* outer /* inner */ still outer`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
   it("does not end the statement at a doubled-quote escape inside a string literal", () => {
     expect(
       scan(
@@ -693,6 +728,30 @@ describe("statement extraction is quote- and comment-aware", () => {
     expect(
       scan(
         `CREATE POLICY p ON public.users AS RESTRICTIVE FOR ALL TO anon USING (kind = 'note') WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("allows a service_role policy containing a nested block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY svc ON public.users FOR ALL TO service_role USING (true) /* outer /* inner; */ outer */ WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("allows a RESTRICTIVE anon policy containing a nested block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users AS RESTRICTIVE FOR ALL TO anon USING (true) /* outer /* inner; */ outer */ WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("allows a fully row-scoped anon policy containing a nested block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (kind = 'note') /* outer /* inner; */ outer */ WITH CHECK (kind = 'note');`
       )
     ).toEqual([])
   })
