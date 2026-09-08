@@ -93,6 +93,11 @@ door, not as a backstop for a missing authorization check.
 5. Never write an unconditional policy for `anon` or PUBLIC. Note that an
    INSERT-only policy has no `USING` clause at all, so
    `FOR INSERT TO anon WITH CHECK (true)` is fully open despite looking narrow.
+6. Scope **both** predicates. `USING` decides which existing rows are visible,
+   `WITH CHECK` decides which new rows may be written; scoping one does not
+   contain the other. A `FOR ALL` policy for `anon` whose `WITH CHECK` names the
+   row owner but whose `USING` is `true` still hands every row to anonymous
+   readers, and the reverse still hands them arbitrary writes.
 
 ## Guards
 

@@ -2718,6 +2718,14 @@ The rules that replace it:
 - `anon` and PUBLIC get nothing unconditional. Note an INSERT-only policy has no
   `USING` clause at all, so `FOR INSERT TO anon WITH CHECK (true)` is wide open
   despite looking narrow.
+- **The two predicates are independent, not a pair.** `USING` governs which
+  existing rows are visible (SELECT, DELETE, and the read half of UPDATE/ALL);
+  `WITH CHECK` governs which new rows may be written (INSERT, and the write half
+  of UPDATE/ALL). Scoping one does not contain the other, so a `FOR ALL` policy
+  for `anon` with a row-scoped `WITH CHECK` and a `USING` of `true` still exposes
+  every row to anonymous reads. A guard that requires *both* predicates to be
+  tautologies before it objects can be evaded by exactly that shape — the gap
+  found reviewing the 2026-09-07 remediation and closed on 2026-09-08.
 - Policies belong in tracked migrations, not in the SQL Editor.
 
 ### Files Involved
