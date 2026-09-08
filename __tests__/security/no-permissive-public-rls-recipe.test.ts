@@ -46,9 +46,11 @@ const UNTRUSTED_GRANTEES = ["public", "anon"]
 
 /**
  * How far past `CREATE POLICY` to read when no statement terminator is found.
- * Truncation is deliberately fail-closed: a clipped statement loses its `TO`
- * clause and its predicates, so it is classified untrusted AND unconditional
- * and gets reported rather than silently skipped.
+ * Truncation is deliberately fail-closed: a clipped statement is classified
+ * unconditional outright, because the window may have ended after a scoped
+ * predicate but before a tautological one, and gets reported rather than
+ * silently skipped. Padding a predicate past this limit is therefore not a way
+ * around the guard.
  */
 const MAX_STATEMENT_CHARS = 800
 
@@ -79,15 +81,91 @@ const readTrackedFile: TrackedFileReader = file => {
   }
 }
 
+/** A statement lifted out of a file, plus whether its terminator was ever found. */
+type ExtractedStatement = { sql: string; truncated: boolean }
+
+/** Opens a dollar-quoted body: `$$` or `$tag$`. */
+const DOLLAR_QUOTE_TAG = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/
+
 /**
- * The statement beginning at `start`, ending at the first `;` (literal SQL) or
- * the first `'` (a SQL string being assembled for `EXECUTE format(...)`, which
- * is how the retracted script built its recipe).
+ * The statement beginning at `start`.
+ *
+ * PostgreSQL ends a statement at a `;`, but only at one that is not inside a
+ * literal or a comment. This walks the window once, tracking just enough lexical
+ * state to answer that single question: single-quoted strings including the
+ * doubled-quote escape, double-quoted identifiers, dollar-quoted bodies, line
+ * comments and block comments. It is deliberately not a SQL parser — it does not
+ * look at keywords, nesting or expression structure, only at where a literal
+ * starts and stops.
+ *
+ * Ending at the first `'` — as this once did, to catch the recipe the retracted
+ * script assembled inside `EXECUTE format(...)` — clipped any statement whose
+ * scoped `USING` merely mentioned a string, throwing away the `WITH CHECK (true)`
+ * that followed and leaving a prefix that read as properly scoped. The
+ * `format(...)` shape is still caught, because the scan begins outside the
+ * template's quotes: the template's own closing `'` opens a string that never
+ * closes, no terminator is found, and `truncated` makes the recipe fail closed.
  */
-const statementAt = (contents: string, start: number): string => {
+const statementAt = (contents: string, start: number): ExtractedStatement => {
   const window = contents.slice(start, start + MAX_STATEMENT_CHARS)
-  const terminator = window.search(/[;']/)
-  return terminator === -1 ? window : window.slice(0, terminator)
+  let i = 0
+
+  while (i < window.length) {
+    const char = window[i]
+
+    if (char === ";") return { sql: window.slice(0, i), truncated: false }
+
+    if (char === "'") {
+      i += 1
+      while (i < window.length) {
+        if (window[i] !== "'") {
+          i += 1
+        } else if (window[i + 1] === "'") {
+          // A doubled quote is an escaped quote, not the end of the string. This
+          // branch is stated for the reader rather than for the scanner: closing
+          // and immediately reopening lands on the same index, so no input
+          // distinguishes it. Keep it — it stops being a no-op the moment this
+          // loop tracks anything besides position.
+          i += 2
+        } else {
+          i += 1
+          break
+        }
+      }
+      continue
+    }
+
+    if (char === '"') {
+      const close = window.indexOf('"', i + 1)
+      i = close === -1 ? window.length : close + 1
+      continue
+    }
+
+    if (char === "-" && window[i + 1] === "-") {
+      const newline = window.indexOf("\n", i)
+      i = newline === -1 ? window.length : newline + 1
+      continue
+    }
+
+    if (char === "/" && window[i + 1] === "*") {
+      const close = window.indexOf("*" + "/", i + 2)
+      i = close === -1 ? window.length : close + 2
+      continue
+    }
+
+    if (char === "$") {
+      const tag = DOLLAR_QUOTE_TAG.exec(window.slice(i))
+      if (tag) {
+        const close = window.indexOf(tag[0], i + tag[0].length)
+        i = close === -1 ? window.length : close + tag[0].length
+        continue
+      }
+    }
+
+    i += 1
+  }
+
+  return { sql: window, truncated: true }
 }
 
 /**
@@ -165,10 +243,18 @@ const isUnconditional = (statement: string): boolean => {
 const isPermissive = (statement: string): boolean =>
   !/\bAS\s+RESTRICTIVE\b/i.test(withoutQuotedIdentifiers(statement))
 
-const isDangerous = (statement: string): boolean =>
-  isPermissive(statement) &&
-  isUnconditional(statement) &&
-  granteesOf(statement).some(role => UNTRUSTED_GRANTEES.includes(role))
+/**
+ * A statement whose terminator was never found is treated as unconditional. The
+ * window may have ended anywhere — including after a scoped `USING` but before
+ * the `WITH CHECK (true)` that follows it — so a truncated statement cannot be
+ * read as evidence that a predicate is scoped. Trust and RESTRICTIVE are still
+ * judged on what was actually read: a `service_role` grant does not become
+ * dangerous by being long.
+ */
+const isDangerous = ({ sql, truncated }: ExtractedStatement): boolean =>
+  isPermissive(sql) &&
+  (truncated || isUnconditional(sql)) &&
+  granteesOf(sql).some(role => UNTRUSTED_GRANTEES.includes(role))
 
 /**
  * Returns `path:line` for every tracked SQL recipe that would grant
@@ -424,5 +510,216 @@ describe("operation-aware exposure: one tautological predicate is enough", () =>
     expect(scan(`CREATE POLICY p ON public.verification_tokens FOR INSERT TO anon`)).toEqual([
       "fixture.sql:1",
     ])
+  })
+})
+
+/**
+ * Statement extraction used to end a statement at the first `;` OR the first
+ * `'`. A scoped `USING` that mentions any string literal therefore clipped the
+ * statement mid-predicate, throwing away the `WITH CHECK (true)` that followed —
+ * and what remained looked like a properly scoped policy. Review finding F1.
+ *
+ * The same clip happens at a `;` that is not a terminator at all, e.g. one
+ * inside a dollar-quoted body or a comment.
+ *
+ * These cases fix the parser contract: a statement ends at a semicolon that is
+ * outside every literal and comment, or not at all.
+ */
+describe("statement extraction is quote- and comment-aware", () => {
+  const scan = (sql: string) => permissiveUntrustedRecipeSites(["fixture.sql"], () => sql)
+
+  /** A row-scoped predicate that mentions a string literal, as real ones do. */
+  const SCOPED_WITH_LITERAL = `(tenant_id = current_setting('app.tenant_id'))`
+
+  // ---- The four shapes named in the review -------------------------------
+
+  it("flags FOR ALL TO anon whose scoped USING holds a literal and whose WITH CHECK is true", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING ${SCOPED_WITH_LITERAL} WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("flags the same FOR ALL shape with no TO clause, which PostgreSQL stores as PUBLIC", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL USING ${SCOPED_WITH_LITERAL} WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("flags FOR UPDATE TO anon whose scoped USING holds a literal and whose WITH CHECK is true", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.documents FOR UPDATE TO anon USING (status <> 'archived') WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("flags the same FOR UPDATE shape with no TO clause", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.documents FOR UPDATE USING (status <> 'archived') WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  // ---- The literal forms the scanner has to understand --------------------
+
+  it("does not end the statement at a semicolon inside a string literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = 'a;b') WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a semicolon inside a double-quoted identifier", () => {
+    expect(
+      scan(`CREATE POLICY p ON public.users FOR ALL TO anon USING ("a;b" = x) WITH CHECK (true);`)
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a semicolon inside a block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (org_id = 1) /* step; two */ WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a doubled-quote escape inside a string literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (surname = 'O''Brien') WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a semicolon inside a dollar-quoted literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = $$a;b$$) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a semicolon inside a tagged dollar-quoted literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = $tag$a;b$tag$) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a quote inside a tagged dollar-quoted literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (note = $tag$it's fine$tag$) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at an apostrophe inside a double-quoted identifier", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING ("O'Brien" = surname) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at an apostrophe inside a line comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon\n  USING ((auth.uid())::text = "userId") -- doesn't apply here\n  WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a semicolon inside a line comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon\n  USING ((auth.uid())::text = "userId") -- see runbook; step 3\n  WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("does not end the statement at a quote or semicolon inside a block comment", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING ((auth.uid())::text = "userId") /* it's fine; really */ WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  it("reports a statement whose WITH CHECK is padded past MAX_STATEMENT_CHARS", () => {
+    // Fail-closed: a predicate long enough to push the rest of the statement out
+    // of the window must not be readable as a scoped policy. The padding carries
+    // no quote, comment or semicolon, so only the length limit is under test.
+    const padding = "org_id <> 0 AND ".repeat(60)
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users FOR ALL TO anon USING (${padding}org_id = 1) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:1"])
+  })
+
+  // ---- Safe recipes must not become false positives ----------------------
+
+  it("allows an anon policy whose USING holds a literal and whose WITH CHECK is row-scoped", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.documents FOR ALL TO anon USING ${SCOPED_WITH_LITERAL} WITH CHECK ((auth.uid())::text = "userId");`
+      )
+    ).toEqual([])
+  })
+
+  it("allows a row-scoped SELECT policy whose USING holds a literal", () => {
+    expect(
+      scan(`CREATE POLICY p ON public.documents FOR SELECT TO anon USING (kind = 'note');`)
+    ).toEqual([])
+  })
+
+  it("still allows a service_role policy whose USING holds a literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY svc ON public.users FOR ALL TO service_role USING (tenant_id = current_setting('app.tenant_id')) WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("still allows a RESTRICTIVE anon policy whose USING holds a literal", () => {
+    expect(
+      scan(
+        `CREATE POLICY p ON public.users AS RESTRICTIVE FOR ALL TO anon USING (kind = 'note') WITH CHECK (true);`
+      )
+    ).toEqual([])
+  })
+
+  it("does not report a truncated service_role policy, which is trusted however long", () => {
+    // Truncation forces "unconditional", never "untrusted": the grantee that was
+    // actually read still decides.
+    expect(
+      scan(
+        `CREATE POLICY svc ON public.users FOR ALL TO service_role USING (true) WITH CHECK (true)`
+      )
+    ).toEqual([])
+  })
+
+  it("does not report a truncated RESTRICTIVE policy, which can only narrow access", () => {
+    expect(
+      scan(`CREATE POLICY p ON public.users AS RESTRICTIVE FOR ALL TO anon USING (true)`)
+    ).toEqual([])
+  })
+
+  it("stops at the terminating semicolon instead of swallowing the next statement", () => {
+    // If extraction ran past the first statement's `;` it would inherit the
+    // second statement's tautologies and report line 1 as well.
+    expect(
+      scan(
+        `CREATE POLICY safe ON public.documents FOR ALL TO anon USING (kind = 'note') WITH CHECK (kind = 'note');\nCREATE POLICY danger ON public.users FOR ALL USING (true) WITH CHECK (true);`
+      )
+    ).toEqual(["fixture.sql:2"])
   })
 })
