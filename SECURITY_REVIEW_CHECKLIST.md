@@ -4,6 +4,14 @@
 **Platform:** FreshStart IL (Illinois Divorce Assistance Platform)  
 **Review Type:** Pre-Launch Security Assessment
 
+> **Correction, 2026-09-07.** The Row Level Security entries in sections 3, 8, 14
+> and "Security Best Practices" overstated what RLS does for this application.
+> RLS is enabled on every public table, but Prisma connects on the Postgres
+> **owner** connection and owners bypass RLS. Per-user scoping is enforced in
+> application code, not at the database level. Those four entries are corrected
+> below; the rest of this checklist has not been re-reviewed since January 24.
+> See `prisma/RLS_SETUP_GUIDE.md`.
+
 ## Overview
 This checklist covers security best practices and OWASP Top 10 considerations for the FreshStart IL platform. Items marked ✅ are implemented, ⚠️ need attention, and ❌ are not yet implemented.
 
@@ -75,8 +83,9 @@ This checklist covers security best practices and OWASP Top 10 considerations fo
   - Raw SQL only used for fallback scenarios with sanitized inputs
 
 - ✅ **Database Access**
-  - Row Level Security (RLS) enabled on all Supabase tables
-  - User-scoped queries (userId checks)
+  - Row Level Security enabled on every public table (SELECT-only controller
+    verification against Production, 2026-09-07)
+  - User-scoped queries (userId checks) — enforced in application code
   - Ownership verification before updates/deletes
 
 ---
@@ -164,9 +173,16 @@ This checklist covers security best practices and OWASP Top 10 considerations fo
   - User ID verified before database operations
   - 403 Forbidden returned for unauthorized access
 
-- ✅ **Row Level Security**
-  - RLS policies on all Supabase tables
-  - User-scoped data access enforced at database level
+- ⚠️ **Row Level Security** *(corrected 2026-09-07)*
+  - RLS is enabled, with policies, on every public table (SELECT-only controller
+    verification against Production, 2026-09-07). It restricts the Supabase
+    Data API.
+  - It does **not** scope this application's access. Prisma connects on the
+    Postgres owner connection, and a table owner bypasses RLS unless
+    `FORCE ROW LEVEL SECURITY` is set — which it deliberately is not.
+  - Per-user authorization for application traffic is the responsibility of the
+    route handlers (see "Ownership Verification" above). RLS is a second
+    perimeter around the Data API, not a backstop for a missing check.
 
 ---
 
@@ -256,7 +272,8 @@ This checklist covers security best practices and OWASP Top 10 considerations fo
 
 - ✅ **Database Security**
   - Connection pooler with TLS
-  - RLS enabled on all tables
+  - RLS enabled on every public table (verified 2026-09-07); it governs the
+    Supabase Data API, not the application's owner connection
   - Database backups (Supabase managed)
 
 - ✅ **Hosting Security**
@@ -305,7 +322,7 @@ This checklist covers security best practices and OWASP Top 10 considerations fo
 
 ## Security Best Practices Implemented
 
-1. ✅ **Defense in Depth**: Multiple layers of security (authentication, authorization, input validation, RLS)
+1. ✅ **Defense in Depth**: Multiple layers of security (authentication, authorization, input validation, and RLS on the Supabase Data API surface)
 2. ✅ **Least Privilege**: Users can only access their own data
 3. ✅ **Fail Secure**: Errors don't expose sensitive information
 4. ✅ **Input Validation**: All user inputs validated and sanitized

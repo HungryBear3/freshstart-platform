@@ -2587,23 +2587,52 @@ Before starting an advertising campaign, verify:
 
 ## Supabase Row Level Security (RLS) Setup
 
+> ### ⚠️ RETRACTED 2026-09-07 — `RLS-SCRIPT-RETRACTED-2026-09-07`
+>
+> **The policy strategy this section recommends is wrong and has been withdrawn.**
+> The script it describes was never applied to Production; had anyone applied it,
+> it would have opened 31 tables to unauthenticated read and write.
+>
+> The defect: every policy it built used `FOR ALL USING (true) WITH CHECK (true)`
+> **with no `TO` clause**. PostgreSQL stores that as a grant to PUBLIC, and on a
+> Supabase project PUBLIC includes the unauthenticated `anon` role. The section
+> below asserted these policies were harmless because "Prisma bypasses RLS" —
+> true of Prisma, and entirely beside the point, because the policies were not
+> about Prisma. They governed the Data API.
+>
+> A SELECT-only controller snapshot of Production on 2026-09-07 confirms the
+> script was never run: no policy carries any of its prose names, and no policy
+> on any public table has a PUBLIC grantee. Every public table already has RLS
+> enabled. No database change was made, and none was required.
+>
+> **What is true now:** RLS is governed by tracked migrations under
+> `prisma/migrations/`. A policy must always name its grantee. See
+> `prisma/RLS_SETUP_GUIDE.md`.
+>
+> The PL/pgSQL debugging lessons below (ambiguous column references, `FOREACH
+> SLICE` vs. `FOR`) are unaffected and still correct. Everything below about
+> *policy design* is superseded.
+
 ### Issue: Supabase Security Warnings for RLS Disabled
 **Error:** 33 security warnings in Supabase dashboard: "Table public.verification_tokens is public, but RLS has not been enabled"
-**Problem:** All public tables in Supabase require Row Level Security (RLS) to be enabled to satisfy security best practices and Supabase's security scanner
+**Problem:** Supabase's advisor flags public tables that do not have Row Level Security enabled
 **Root Cause:** Tables were created without RLS enabled, which is a security concern for production databases
 
-### Solution: Comprehensive RLS Migration Script
-Created `prisma/enable_rls.sql` that:
-1. Enables RLS on all existing tables (only if they exist)
-2. Creates policies for all tables (only if they exist and don't already have policies)
-3. Handles missing tables gracefully (skips tables that don't exist yet)
-4. Prevents duplicate policy creation (checks if policies already exist)
+### Attempted Solution: Comprehensive RLS Migration Script — RETRACTED
+`prisma/enable_rls.sql` was written to:
+1. Enable RLS on all existing tables (only if they exist)
+2. Create a policy for each table (only if it exists and has no such policy)
+3. Handle missing tables gracefully (skip tables that don't exist yet)
+4. Avoid duplicate policy creation (check for an existing policy first)
 
-**Key Features:**
+Step 1 was sound. **Step 2 was the defect** — see the retraction above. The
+script is now an empty tombstone and its former body must not be restored.
+
+**What it got right:**
 - Conditional execution (only operates on existing tables)
-- Idempotent (can be run multiple times safely)
-- Provides NOTICE messages for visibility
-- Uses table aliases to avoid ambiguous column references
+- Idempotent (safe to re-execute)
+- NOTICE messages for visibility
+- Table aliases to avoid ambiguous column references
 
 **Code Pattern:**
 ```sql
@@ -2657,37 +2686,49 @@ END LOOP;
 ### Important Notes About RLS with Prisma
 
 **Critical Understanding:**
-- Prisma uses the service role connection string (`DATABASE_URL`)
-- Service role connections **bypass RLS entirely** in Supabase
-- Your application will continue to work normally after enabling RLS
-- RLS policies are for defense-in-depth and satisfy security scanner requirements
+- The app connects through Prisma on the Postgres **owner** connection
+- A table **owner** bypasses RLS unless `FORCE ROW LEVEL SECURITY` is set on the
+  table — which it is not, deliberately
+- The application therefore continues to work normally after enabling RLS
+- RLS governs the **Supabase Data API** (PostgREST, reached with the `anon` or
+  `authenticated` key). It is not a backstop for a missing authorization check
+  in a route handler
 
 **Why RLS Still Matters:**
-1. **Direct Database Access Protection:** If someone gains direct database access (not through Prisma), RLS policies protect the data
-2. **Security Scanner Compliance:** Supabase security scanner requires RLS on all public tables
-3. **Documentation:** Policies document intended access patterns
-4. **Future-Proofing:** If you ever switch to using Supabase Auth or direct database access, policies are already in place
+1. **Data API protection:** Supabase grants `anon` and `authenticated` broad
+   table privileges by default, so RLS is the only control standing between the
+   public internet and the rows on that surface
+2. **Documentation:** Policies document intended access patterns
+3. **Future-Proofing:** If direct client access is ever added, policies are
+   already in place
 
-**Policy Strategy:**
-Since Prisma bypasses RLS, we use permissive policies (`USING (true) WITH CHECK (true)`) that:
-- Allow all access (for documentation purposes)
-- Don't interfere with Prisma operations
-- Satisfy Supabase security requirements
-- Can be made more restrictive later if needed
+**Policy Strategy — CORRECTED:**
+The original strategy here was "Prisma bypasses RLS, so use permissive
+`USING (true) WITH CHECK (true)` policies." That reasoning is invalid: what a
+policy does to Prisma is irrelevant, because Prisma is not the traffic a policy
+governs. A permissive policy with no `TO` clause grants to PUBLIC — i.e. to
+unauthenticated Data API callers.
 
-### Files Created
+The rules that replace it:
+- **Always name the grantee.** An omitted `TO` clause is a grant to PUBLIC, the
+  dangerous default.
+- `service_role` may hold `FOR ALL ... USING (true) WITH CHECK (true)`.
+- An `authenticated` policy must be scoped to the row's owner, e.g.
+  `USING ((auth.uid())::text = "userId")`. Unconditional means cross-tenant.
+- `anon` and PUBLIC get nothing unconditional. Note an INSERT-only policy has no
+  `USING` clause at all, so `FOR INSERT TO anon WITH CHECK (true)` is wide open
+  despite looking narrow.
+- Policies belong in tracked migrations, not in the SQL Editor.
 
-1. **`prisma/enable_rls.sql`** - Main migration script
-   - Enables RLS on all 33 tables
-   - Creates policies for all tables
-   - Handles missing tables gracefully
-   - Idempotent (safe to run multiple times)
+### Files Involved
 
-2. **`prisma/RLS_SETUP_GUIDE.md`** - Step-by-step guide
-   - Instructions for applying the migration
-   - Verification queries
-   - Troubleshooting tips
-   - Explanation of why it's safe for Prisma
+1. **`prisma/enable_rls.sql`** — **RETRACTED**, now an empty tombstone
+   - Formerly built the PUBLIC-granting policies described above
+   - Never applied to Production; its former body must not be restored
+
+2. **`prisma/RLS_SETUP_GUIDE.md`** — rewritten 2026-09-07
+   - Records the current position and the verified Production state
+   - Gives the correct policy shape and the rules above
 
 ### Tables Covered (33 total)
 
@@ -2708,8 +2749,9 @@ Since Prisma bypasses RLS, we use permissive policies (`USING (true) WITH CHECK 
 ### Best Practices for RLS Setup
 
 1. **Always Enable RLS on Public Tables:**
-   - Supabase requires RLS for security compliance
-   - Even if your app bypasses it (via service role), enable it for defense-in-depth
+   - Supabase's advisor flags public tables without RLS
+   - Even if your app bypasses it (as table owner), enable it — otherwise the
+     Data API is unguarded
 
 2. **Use Conditional Scripts:**
    - Check if tables exist before enabling RLS
@@ -2725,15 +2767,17 @@ Since Prisma bypasses RLS, we use permissive policies (`USING (true) WITH CHECK 
    - `FOREACH ... SLICE` doesn't work with RECORD types
    - Use `FOR i IN 1..array_length(array, 1)` pattern instead
 
-5. **Document Policy Strategy:**
-   - Explain why policies are permissive (Prisma bypasses RLS)
-   - Document that policies are for defense-in-depth
-   - Note that policies can be made more restrictive later
+5. **Name Every Grantee:**
+   - An omitted `TO` clause is a grant to PUBLIC, which includes `anon`
+   - State which role a policy is for and why it is safe for that role
+   - Never justify a permissive policy on the grounds that Prisma bypasses RLS —
+     Prisma is not the traffic the policy governs
 
-6. **Verify After Running:**
-   - Check Supabase security scanner (should show 0 RLS warnings)
-   - Verify RLS is enabled: `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public'`
-   - Test that application still works (Prisma should bypass RLS)
+6. **Verify After Applying:**
+   - Read the catalog directly, not a dashboard summary:
+     `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public'`
+   - Enumerate grantees per policy and confirm none is PUBLIC
+   - Confirm the application still works (owner connection bypasses RLS)
 
 ### Troubleshooting RLS Issues
 
@@ -2750,9 +2794,10 @@ Since Prisma bypasses RLS, we use permissive policies (`USING (true) WITH CHECK 
 - Rename variables to avoid conflicts with column names
 
 **Application Still Works After Enabling RLS?**
-- Yes! Prisma uses service role which bypasses RLS
+- Yes — Prisma connects as the table owner, and owners bypass RLS unless
+  `FORCE ROW LEVEL SECURITY` is set
 - This is expected and correct behavior
-- RLS policies don't affect Prisma operations
+- It also means RLS gives the application's own routes no protection at all
 
 ### Verification Query
 
@@ -2772,15 +2817,23 @@ ORDER BY tablename;
 
 All tables should show `rls_enabled = true`.
 
-### Summary
+### Summary — CORRECTED 2026-09-07
 
-- **33 security warnings resolved** by enabling RLS on all public tables
-- **Application continues to work** because Prisma bypasses RLS with service role
-- **Defense-in-depth security** added for direct database access scenarios
-- **Supabase compliance** achieved for security scanner requirements
-- **Future-proof** - policies can be made more restrictive if needed
+- **The script was never applied.** No outcome in the Supabase advisor UI was
+  ever observed or verified, and this repository asserts none.
+- **RLS is enabled on all 42 public tables** in Production per a SELECT-only
+  controller catalog snapshot taken 2026-09-07, established by tracked
+  migrations and out-of-band changes rather than by this script.
+- **The application continues to work** because Prisma connects as table owner
+  and owners bypass RLS.
+- **The policy strategy was wrong.** Permissive policies with no `TO` clause
+  grant to PUBLIC. They protect nothing and expose everything on the Data API.
 
-**Key Takeaway:** RLS is required by Supabase for security compliance, but doesn't affect Prisma-based applications since service role bypasses RLS. Enable it for compliance and defense-in-depth, but understand that your application's access patterns remain unchanged.
+**Key Takeaway:** "Prisma bypasses RLS" is true and was used to justify a policy
+shape it had no bearing on. Before writing any policy, ask *which client* it
+governs — for RLS the answer is never the owner connection. Then name that
+client explicitly in a `TO` clause, and treat an omitted `TO` as the loudest
+possible warning rather than a default.
 
 ## Prisma Schema Mismatch and Authentication Errors (January 21, 2026)
 
