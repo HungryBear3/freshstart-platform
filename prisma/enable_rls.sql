@@ -53,4 +53,4 @@
 --
 -- `__tests__/security/no-permissive-public-rls-recipe.test.ts` fails the build
 -- if a recipe granting unconditional permissive access to PUBLIC or `anon` is
--- ever committed again, in any tracked `.sql` or `.md` file.
+-- ever committed again, in tracked `.sql` files and SQL-fenced blocks in tracked `.md` files.

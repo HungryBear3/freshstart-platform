@@ -150,6 +150,16 @@ describe("retracted RLS script", () => {
 })
 
 describe("RLS attestations in tracked documentation", () => {
+  it("states the Markdown SQL-fence scan boundary without claiming every Markdown byte", () => {
+    for (const file of [RETRACTED_SCRIPT, "prisma/RLS_SETUP_GUIDE.md"]) {
+      const contents = read(file) ?? ""
+      expect(contents).not.toContain("any tracked `.sql` or `.md` file")
+      expect(contents).toMatch(
+        /tracked `\.sql` files and SQL-fenced blocks in tracked `\.md` files/i
+      )
+    }
+  })
+
   it("claims no outcome in the Supabase security-advisor UI and no database-level user scoping", () => {
     const findings: string[] = []
     for (const file of scannableFiles()) {

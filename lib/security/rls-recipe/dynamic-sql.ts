@@ -64,6 +64,23 @@ export class VariableEnvironment {
     this.assignedOnStraightLine.add(name)
   }
 
+  /**
+   * An unmodelled procedural statement may write any tracked variable it
+   * mentions (CALL arguments may be INOUT, for example). Forget those values
+   * rather than trusting a stale constant after a construct we do not model.
+   */
+  invalidateReferenced(tokens: Token[]): void {
+    if (!this.tracking) return
+    const referenced = new Set(
+      tokens.map(wordTextOf).filter((name): name is string => name !== undefined)
+    )
+    for (const name of this.values.keys()) {
+      if (referenced.has(name)) {
+        this.values.set(name, unfoldable("variable mentioned by an unsupported construct"))
+      }
+    }
+  }
+
   lookup(name: string): Folded {
     if (!this.tracking) return unfoldable("too many tracked variables")
     const value = this.values.get(name)
@@ -144,6 +161,15 @@ const concatOperands = (tokens: Token[], text: Text): Token[][] => {
 const constantText = (value: Value): Text | undefined =>
   value.kind === "text" && value.text.holes.length === 0 ? value.text : undefined
 
+const hasCapacity = (assembler: TextAssembler, characters: number): boolean =>
+  characters <= MAX_EVALUATED_CHARS - assembler.length
+
+const quotedLength = (source: Text, quote: string): number => {
+  let length = source.value.length + 2
+  for (const character of source.value) if (character === quote) length += 1
+  return length
+}
+
 type Evaluate = (tokens: Token[], depth: number) => Value
 
 /**
@@ -158,6 +184,7 @@ const substitute = (template: Text, args: Value[]): Value => {
 
   while (index < value.length) {
     if (value[index] !== "%") {
+      if (!hasCapacity(assembler, 1)) return unknown("evaluated text too long")
       assembler.appendSlice(template, index, index + 1)
       index += 1
       continue
@@ -167,6 +194,7 @@ const substitute = (template: Text, args: Value[]): Value => {
     let cursor = index + 1
 
     if (value[cursor] === "%") {
+      if (!hasCapacity(assembler, 1)) return unknown("evaluated text too long")
       assembler.appendRaw("%", origin)
       index = cursor + 1
       continue
@@ -204,24 +232,34 @@ const substitute = (template: Text, args: Value[]): Value => {
       if (argument.kind === "text") {
         const constant = constantText(argument)
         if (!constant) return unknown("operand holds an unresolved placeholder")
+        if (!hasCapacity(assembler, constant.value.length))
+          return unknown("evaluated text too long")
         assembler.appendText(constant)
       }
       // A null `%s` renders as the empty string.
     } else if (argument.kind === "unknown") {
+      if (!hasCapacity(assembler, 1)) return unknown("evaluated text too long")
       assembler.appendHole(conversion, origin)
     } else if (conversion === "I") {
       // PostgreSQL raises on a null identifier, so there is nothing to fold.
       if (argument.kind === "null") return unknown("null identifier")
       const constant = constantText(argument)
       if (!constant) return unknown("operand holds an unresolved placeholder")
+      if (!hasCapacity(assembler, quotedLength(constant, '"'))) {
+        return unknown("evaluated text too long")
+      }
       assembler.appendRaw('"', origin)
       appendDoubling(assembler, constant, '"')
       assembler.appendRaw('"', origin)
     } else if (argument.kind === "null") {
+      if (!hasCapacity(assembler, 4)) return unknown("evaluated text too long")
       assembler.appendRaw("NULL", origin)
     } else {
       const constant = constantText(argument)
       if (!constant) return unknown("operand holds an unresolved placeholder")
+      if (!hasCapacity(assembler, quotedLength(constant, "'"))) {
+        return unknown("evaluated text too long")
+      }
       assembler.appendRaw("'", origin)
       appendDoubling(assembler, constant, "'")
       assembler.appendRaw("'", origin)
@@ -292,6 +330,7 @@ const evaluateTerm = (
   if (token.kind === "literal") {
     const decoded = literalText(token)
     if (!decoded) return unknown("unresolved literal placeholder")
+    if (decoded.value.length > MAX_EVALUATED_CHARS) return unknown("evaluated text too long")
     return { kind: "text", text: decoded }
   }
 
@@ -302,7 +341,10 @@ const evaluateTerm = (
   if (token.kind === "word") {
     if (token.text === "null") return { kind: "null" }
     const looked = environment.lookup(token.text)
-    return looked.ok ? { kind: "text", text: looked.text } : unknown(looked.reason)
+    if (!looked.ok) return unknown(looked.reason)
+    return looked.text.value.length <= MAX_EVALUATED_CHARS
+      ? { kind: "text", text: looked.text }
+      : unknown("evaluated text too long")
   }
 
   return unknown("not a constant term")
@@ -321,6 +363,7 @@ const evaluateIn = (text: Text, environment: VariableEnvironment): Evaluate => {
       const constant = constantText(evaluateTerm(operand, depth, environment, evaluate))
       // `||` with a null or non-foldable operand yields nothing this guard can read.
       if (!constant) return unknown("non-constant concatenation operand")
+      if (!hasCapacity(assembler, constant.value.length)) return unknown("evaluated text too long")
       assembler.appendText(constant)
       endOrigin = constant.originAt(constant.value.length)
     }

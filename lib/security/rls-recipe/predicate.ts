@@ -227,7 +227,7 @@ const hasScopedCallerReference = (tokens: Token[]): boolean =>
     (token, index) =>
       isWord(token, "auth") &&
       isSymbol(tokens[index + 1], ".") &&
-      ["jwt", "uid"].some(caller => isWord(tokens[index + 2], caller)) &&
+      isWord(tokens[index + 2], "jwt") &&
       isOpen(tokens[index + 3])
   )
 
@@ -377,7 +377,8 @@ const classify = (input: Token[], depth: number): PredicateClassification => {
     }
 
     if (isWord(tokens[cursor], "distinct") && isWord(tokens[cursor + 1], "from")) {
-      const right = nested(tokens.slice(cursor + 2))
+      const rightTokens = tokens.slice(cursor + 2)
+      const right = nested(rightTokens)
       if (left === "row-dependent" || right === "row-dependent") return "row-dependent"
       if (
         !["constant-true", "constant-false", "constant-null"].includes(left) ||

@@ -35,12 +35,12 @@ the actual behaviour is why this guide now states the mechanism explicitly.
 A controller-run, **SELECT-only** catalog snapshot of Production was taken on
 2026-09-07. It establishes, for the `public` schema:
 
-| Fact | Result |
-|---|---|
-| Public tables | 42 |
-| Public tables with row level security enabled | 42 |
-| Policies whose grantee is PUBLIC | 0 |
-| Policies created by the retracted script | 0 (it was never applied) |
+| Fact                                          | Result                   |
+| --------------------------------------------- | ------------------------ |
+| Public tables                                 | 42                       |
+| Public tables with row level security enabled | 42                       |
+| Policies whose grantee is PUBLIC              | 0                        |
+| Policies created by the retracted script      | 0 (it was never applied) |
 
 Every policy present names exactly one of `anon`, `authenticated` or
 `service_role`. No database change was made by that snapshot, and none is
@@ -104,8 +104,8 @@ door, not as a backstop for a missing authorization check.
 Two offline tests enforce the above. Neither contacts a database.
 
 - `__tests__/security/no-permissive-public-rls-recipe.test.ts` — fails the build
-  if any tracked `.sql` or `.md` file contains a policy recipe granting
-  unconditional permissive access to PUBLIC or `anon`.
+  if tracked `.sql` files and SQL-fenced blocks in tracked `.md` files contain a
+  policy recipe granting unconditional permissive access to PUBLIC or `anon`.
 - `__tests__/security/rls-doc-attestations.test.ts` — fails the build if the
   retracted script regains executable content or is presented as something to
   run, or if any tracked document asserts an outcome in the Supabase

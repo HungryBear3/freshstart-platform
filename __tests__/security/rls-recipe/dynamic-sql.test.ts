@@ -9,6 +9,7 @@
  * so no "mentions POLICY" substring gate would survive.
  */
 import { analyzeCode } from "@/lib/security/rls-recipe/analyzer"
+import { spawnSync } from "child_process"
 import {
   MAX_EVALUATED_CHARS,
   MAX_FORMAT_ARGS,
@@ -137,6 +138,34 @@ describe("bounds", () => {
     expect(fold(`'${half}' || '${half}'`).ok).toBe(false)
   })
 
+  it("stops nested format expansion before allocating past MAX_EVALUATED_CHARS", () => {
+    const script = String.raw`
+      const { VariableEnvironment, foldExpression } = require('./lib/security/rls-recipe/dynamic-sql.ts')
+      const { lex } = require('./lib/security/rls-recipe/lexer.ts')
+      const { identityText } = require('./lib/security/rls-recipe/source-text.ts')
+      let expression = "'AAAA'"
+      for (let depth = 0; depth < 4; depth += 1) {
+        expression = "format('" + '%1$s'.repeat(40) + "', " + expression + ')'
+      }
+      const text = identityText(expression)
+      const tokens = lex(text)
+      if (!tokens.ok) process.exit(2)
+      const result = foldExpression(tokens.tokens, new VariableEnvironment(new Map()), text)
+      process.stdout.write(String(result.ok))
+    `
+    const child = spawnSync(
+      process.execPath,
+      ["--max-old-space-size=96", "--import", "tsx", "--eval", script],
+      { cwd: process.cwd(), encoding: "utf8", timeout: 15_000, maxBuffer: 1024 * 1024 }
+    )
+
+    expect(child.error).toBeUndefined()
+    expect(child.signal).toBeNull()
+    expect(child.status).toBe(0)
+    expect(child.stdout).toBe("false")
+    expect(child.stderr).not.toMatch(/heap limit|out of memory/i)
+  })
+
   it("stops tracking variables past MAX_TRACKED_VARIABLES", () => {
     const declarations = Array.from(
       { length: MAX_TRACKED_VARIABLES + 1 },
@@ -181,6 +210,25 @@ describe("straight-line variables", () => {
         `DO $$ DECLARE v text; BEGIN v := 'SELECT 1'; EXECUTE 'SELECT 1'; v := 'SELECT 2'; EXCEPTION WHEN others THEN EXECUTE v; END $$;`
       )
     ).toEqual([`1:${DYNAMIC}`])
+  })
+
+  it.each([
+    { overwrite: `SELECT source INTO STRICT stmt FROM cfg`, name: "INTO STRICT" },
+    {
+      overwrite: `SELECT first, source INTO other, stmt FROM cfg`,
+      name: "multi-target INTO",
+    },
+    { overwrite: `EXECUTE 'SELECT 1' INTO stmt`, name: "EXECUTE INTO" },
+    {
+      overwrite: `INSERT INTO log(value) VALUES (source) RETURNING value INTO stmt`,
+      name: "RETURNING INTO",
+    },
+    { overwrite: `FOREACH stmt IN ARRAY values LOOP NULL; END LOOP`, name: "FOREACH" },
+    { overwrite: `CALL mutate(stmt)`, name: "CALL with an INOUT/OUT argument" },
+    { overwrite: `GET DIAGNOSTICS stmt = PG_CONTEXT`, name: "GET DIAGNOSTICS" },
+  ])("invalidates a tracked value after an unsupported $name write", ({ overwrite }) => {
+    const sql = `DO $$ DECLARE stmt text; source text; other text; values text[]; BEGIN stmt := 'SELECT 1'; source := 'CREATE POLICY p ON public.users FOR ALL USING (true) WITH CHECK (true)'; ${overwrite}; EXECUTE stmt; END $$;`
+    expect(sites(sql)).toContain(`1:${DYNAMIC}`)
   })
 })
 

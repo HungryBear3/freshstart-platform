@@ -123,16 +123,6 @@ const assignmentCounts = (statements: Token[][]): Map<string, number> => {
   return counts
 }
 
-/** Variables overwritten by PL/pgSQL constructs that are not assignments. */
-const indirectWriteTarget = (statement: Token[]): string | undefined => {
-  if (isWord(statement[0], "for")) return wordTextOf(statement[1])
-  if (isWord(statement[0], "select")) {
-    const into = depthZeroIndex(statement, token => isWord(token, "into"), 1)
-    if (into !== -1) return wordTextOf(statement[into + 1])
-  }
-  return undefined
-}
-
 const languageNameOf = (token: Token | undefined): string | undefined => {
   if (token?.kind === "word") return token.text
   if (token?.kind === "quoted") return token.name ?? "<unresolved quoted language>"
@@ -299,6 +289,8 @@ export const analyzeCode = (text: Text, depth: number): Finding[] => {
     }
     if (isWord(first, "execute")) {
       analyzeExecute(statement)
+      const into = depthZeroIndex(statement, token => isWord(token, "into"), 1)
+      if (into !== -1) environment.invalidateReferenced(statement.slice(into + 1))
       continue
     }
 
@@ -313,13 +305,7 @@ export const analyzeCode = (text: Text, depth: number): Finding[] => {
       continue
     }
 
-    const overwritten = indirectWriteTarget(statement)
-    if (overwritten !== undefined) {
-      environment.assign(
-        overwritten,
-        unfoldable("variable overwritten by an unsupported construct")
-      )
-    }
+    environment.invalidateReferenced(statement)
   }
 
   // Dedup by original source identity, then order deterministically.

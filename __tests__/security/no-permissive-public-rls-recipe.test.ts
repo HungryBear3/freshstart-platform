@@ -781,10 +781,20 @@ describe("independent hostile probes", () => {
     `CREATE POLICY p ON public.users FOR SELECT TO anon USING (CASE WHEN owner_id = auth.uid() THEN true ELSE false END);`,
     `CREATE POLICY p ON public.users FOR SELECT TO anon USING (COALESCE(owner_id = auth.uid(), false));`,
     `CREATE POLICY p ON public.users FOR SELECT TO anon USING (auth.jwt() ->> 'role' = 'admin');`,
-    `CREATE POLICY p ON public.users FOR SELECT TO anon USING (auth.uid() IS NOT NULL);`,
     `DO $$ BEGIN EXECUTE format('CREATE POLICY %I ON %I FOR ALL TO anon USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid())', p, t); END $$;`,
   ])("does not flag a predicate that still constrains access: %s", sql => {
     expect(scanProbe(sql)).toEqual([])
+  })
+
+  it.each([
+    `CREATE POLICY p ON public.users FOR SELECT USING (auth.uid() IS NOT NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (auth.uid() IS NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (auth.uid() IS DISTINCT FROM NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (auth.uid() IS NOT DISTINCT FROM NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING ((select auth.uid()) IS NOT NULL);`,
+    `CREATE POLICY p ON public.users FOR SELECT USING (auth.uid() = auth.uid());`,
+  ])("flags a caller-only tautology with no row scope: %s", sql => {
+    expect(scanProbe(sql)).toEqual(["fixture.sql:1"])
   })
 
   test.each([

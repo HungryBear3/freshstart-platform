@@ -81,7 +81,6 @@ describe("expressions that still constrain access", () => {
     [`CASE WHEN owner_id = auth.uid() THEN true ELSE false END`, "row-dependent"],
     [`COALESCE(owner_id = auth.uid(), false)`, "row-dependent"],
     [`auth.jwt() ->> 'role' = 'admin'`, "row-dependent"],
-    [`auth.uid() IS NOT NULL`, "row-dependent"],
     [`(auth.uid())::text = "userId"`, "row-dependent"],
     [`tenant_id = current_setting('app.tenant_id')`, "row-dependent"],
     [
@@ -100,6 +99,12 @@ describe("expressions the lattice cannot decide fail closed as uncertain", () =>
     [`pg_catalog.current_database() <> ''`],
     [`1 = '1'`],
     [`true = 'true'`],
+    [`auth.uid() IS NOT NULL`],
+    [`auth.uid() IS NULL`],
+    [`auth.uid() IS DISTINCT FROM NULL`],
+    [`auth.uid() IS NOT DISTINCT FROM NULL`],
+    [`(select auth.uid()) IS NOT NULL`],
+    [`auth.uid() = auth.uid()`],
   ])("classifies %s as uncertain", expression => {
     expect(classify(expression)).toBe("uncertain")
   })
