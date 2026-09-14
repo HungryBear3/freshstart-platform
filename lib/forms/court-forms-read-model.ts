@@ -20,7 +20,6 @@
  */
 import {
   ILLINOIS_COURT_FORMS,
-  getFormPath,
   type CourtForm,
   type FormCategory,
 } from "@/lib/forms/illinois-court-forms"
@@ -46,7 +45,7 @@ export interface RenderedFormDTO {
   description: string
   category: FormCategory
   instructions?: string
-  officialUrl: string
+  officialUrl: string | null
   version: string
   lastUpdated: string
   requiredFor: CourtForm["requiredFor"]
@@ -132,7 +131,10 @@ export function getCourtFormsReadModel(
       }
       continue
     }
-    forms.push(toDto(form, getFormPath(form)))
+    // Catalog identity is not distribution authority. Statewide artifacts and
+    // unsupported local/county identities expose no local download until the
+    // exact bytes, mapping and generated output have cleared review.
+    forms.push(toDto(form, null))
   }
 
   return { forms, gatedNotices }

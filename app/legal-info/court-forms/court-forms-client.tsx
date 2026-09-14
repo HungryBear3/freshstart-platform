@@ -286,7 +286,7 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
                         key={form.id} 
                         form={form} 
                         questionnaireStatus={getQuestionnaireStatusForForm(form.id)}
-                        questionnaireInfo={FORM_TO_QUESTIONNAIRE[form.id]}
+                        questionnaireInfo={form.downloadHref ? FORM_TO_QUESTIONNAIRE[form.id] : undefined}
                       />
                     ))}
                   </div>
@@ -489,15 +489,17 @@ function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProp
           
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Last Updated: {form.lastUpdated}</span>
-            <a 
-              href={form.officialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Official Source
-            </a>
+            {form.officialUrl && (
+              <a
+                href={form.officialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Official Source
+              </a>
+            )}
           </div>
         </div>
       )}

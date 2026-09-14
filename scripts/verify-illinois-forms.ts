@@ -34,9 +34,12 @@ import { ILLINOIS_COURT_FORMS } from "../lib/forms/illinois-court-forms";
 export interface CatalogEntry {
   id: string;
   name: string;
-  officialUrl: string;
+  officialUrl: string | null;
   version: string;
   lastUpdated: string;
+  authority: string;
+  automationStatus: string;
+  provenance: unknown;
 }
 
 export interface ManifestVerification {
@@ -52,10 +55,13 @@ export interface ManifestVerification {
 export interface ManifestEntry {
   id: string;
   name: string;
-  officialUrl: string;
+  officialUrl: string | null;
   catalogVersion: string;
   catalogLastUpdated: string;
   verification: ManifestVerification | null;
+  authority: string;
+  automationStatus: string;
+  provenance: unknown;
 }
 
 export interface Manifest {
@@ -79,9 +85,10 @@ export interface DiffResult {
   }>;
   urlMismatches: Array<{
     id: string;
-    catalogUrl: string;
-    manifestUrl: string;
+    catalogUrl: string | null;
+    manifestUrl: string | null;
   }>;
+  metadataMismatches: string[];
   ok: boolean;
 }
 
@@ -96,6 +103,9 @@ export function catalogFromForms(): CatalogEntry[] {
     officialUrl: f.officialUrl,
     version: f.version,
     lastUpdated: f.lastUpdated,
+    authority: f.authority,
+    automationStatus: f.automationStatus,
+    provenance: f.provenance ?? null,
   }));
 }
 
@@ -110,6 +120,7 @@ export function diffCatalogVsManifest(
   const removedFromCatalog: ManifestEntry[] = [];
   const versionMismatches: DiffResult["versionMismatches"] = [];
   const urlMismatches: DiffResult["urlMismatches"] = [];
+  const metadataMismatches: string[] = [];
 
   for (const c of catalog) {
     const m = manifestById.get(c.id);
@@ -134,6 +145,9 @@ export function diffCatalogVsManifest(
         manifestUrl: m.officialUrl,
       });
     }
+    if (c.authority !== m.authority || c.automationStatus !== m.automationStatus || JSON.stringify(c.provenance) !== JSON.stringify(m.provenance)) {
+      metadataMismatches.push(c.id);
+    }
   }
   for (const m of manifest.forms) {
     if (!catalogById.has(m.id)) {
@@ -146,11 +160,13 @@ export function diffCatalogVsManifest(
     removedFromCatalog,
     versionMismatches,
     urlMismatches,
+    metadataMismatches,
     ok:
       addedInCatalog.length === 0 &&
       removedFromCatalog.length === 0 &&
       versionMismatches.length === 0 &&
-      urlMismatches.length === 0,
+      urlMismatches.length === 0 &&
+      metadataMismatches.length === 0,
   };
 }
 
@@ -187,6 +203,10 @@ export function formatDiffReport(diff: DiffResult): string {
       lines.push(`      catalog : ${u.catalogUrl}`);
       lines.push(`      manifest: ${u.manifestUrl}`);
     }
+  }
+  if (diff.metadataMismatches.length) {
+    lines.push(`Authority/provenance drift (${diff.metadataMismatches.length}):`);
+    for (const id of diff.metadataMismatches) lines.push(`  ~ ${id}`);
   }
   return lines.join("\n");
 }
@@ -241,7 +261,8 @@ interface FetchResult {
   notes: string | null;
 }
 
-async function fetchUrlHead(url: string): Promise<FetchResult> {
+async function fetchUrlHead(url: string | null): Promise<FetchResult> {
+  if (!url) return { httpStatus: null, contentType: null, lastModified: null, etag: null, reachable: false, notes: "no official artifact URL" };
   try {
     const res = await fetch(url, { method: "HEAD", redirect: "follow" });
     const ct = res.headers.get("content-type");
@@ -383,7 +404,7 @@ async function main() {
   const updatedForms: ManifestEntry[] = [];
   for (const m of manifest.forms) {
     const c = catalog.find((x) => x.id === m.id);
-    const url = c?.officialUrl ?? m.officialUrl;
+    const url = c ? c.officialUrl : m.officialUrl;
     const result = await fetchUrlHead(url);
     const verification: ManifestVerification = {
       verifiedAt: new Date().toISOString(),

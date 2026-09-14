@@ -12,6 +12,7 @@ import {
   type CatalogEntry,
   type Manifest,
 } from "@/scripts/verify-illinois-forms";
+import { getFormById, getFormPath } from "@/lib/forms/illinois-court-forms";
 
 function manifestOf(
   forms: Array<Partial<Manifest["forms"][number]> & { id: string }>,
@@ -25,6 +26,9 @@ function manifestOf(
       officialUrl: f.officialUrl ?? "https://example.test/" + f.id,
       catalogVersion: f.catalogVersion ?? "2024",
       catalogLastUpdated: f.catalogLastUpdated ?? "2024-01-01",
+      authority: f.authority ?? "illinois_supreme_court",
+      automationStatus: f.automationStatus ?? "artifact_and_mapping_review_required",
+      provenance: f.provenance ?? null,
       verification: f.verification ?? null,
       ...f,
     })),
@@ -39,6 +43,9 @@ function catalogOf(
     officialUrl: f.officialUrl ?? "https://example.test/" + f.id,
     version: f.version ?? "2024",
     lastUpdated: f.lastUpdated ?? "2024-01-01",
+    authority: f.authority ?? "illinois_supreme_court",
+    automationStatus: f.automationStatus ?? "artifact_and_mapping_review_required",
+    provenance: f.provenance ?? null,
     ...f,
   }));
 }
@@ -128,17 +135,46 @@ describe("catalogFromForms (integration with real catalog)", () => {
         expect(entry.officialUrl).toBe(
           "https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1",
         );
+      } else if (entry.authority === "illinois_supreme_court") {
+        expect(entry.officialUrl).toMatch(/^https:\/\/ilcourtsaudio\.blob\.core\.windows\.net\//);
+        expect(entry.provenance).toBeTruthy();
       } else {
-        expect(entry.officialUrl).toMatch(/^https:\/\/(www\.)?illinoiscourts\.gov\//);
+        expect(entry.officialUrl).toBeNull();
       }
       expect(entry.version).toBeTruthy();
       expect(entry.lastUpdated).toBeTruthy();
     }
   });
 
+  it("replaces invented schedules with one row per exact official attachment", () => {
+    const ids = catalogFromForms().map((entry) => entry.id);
+    expect(ids).not.toEqual(expect.arrayContaining([
+      "schedule-a-child-support", "schedule-b-health-insurance", "schedule-c-debts",
+      "schedule-d-accounts", "schedule-e-business", "schedule-f-retirement",
+    ]));
+    expect(ids).toEqual(expect.arrayContaining([
+      "financial-additional-child-support", "financial-additional-health-insurance",
+      "financial-additional-debts", "financial-additional-cash",
+      "financial-additional-investments", "financial-additional-business-interests",
+      "financial-additional-life-insurance",
+    ]));
+  });
+
+  it("fails closed for unsupported, unmapped, and pending-review local paths", () => {
+    for (const id of ["waiver-service", "financial-additional-cash", "petition-no-children"]) {
+      expect(() => getFormPath(getFormById(id)!)).toThrow(/not automation-eligible/);
+    }
+  });
+
+  it("does not mislabel templates or unsupported service identities as statewide", () => {
+    expect(getFormById("marital-settlement-agreement")?.authority).toBe("freshstart_template");
+    expect(getFormById("certificate-of-service")?.authority).toBe("county_or_non_statewide");
+    expect(getFormById("marital-settlement-agreement")?.officialUrl).toBeNull();
+  });
+
   it("keeps the federal IWO distinguishable from the Illinois ATJ forms", () => {
     const cat = catalogFromForms();
-    const federal = cat.filter((e) => !/illinoiscourts\.gov/.test(e.officialUrl));
+    const federal = cat.filter((e) => e.authority === "federal_acf");
     expect(federal.map((e) => e.id)).toEqual(["income-withholding-order"]);
   });
 });

@@ -1,468 +1,53 @@
-/**
- * Illinois Supreme Court Approved Standardized Divorce Forms
- * 
- * These forms are required to be accepted by all Illinois Circuit Courts.
- * Source: https://www.illinoiscourts.gov/forms/approved-forms/forms-circuit-court/divorce-child-support-maintenance
- * 
- * Forms should be downloaded and placed in public/forms/ directory
- */
-
+/** Evidence-bound form catalog. Presence here is never release authority. */
+export type FormAuthority = "illinois_supreme_court" | "federal_acf" | "freshstart_template" | "county_or_non_statewide"
+export type AutomationStatus = "artifact_and_mapping_review_required" | "unmapped" | "unsupported" | "separately_guarded"
+export interface ArtifactProvenance { printedCode: string; printedRevision: string; retrievedAt: string; contentType: "application/pdf"; bytes: number; sha256: string }
 export interface CourtForm {
-  id: string
-  name: string
-  description: string
-  category: FormCategory
-  filename: string
-  officialUrl: string
-  version: string
-  lastUpdated: string
-  requiredFor: ('with_children' | 'no_children' | 'both')[]
-  instructions?: string
-  relatedQuestionnaires: string[]
+  id: string; name: string; description: string; category: FormCategory; filename: string
+  officialUrl: string | null; version: string; lastUpdated: string; authority: FormAuthority
+  automationStatus: AutomationStatus; provenance?: ArtifactProvenance
+  requiredFor: ("with_children" | "no_children" | "both")[]; instructions?: string; relatedQuestionnaires: string[]
 }
-
-export type FormCategory = 
-  | 'petition'
-  | 'financial'
-  | 'parenting'
-  | 'service'
-  | 'judgment'
-  | 'support'
-
+export type FormCategory = "petition" | "financial" | "parenting" | "service" | "judgment" | "support"
 export const FORM_CATEGORIES: Record<FormCategory, { name: string; description: string }> = {
-  petition: {
-    name: 'Petition Forms',
-    description: 'Forms to initiate divorce proceedings'
-  },
-  financial: {
-    name: 'Financial Disclosure Forms',
-    description: 'Forms for disclosing income, expenses, assets, and debts'
-  },
-  parenting: {
-    name: 'Parenting Forms',
-    description: 'Forms for custody, visitation, and parental responsibilities'
-  },
-  service: {
-    name: 'Service Forms',
-    description: 'Forms for serving documents and proof of service'
-  },
-  judgment: {
-    name: 'Judgment Forms',
-    description: 'Final judgment and decree forms'
-  },
-  support: {
-    name: 'Support Forms',
-    description: 'Child support and maintenance forms'
-  }
+  petition:{name:"Petition Forms",description:"Forms to initiate divorce proceedings"}, financial:{name:"Financial Disclosure Forms",description:"Income, expenses, assets, and debts"},
+  parenting:{name:"Parenting Forms",description:"Parental responsibilities and parenting time"}, service:{name:"Service Forms",description:"Service and proof of delivery"},
+  judgment:{name:"Judgment Forms",description:"Judgment and agreement documents"}, support:{name:"Support Forms",description:"Child support and maintenance forms"},
 }
-
-/**
- * Official Illinois Court Forms for Divorce
- * 
- * Download URLs based on illinoiscourts.gov standardized forms
- */
-export const ILLINOIS_COURT_FORMS: CourtForm[] = [
-  // ========== PETITION FORMS ==========
-  {
-    id: 'petition-no-children',
-    name: 'Petition for Dissolution of Marriage (No Children)',
-    description: 'Initial petition to start divorce proceedings when there are no minor children from the marriage.',
-    category: 'petition',
-    filename: 'petition-dissolution-no-children.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['no_children'],
-    instructions: 'Complete all sections about petitioner, respondent, marriage details, and grounds for divorce.',
-    relatedQuestionnaires: ['basic-information', 'marriage-details']
-  },
-  {
-    id: 'petition-with-children',
-    name: 'Petition for Dissolution of Marriage (With Children)',
-    description: 'Initial petition to start divorce proceedings when there are minor children from the marriage.',
-    category: 'petition',
-    filename: 'petition-dissolution-with-children.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Complete all sections including information about each minor child.',
-    relatedQuestionnaires: ['basic-information', 'marriage-details', 'children-information']
-  },
-  {
-    id: 'summons',
-    name: 'Summons - Dissolution of Marriage',
-    description: 'Official notice to respondent that divorce proceedings have been filed.',
-    category: 'petition',
-    filename: 'summons-dissolution.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'Must be served on respondent along with the petition.',
-    relatedQuestionnaires: ['basic-information']
-  },
-  {
-    id: 'appearance',
-    name: 'Appearance',
-    description: 'Form for respondent to file acknowledging receipt of petition.',
-    category: 'petition',
-    filename: 'appearance.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'Respondent files this to enter an appearance in the case.',
-    relatedQuestionnaires: []
-  },
-
-  // ========== FINANCIAL FORMS ==========
-  {
-    id: 'financial-affidavit',
-    name: 'Financial Affidavit (Family & Divorce Cases)',
-    description: 'Disclosure of income, expenses, assets, and debts that may be required in some family or divorce matters.',
-    category: 'financial',
-    filename: 'financial-affidavit.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['both'],
-    instructions: 'Use if the court or your case requires it; confirm filing, exchange, and update requirements for your matter.',
-    relatedQuestionnaires: ['financial-information', 'income-employment', 'assets-debts']
-  },
-  {
-    id: 'schedule-a-child-support',
-    name: 'Schedule A - Child Support Worksheet',
-    description: 'Worksheet to calculate child support based on Illinois guidelines.',
-    category: 'financial',
-    filename: 'schedule-a-child-support.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['with_children'],
-    instructions: 'Use income figures from Financial Affidavit to calculate support.',
-    relatedQuestionnaires: ['financial-information', 'children-information']
-  },
-  {
-    id: 'schedule-b-health-insurance',
-    name: 'Schedule B - Health Insurance',
-    description: 'Details about health insurance coverage for children.',
-    category: 'financial',
-    filename: 'schedule-b-health-insurance.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['with_children'],
-    instructions: 'Complete information about current and proposed health insurance for children.',
-    relatedQuestionnaires: ['children-information', 'financial-information']
-  },
-  {
-    id: 'schedule-c-debts',
-    name: 'Schedule C - Debts',
-    description: 'Detailed listing of all marital and individual debts.',
-    category: 'financial',
-    filename: 'schedule-c-debts.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['both'],
-    instructions: 'List all debts including credit cards, loans, mortgages, etc.',
-    relatedQuestionnaires: ['assets-debts']
-  },
-  {
-    id: 'schedule-d-accounts',
-    name: 'Schedule D - Bank/Investment Accounts',
-    description: 'Detailed listing of all bank accounts and investments.',
-    category: 'financial',
-    filename: 'schedule-d-accounts.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['both'],
-    instructions: 'List all checking, savings, investment, and brokerage accounts.',
-    relatedQuestionnaires: ['assets-debts']
-  },
-  {
-    id: 'schedule-e-business',
-    name: 'Schedule E - Business Interests',
-    description: 'Details about any business ownership or interests.',
-    category: 'financial',
-    filename: 'schedule-e-business.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['both'],
-    instructions: 'Complete only if you or spouse own a business or have business interests.',
-    relatedQuestionnaires: ['assets-debts', 'income-employment']
-  },
-  {
-    id: 'schedule-f-retirement',
-    name: 'Schedule F - Retirement Accounts',
-    description: 'Details about retirement accounts, pensions, and 401(k)s.',
-    category: 'financial',
-    filename: 'schedule-f-retirement.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/',
-    version: '2025',
-    lastUpdated: '2025-06-01',
-    requiredFor: ['both'],
-    instructions: 'List all retirement accounts including 401(k), IRA, pension plans.',
-    relatedQuestionnaires: ['assets-debts']
-  },
-
-  // ========== PARENTING FORMS ==========
-  {
-    id: 'parenting-plan',
-    name: 'Parenting Plan',
-    description: 'Comprehensive plan for allocation of parental responsibilities and parenting time.',
-    category: 'parenting',
-    filename: 'parenting-plan.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Must be filed in all cases with minor children. Covers decision-making and parenting time.',
-    relatedQuestionnaires: ['children-information', 'parenting-plan']
-  },
-  {
-    id: 'allocation-judgment',
-    name: 'Allocation Judgment',
-    description: 'Court order establishing parental responsibilities and parenting time.',
-    category: 'parenting',
-    filename: 'allocation-judgment.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Final court order based on approved parenting plan.',
-    relatedQuestionnaires: ['parenting-plan']
-  },
-
-  // ========== SERVICE FORMS ==========
-  {
-    id: 'certificate-of-service',
-    name: 'Certificate of Service',
-    description: 'Proof that documents were properly served on the other party.',
-    category: 'service',
-    filename: 'certificate-of-service.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'File with court to prove service of documents on other party.',
-    relatedQuestionnaires: []
-  },
-  {
-    id: 'affidavit-service-special-process',
-    name: 'Affidavit of Service by Special Process Server',
-    description: 'Sworn statement from process server confirming service.',
-    category: 'service',
-    filename: 'affidavit-service-special.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'Used when petition is served by special process server rather than sheriff.',
-    relatedQuestionnaires: []
-  },
-  {
-    id: 'waiver-service',
-    name: 'Waiver of Service',
-    description: 'Form for respondent to waive formal service of process.',
-    category: 'service',
-    filename: 'waiver-service.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'Respondent can sign this to waive formal service, saving time and cost.',
-    relatedQuestionnaires: []
-  },
-
-  // ========== JUDGMENT FORMS ==========
-  {
-    id: 'judgment-no-children',
-    name: 'Judgment of Dissolution of Marriage (No Children)',
-    description: 'Final divorce decree when there are no minor children.',
-    category: 'judgment',
-    filename: 'judgment-dissolution-no-children.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['no_children'],
-    instructions: 'Submitted for judge signature at final hearing.',
-    relatedQuestionnaires: ['basic-information', 'marriage-details', 'assets-debts']
-  },
-  {
-    id: 'judgment-with-children',
-    name: 'Judgment of Dissolution of Marriage/Civil Union (With Children)',
-    description: 'Final divorce decree when there are minor children.',
-    category: 'judgment',
-    filename: 'judgment-dissolution-with-children.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Submitted for judge signature at final hearing. Includes provisions for children.',
-    relatedQuestionnaires: ['basic-information', 'marriage-details', 'children-information', 'parenting-plan']
-  },
-  {
-    id: 'marital-settlement-agreement',
-    name: 'Marital Settlement Agreement',
-    description: 'Agreement between parties on division of property, debts, and other matters.',
-    category: 'judgment',
-    filename: 'marital-settlement-agreement.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['both'],
-    instructions: 'Both parties must sign. Becomes part of the final judgment.',
-    relatedQuestionnaires: ['assets-debts', 'property-division']
-  },
-
-  // ========== SUPPORT FORMS ==========
-  {
-    id: 'child-support-order',
-    name: 'Child Support Order',
-    description: 'Court order establishing child support obligations.',
-    category: 'support',
-    filename: 'child-support-order.pdf',
-    officialUrl: 'https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/',
-    version: '2024',
-    lastUpdated: '2024-01-01',
-    requiredFor: ['with_children'],
-    instructions: 'Based on child support worksheet calculations.',
-    relatedQuestionnaires: ['financial-information', 'children-information']
-  },
-  {
-    // FEDERAL form (ACF/OMB 0970-0154) — not an Illinois Supreme Court approved
-    // ATJ form. Access is gated: see lib/forms/official-artifact-access.ts. This
-    // entry is catalog metadata only; it must not be treated as a statement that
-    // the form belongs in any particular packet. County disposition governs that
-    // (lib/counties/county-iwo-workflow.ts).
-    id: 'income-withholding-order',
-    name: 'Income Withholding for Support (federal OMB 0970-0154)',
-    description:
-      'Federal form used to direct an employer to withhold support from wages. It follows a signed Order for Support (ATJ 129.5), which is a separate document.',
-    category: 'support',
-    filename: 'income-withholding-order.pdf',
-    officialUrl: 'https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1',
-    version: 'OMB 0970-0154 (printed date 2026-08-31)',
-    lastUpdated: '2026-07-21',
-    requiredFor: ['with_children'],
-    instructions:
-      'Whether and how this form is used depends on the county and on case-specific direction. Availability is checked before it is offered.',
-    relatedQuestionnaires: ['financial-information']
-  }
+const B="https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources", R="2026-09-14"
+type V=Omit<CourtForm,"authority"|"automationStatus"|"provenance"|"version"|"lastUpdated">&{code:string;revision:string;bytes:number;sha256:string;automationStatus?:"artifact_and_mapping_review_required"|"unmapped"}
+function il(x:V):CourtForm { const {code,revision,bytes,sha256,automationStatus,...f}=x; return {...f,authority:"illinois_supreme_court",automationStatus:automationStatus??"artifact_and_mapping_review_required",version:`${code} (${revision})`,lastUpdated:`20${revision.slice(3)}-${revision.slice(0,2)}-01`,provenance:{printedCode:code,printedRevision:revision,retrievedAt:R,contentType:"application/pdf",bytes,sha256}} }
+type U=Omit<CourtForm,"officialUrl"|"version"|"lastUpdated"|"automationStatus">&{authority:"freshstart_template"|"county_or_non_statewide"}
+function unsupported(x:U):CourtForm{return {...x,officialUrl:null,version:"unverified",lastUpdated:"2026-09-14",automationStatus:"unsupported"}}
+const q={basic:["basic-information"],financial:["financial-information"],assets:["assets-debts"]}
+export const ILLINOIS_COURT_FORMS:CourtForm[]=[
+ il({id:"petition-no-children",name:"Petition for Divorce",description:"Statewide petition without minor children.",category:"petition",filename:"petition-dissolution-no-children.pdf",officialUrl:`${B}/f41da79e-f087-483e-9dd8-d71d2739d231/DNC%20Petition.pdf`,code:"ATJ 103.4",revision:"03/25",bytes:1245011,sha256:"46a08e8fb11ad258dc97f08d32d9a8a5ec1a94054755e0e6f703528792576a4d",requiredFor:["no_children"],relatedQuestionnaires:[...q.basic,"marriage-details"]}),
+ il({id:"petition-with-children",name:"Petition for Divorce with Children",description:"Statewide petition with minor children.",category:"petition",filename:"petition-dissolution-with-children.pdf",officialUrl:`${B}/29fc2ee4-ddda-47f4-af12-f3f4d38f6a70/DWC%20Petition.pdf`,code:"ATJ 105.3",revision:"03/25",bytes:1257293,sha256:"730927bbbe825ee2fc65287ece4776a9d61826a957dbcea67de8a0e1c89faa76",requiredFor:["with_children"],relatedQuestionnaires:[...q.basic,"marriage-details","children-information"]}),
+ il({id:"summons",name:"Summons (Divorce)",description:"Statewide divorce summons.",category:"petition",filename:"summons-dissolution.pdf",officialUrl:`${B}/2b052cc8-5066-4ffb-a678-e17edd400ef6/DIV%20Summons.pdf`,code:"ATJ 113.8",revision:"03/25",bytes:1006581,sha256:"a5ab81435b670cb5873f1554eaca7ca7dfb7460a471e26e93d73a662db588d99",requiredFor:["both"],relatedQuestionnaires:q.basic}),
+ il({id:"appearance",name:"Appearance (Divorce)",description:"Statewide appearance and military notice.",category:"petition",filename:"appearance.pdf",officialUrl:`${B}/ea73b648-a088-4ca8-81cd-b8bc00c7da37/DIV%20Divorce%20Entry%20of%20Appearance%20Military%20Notice.pdf`,code:"ATJ 111.5",revision:"03/25",bytes:871630,sha256:"d85df304f4fa41d45c1e2abc629683f1bad141670ec316092c9983dd146b8924",requiredFor:["both"],relatedQuestionnaires:[]}),
+ il({id:"financial-affidavit",name:"Financial Affidavit",description:"Statewide financial affidavit that may be required in some family and divorce cases.",category:"financial",filename:"financial-affidavit.pdf",officialUrl:`${B}/2cb2c0ce-20f8-4eb5-9d23-05664d7f4404/FA%20Financial%20Affidavit.pdf`,code:"ATJ 251.5",revision:"06/25",bytes:1268882,sha256:"210d2994672764d877d14e8a2e34214f40f26b72c833f57f870792de87105d49",requiredFor:["both"],relatedQuestionnaires:[...q.financial,"income-employment",...q.assets]}),
+ il({id:"financial-additional-child-support",name:"Additional My Child Support",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-child-support.pdf",officialUrl:`${B}/7b643e9a-9cfd-471f-9c4d-27f688282832/FA%20Additional%20Child%20Support.pdf`,code:"ATJ 253.1",revision:"06/25",bytes:850689,sha256:"284f19b45263551a2c77e026497f0af199df61bcf98f9c2862fd59d6bdf24172",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.financial}),
+ il({id:"financial-additional-health-insurance",name:"Additional Health Insurance",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-health-insurance.pdf",officialUrl:`${B}/f49ad4ac-75d1-4349-8ae2-f19758626a82/FA%20Additional%20Health%20Insurance.pdf`,code:"ATJ 254.3",revision:"06/25",bytes:802482,sha256:"692858aeedfc647b3944f476c006ecc67a4d2c36036fd0ee97b1bd7dffa63bca",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.financial}),
+ il({id:"financial-additional-debts",name:"Additional My Debts",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-debts.pdf",officialUrl:`${B}/91a6366b-69e5-47fe-b2a5-5d7bb17ff879/FA%20Additional%20My%20Debts.pdf`,code:"ATJ 255.3",revision:"06/25",bytes:800987,sha256:"7b96c3ad6e8540ec053cbe678fcabdfa3ed662c6b715dde1a72665b1eea51983",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.assets}),
+ il({id:"financial-additional-cash",name:"Additional Cash and Cash Equivalents",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-cash.pdf",officialUrl:`${B}/f1b093cd-5997-40a9-af81-6bcb0c332005/FA%20Additional%20Cash%20and%20Cash%20Equivalents.pdf`,code:"ATJ 256.3",revision:"06/25",bytes:815733,sha256:"b075551375ff2287f5302d65c421f1fbf8f0a9f6df5eabc61796080bddc18e1c",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.assets}),
+ il({id:"financial-additional-investments",name:"Additional Investment Accounts and Securities",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-investments.pdf",officialUrl:`${B}/be5344c5-6ad0-465a-95e7-b3d7483d6bfc/FA%20Additional%20Investment%20Accounts%20and%20Securities.pdf`,code:"ATJ 257.3",revision:"06/25",bytes:789418,sha256:"c094fc28409f2a9798656fb829e12b541d029fef276497f7a072587b7044ad0d",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.assets}),
+ il({id:"financial-additional-business-interests",name:"Additional Property and Business Interests",description:"Financial Affidavit continuation page only.",category:"financial",filename:"financial-additional-business-interests.pdf",officialUrl:`${B}/180bcc84-8e70-495e-af35-b139cbe1230d/FA%20Additional%20Business%20Interests.pdf`,code:"ATJ 258.3",revision:"06/25",bytes:808358,sha256:"6ad339f236f901a31881123ba44ae6971cd4d0118b6a4e37af719f6b2d63206c",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:[...q.assets,"income-employment"]}),
+ il({id:"financial-additional-life-insurance",name:"Additional Life Insurance Policies",description:"Financial Affidavit continuation page only; it is not a generic retirement schedule.",category:"financial",filename:"financial-additional-life-insurance.pdf",officialUrl:`${B}/e0ccfa97-279a-467e-ac21-96c37a43fe13/FA%20Additional%20Life%20Insurance%20Policies.pdf`,code:"ATJ 259.3",revision:"06/25",bytes:796483,sha256:"8b0e9788dad69f78e201b1fd65cd525d563f523cdb79a7f8942f964b0f17959f",automationStatus:"unmapped",requiredFor:["both"],relatedQuestionnaires:q.assets}),
+ il({id:"parenting-plan",name:"Parenting Plan",description:"Statewide proposed parenting plan.",category:"parenting",filename:"parenting-plan.pdf",officialUrl:`${B}/a601856a-12e7-44fe-9076-88a8e150c3a7/DWC%20Parenting%20Plan.pdf`,code:"ATJ 108.4",revision:"03/25",bytes:1485062,sha256:"0a715dc0ae48f7409aab450e4dad73f1483f68b5fad65c5a2af3d483d8cdbc2c",requiredFor:["with_children"],relatedQuestionnaires:["children-information","parenting-plan"]}),
+ il({id:"judgment-no-children",name:"Judgment for Dissolution",description:"Statewide judgment without minor children.",category:"judgment",filename:"judgment-dissolution-no-children.pdf",officialUrl:`${B}/ee611252-2582-4546-9426-72234f6582af/DNC%20Judgment%20for%20Dissolution.pdf`,code:"ATJ 104.4",revision:"03/25",bytes:1426509,sha256:"0e83e660ac783c82f62e808fae0dc13eebc07da847e8afbd545104c6034a140b",requiredFor:["no_children"],relatedQuestionnaires:[...q.basic,"marriage-details",...q.assets]}),
+ il({id:"judgment-with-children",name:"Judgment for Dissolution with Children",description:"Statewide judgment with children; no separate statewide allocation-judgment artifact is claimed.",category:"judgment",filename:"judgment-dissolution-with-children.pdf",officialUrl:`${B}/28a17a49-16ea-415f-9642-6c186e387d94/DWC%20Judgment%20for%20Dissolution.pdf`,code:"ATJ 106.2",revision:"03/25",bytes:1316160,sha256:"9b7980335f317d36623231536a399a8f1693f281def14427c63422161ec4c564",requiredFor:["with_children"],relatedQuestionnaires:[...q.basic,"marriage-details","children-information","parenting-plan"]}),
+ unsupported({id:"certificate-of-service",name:"Certificate of Service (unsupported identity)",description:"No exact statewide divorce-suite artifact admitted.",category:"service",filename:"certificate-of-service.pdf",authority:"county_or_non_statewide",requiredFor:["both"],relatedQuestionnaires:[]}),
+ unsupported({id:"affidavit-service-special-process",name:"Affidavit of Service by Special Process Server (unsupported identity)",description:"No exact statewide artifact admitted.",category:"service",filename:"affidavit-service-special.pdf",authority:"county_or_non_statewide",requiredFor:["both"],relatedQuestionnaires:[]}),
+ unsupported({id:"waiver-service",name:"Waiver of Service (unsupported identity)",description:"No statewide waiver admitted; certification agreements are distinct artifacts.",category:"service",filename:"waiver-service.pdf",authority:"county_or_non_statewide",requiredFor:["both"],relatedQuestionnaires:[]}),
+ unsupported({id:"marital-settlement-agreement",name:"Marital Settlement Agreement",description:"FreshStart template, not an Illinois standardized form.",category:"judgment",filename:"marital-settlement-agreement.pdf",authority:"freshstart_template",requiredFor:["both"],relatedQuestionnaires:[...q.assets,"property-division"]}),
+ il({id:"child-support-order",name:"Order for Support (Child Support and Maintenance)",description:"Statewide support order, distinct from the federal IWO.",category:"support",filename:"child-support-order.pdf",officialUrl:`${B}/e3440546-6e6b-4904-9cab-2b029894c518/DCS%20Order%20For%20Support.pdf`,code:"ATJ 129.5",revision:"09/25",bytes:926396,sha256:"dd227345187a6d5cfe7f000a46d8a49362577d794d06649b2858649e25db4c08",requiredFor:["with_children"],relatedQuestionnaires:[...q.financial,"children-information"]}),
+ {id:"income-withholding-order",name:"Income Withholding for Support (federal OMB 0970-0154)",description:"Federal withholding form; inclusion and download remain separately guarded.",category:"support",filename:"income-withholding-order.pdf",officialUrl:"https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf?download=1",version:"OMB 0970-0154 (printed date 2026-08-31)",lastUpdated:"2026-07-21",authority:"federal_acf",automationStatus:"separately_guarded",provenance:{printedCode:"OMB 0970-0154",printedRevision:"2026-08-31",retrievedAt:"2026-07-21T00:00:00Z",contentType:"application/pdf",bytes:505412,sha256:"2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551"},requiredFor:["with_children"],relatedQuestionnaires:q.financial,instructions:"Availability is determined only by the guarded IWO boundary."},
 ]
-
-/**
- * Get forms by category
- */
-export function getFormsByCategory(category: FormCategory): CourtForm[] {
-  return ILLINOIS_COURT_FORMS.filter(form => form.category === category)
-}
-
-/**
- * Get forms required for a case type
- */
-export function getFormsForCaseType(hasChildren: boolean): CourtForm[] {
-  const caseType = hasChildren ? 'with_children' : 'no_children'
-  return ILLINOIS_COURT_FORMS.filter(
-    form => form.requiredFor.includes(caseType) || form.requiredFor.includes('both')
-  )
-}
-
-/**
- * Get form by ID
- */
-export function getFormById(id: string): CourtForm | undefined {
-  return ILLINOIS_COURT_FORMS.find(form => form.id === id)
-}
-
-/**
- * Get forms related to a questionnaire
- */
-export function getFormsForQuestionnaire(questionnaireSlug: string): CourtForm[] {
-  return ILLINOIS_COURT_FORMS.filter(
-    form => form.relatedQuestionnaires.includes(questionnaireSlug)
-  )
-}
-
-/**
- * Get the local static path to a form PDF.
- *
- * The federal IWO is NOT statically served — it lives outside `public/` and is
- * released only by the guarded route after provenance, expiration, renewal, and
- * authoritative-county checks. Asking for a static path to it is a programming
- * error, so this throws rather than returning a URL that would 404 (or, worse,
- * would start working if someone ever dropped a copy into `public/forms/`).
- */
-export function getFormPath(form: CourtForm): string {
-  if (form.id === 'income-withholding-order') {
-    throw new Error(
-      'income-withholding-order has no static path; use the guarded route (see lib/forms/court-forms-read-model.ts)'
-    )
-  }
-  return `/forms/${form.filename}`
-}
-
-/**
- * Check if form PDF exists locally (client-side check)
- */
-export async function checkFormExists(form: CourtForm): Promise<boolean> {
-  try {
-    const response = await fetch(getFormPath(form), { method: 'HEAD' })
-    return response.ok
-  } catch {
-    return false
-  }
-}
-
-/**
- * Forms download instructions for manual setup
- */
-export const FORMS_DOWNLOAD_INSTRUCTIONS = `
-# Illinois Court Forms Download Instructions
-
-The following forms need to be downloaded from illinoiscourts.gov and placed in the public/forms/ directory.
-
-## Divorce Forms (With & Without Children)
-Download from: https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/
-
-Required files:
-- petition-dissolution-no-children.pdf
-- petition-dissolution-with-children.pdf
-- summons-dissolution.pdf
-- appearance.pdf
-- parenting-plan.pdf
-- allocation-judgment.pdf
-- certificate-of-service.pdf
-- affidavit-service-special.pdf
-- waiver-service.pdf
-- judgment-dissolution-no-children.pdf
-- judgment-dissolution-with-children.pdf
-- marital-settlement-agreement.pdf
-- child-support-order.pdf
-
-Note: the federal Income Withholding for Support (OMB 0970-0154) is NOT downloaded
-into public/forms/. It is a federal ACF/OMB artifact served through a guarded
-server-side route from private/official-forms/.
-
-## Financial Affidavit Forms
-Download from: https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/financial-affidavit/
-
-Required files:
-- financial-affidavit.pdf
-- schedule-a-child-support.pdf
-- schedule-b-health-insurance.pdf
-- schedule-c-debts.pdf
-- schedule-d-accounts.pdf
-- schedule-e-business.pdf
-- schedule-f-retirement.pdf
-
-## Notes
-1. Download each PDF form
-2. Rename to match the filename listed above
-3. Place in public/forms/ directory
-4. Forms will be available at /forms/[filename] in the app
-`
+export function getFormsByCategory(category:FormCategory){return ILLINOIS_COURT_FORMS.filter(f=>f.category===category)}
+export function getFormsForCaseType(hasChildren:boolean){const t=hasChildren?"with_children":"no_children";return ILLINOIS_COURT_FORMS.filter(f=>f.requiredFor.includes(t)||f.requiredFor.includes("both"))}
+export function getFormById(id:string){return ILLINOIS_COURT_FORMS.find(f=>f.id===id)}
+export function getFormsForQuestionnaire(slug:string){return ILLINOIS_COURT_FORMS.filter(f=>f.relatedQuestionnaires.includes(slug))}
+export function isFormAutomationEligible(form:CourtForm){return form.automationStatus==="separately_guarded"}
+export function getFormPath(form:CourtForm):string {if(form.id==="income-withholding-order")throw new Error("income-withholding-order has no static path; use the guarded route");if(!isFormAutomationEligible(form))throw new Error(`${form.id} is not automation-eligible: ${form.automationStatus}`);return `/forms/${form.filename}`}
+export async function checkFormExists(form:CourtForm){try{return (await fetch(getFormPath(form),{method:"HEAD"})).ok}catch{return false}}
+export const FORMS_DOWNLOAD_INSTRUCTIONS=`Catalog metadata is not download authority. Illinois artifacts must remain outside public/forms and pass pinned artifact, field-mapping, and generated-output verification. The federal IWO retains all existing separate gates.`
