@@ -286,9 +286,9 @@ describe("no static artifact path", () => {
     expect(() => getFormPath(iwo)).toThrow(/no static path/i);
   });
 
-  it("still yields normal static paths for ATJ forms", () => {
+  it("keeps ATJ static paths closed until automation review passes", () => {
     const petition = getFormById("petition-with-children")!;
-    expect(getFormPath(petition)).toBe("/forms/petition-dissolution-with-children.pdf");
+    expect(() => getFormPath(petition)).toThrow(/not automation-eligible/i);
   });
 });
 
@@ -337,10 +337,10 @@ describe("court forms read model", () => {
     expect(model.gatedNotices[0].requiresManualReview).toBe(true);
   });
 
-  it("still renders the ATJ catalog with normal static hrefs", () => {
+  it("withholds ATJ local downloads until artifact and mapping review passes", () => {
     const model = getCourtFormsReadModel({ countyId: "cook" });
     const petition = model.forms.find((f) => f.id === "petition-with-children");
-    expect(petition!.downloadHref).toBe("/forms/petition-dissolution-with-children.pdf");
+    expect(petition!.downloadHref).toBeNull();
   });
 });
 

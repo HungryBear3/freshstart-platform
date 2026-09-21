@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { 
-  FileText, 
-  Download, 
-  ExternalLink, 
-  Info, 
-  ChevronDown, 
+import {
+  FileText,
+  Download,
+  ExternalLink,
+  Info,
+  ChevronDown,
   ChevronRight,
   Scale,
   DollarSign,
@@ -15,17 +15,14 @@ import {
   FileCheck,
   Gavel,
   Heart,
-  ClipboardList,
-  CheckCircle2,
-  ArrowRight,
-  Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import {
   FORM_CATEGORIES,
+  UNVERIFIED_CATALOG_VALUE,
+  formatCatalogLastUpdated,
   type FormCategory
 } from "@/lib/forms/illinois-court-forms"
 import type { GatedFormNotice, RenderedFormDTO } from "@/lib/forms/court-forms-read-model"
@@ -39,28 +36,16 @@ const categoryIcons: Record<FormCategory, React.ReactNode> = {
   support: <Heart className="h-5 w-5" />,
 }
 
-// Map form IDs to questionnaire paths and display names
-const FORM_TO_QUESTIONNAIRE: Record<string, { path: string; name: string }> = {
-  'petition-no-children': { path: '/questionnaires/petition', name: 'Petition Questionnaire' },
-  'petition-with-children': { path: '/questionnaires/petition', name: 'Petition Questionnaire' },
-  'financial-affidavit': { path: '/questionnaires/financial_affidavit', name: 'Financial Questionnaire' },
-  'schedule-a': { path: '/questionnaires/financial_affidavit', name: 'Financial Questionnaire' },
-  'schedule-b': { path: '/questionnaires/financial_affidavit', name: 'Financial Questionnaire' },
-  'parenting-plan': { path: '/questionnaires/parenting_plan', name: 'Parenting Questionnaire' },
-  'allocation-judgment': { path: '/questionnaires/parenting_plan', name: 'Parenting Questionnaire' },
-  'marital-settlement': { path: '/questionnaires/marital_settlement', name: 'Settlement Questionnaire' },
-  'judgment-no-children': { path: '/questionnaires/marital_settlement', name: 'Settlement Questionnaire' },
-  'judgment-with-children': { path: '/questionnaires/marital_settlement', name: 'Settlement Questionnaire' },
-  'summons': { path: '/questionnaires/petition', name: 'Petition Questionnaire' },
-  'certificate-of-service': { path: '/questionnaires/petition', name: 'Petition Questionnaire' },
-}
-
-interface QuestionnaireProgress {
-  [key: string]: {
-    status: "not_started" | "in_progress" | "completed"
-    completedAt?: string
-  }
-}
+// REMOVED 2026-09-21 — the questionnaire→form map and every form-preparation
+// control it drove. Those controls told a customer this page could complete named
+// forms from their answers. No catalog entry is automation-eligible, `getFormPath`
+// throws for all 21 entries, and four of the map's keys named rows the reconciled
+// catalog does not hold. They rendered only for an entry carrying a server-issued
+// `downloadHref` and so were unreachable in practice, which meant the copy sat in
+// source waiting for this route's redirect to be lifted. Restoring any of it needs
+// cleared field-mapping and generated-output review, not a UI change. Rationale and
+// the exact removed strings: docs/legal-audit/fs-catalog-reconciliation-review-2026-09-21.md §9.4.
+// Guarded by __tests__/app/court-forms-claims-boundaries.test.ts.
 
 export interface CourtFormsLibraryProps {
   /** Rendered DTOs the server read model cleared. Download hrefs are server-decided. */
@@ -74,26 +59,6 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
     new Set(['petition', 'financial', 'parenting'])
   )
   const [selectedCaseType, setSelectedCaseType] = useState<'all' | 'with_children' | 'no_children'>('all')
-  const [questionnaireProgress, setQuestionnaireProgress] = useState<QuestionnaireProgress>({})
-  const [loadingProgress, setLoadingProgress] = useState(true)
-
-  useEffect(() => {
-    fetchQuestionnaireProgress()
-  }, [])
-
-  const fetchQuestionnaireProgress = async () => {
-    try {
-      const response = await fetch("/api/questionnaires/progress")
-      if (response.ok) {
-        const data = await response.json()
-        setQuestionnaireProgress(data.progress || {})
-      }
-    } catch (error) {
-      console.error("Failed to fetch questionnaire progress:", error)
-    } finally {
-      setLoadingProgress(false)
-    }
-  }
 
   const toggleCategory = (category: FormCategory) => {
     const newExpanded = new Set(expandedCategories)
@@ -110,18 +75,6 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
     return forms.filter(form => 
       form.requiredFor.includes(selectedCaseType) || form.requiredFor.includes('both')
     )
-  }
-
-  // Get questionnaire status for a form
-  const getQuestionnaireStatusForForm = (formId: string): "not_started" | "in_progress" | "completed" | null => {
-    const questionnaire = FORM_TO_QUESTIONNAIRE[formId]
-    if (!questionnaire) return null
-    
-    // Extract questionnaire type from path
-    const pathParts = questionnaire.path.split('/')
-    const questionnaireType = pathParts[pathParts.length - 1]
-    
-    return questionnaireProgress[questionnaireType]?.status || "not_started"
   }
 
   const categories = Object.keys(FORM_CATEGORIES) as FormCategory[]
@@ -148,39 +101,15 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
         </p>
       </div>
 
-      {/* Auto-Fill CTA */}
-      <Card className="mb-6 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg">Let Us Fill Out Your Forms</h3>
-              <p className="text-sm text-muted-foreground">
-                Complete our questionnaires to prepare supported form drafts from your answers.
-                Review every draft and verify current circuit-clerk requirements before you file.
-              </p>
-            </div>
-            <Link href="/legal-info/document-guide">
-              <Button>
-                See How It Works
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Important Notice */}
+      {/* What this page is, and is not. This list is a reference index: it does
+          not host blank PDFs, and no entry here is prepared from your answers. */}
       <Alert className="mb-6 bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-800">
-          <strong>Important:</strong> Always download forms to your computer before filling them out. 
-          Use Adobe Acrobat Reader for best results. If e-filing, you may need to "flatten" the PDF 
-          after filling (print to PDF) so it cannot be edited.
+          <strong>Reference only.</strong> This page lists the forms and where they come from.
+          It does not prepare, complete, or supply copies of them. Get the current version of
+          any form from the issuing source below, and check the requirements for your case with
+          your circuit clerk.
         </AlertDescription>
       </Alert>
 
@@ -282,12 +211,7 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     {forms.map(form => (
-                      <FormCard 
-                        key={form.id} 
-                        form={form} 
-                        questionnaireStatus={getQuestionnaireStatusForForm(form.id)}
-                        questionnaireInfo={FORM_TO_QUESTIONNAIRE[form.id]}
-                      />
+                      <FormCard key={form.id} form={form} />
                     ))}
                   </div>
                 </CardContent>
@@ -315,7 +239,7 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
               </p>
               <Button variant="outline" asChild>
                 <a 
-                  href="https://www.illinoiscourts.gov/forms/approved-forms/forms-circuit-court/divorce-child-support-maintenance" 
+                  href="https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/divorce-child-support-maintenance/"
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2"
@@ -333,7 +257,7 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
       <div className="mt-8 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
         <p className="font-medium text-foreground mb-2">Disclaimer</p>
         <p>
-          These forms are provided for informational purposes. FreshStart IL is not a law firm 
+          This catalog information is provided for informational purposes. FreshStart IL is not a law firm
           and does not provide legal advice. Form requirements may vary by county. If you have 
           questions about which forms to use or how to complete them, please consult with an 
           attorney or contact your local circuit court clerk's office.
@@ -345,14 +269,10 @@ export default function CourtFormsLibraryPage({ forms: availableForms, gatedNoti
 
 interface FormCardProps {
   form: RenderedFormDTO
-  questionnaireStatus: "not_started" | "in_progress" | "completed" | null
-  questionnaireInfo?: { path: string; name: string }
 }
 
-function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProps) {
+function FormCard({ form }: FormCardProps) {
   const [showDetails, setShowDetails] = useState(false)
-
-  const hasQuestionnaire = !!questionnaireInfo
 
   return (
     <div className="border rounded-lg p-4 bg-background">
@@ -378,47 +298,18 @@ function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProp
                 All Cases
               </span>
             )}
+            {/* The sentinel is not a version and must not be prefixed with "v".
+                "vunverified" reads as a version string for a row that has none. */}
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
-              v{form.version}
+              {form.version === UNVERIFIED_CATALOG_VALUE ? "No verified version" : `v${form.version}`}
             </span>
           </div>
-
-          {/* Questionnaire Link */}
-          {hasQuestionnaire && (
-            <div className="mt-3 flex items-center gap-2">
-              {questionnaireStatus === "completed" ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-700">
-                    Questionnaire completed
-                  </span>
-                  <Link href="/documents">
-                    <Button size="sm" variant="outline" className="ml-2 h-7">
-                      <Sparkles className="mr-1 h-3 w-3" />
-                      Generate Form
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                  <Link 
-                    href={questionnaireInfo.path}
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
-                  >
-                    {questionnaireStatus === "in_progress" ? "Continue" : "Fill with"} {questionnaireInfo.name}
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                  {questionnaireStatus === "in_progress" && (
-                    <Badge variant="secondary" className="text-xs">In Progress</Badge>
-                  )}
-                </>
-              )}
-            </div>
-          )}
         </div>
-        
+
         <div className="flex flex-col gap-2">
+          {/* The ONLY download control on this page, and only when the server
+              read model issued an href for this entry. The client neither
+              derives a path nor offers a control without one. */}
           {form.downloadHref && (
             <Button size="sm" variant="outline" asChild>
               <a
@@ -431,15 +322,7 @@ function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProp
               </a>
             </Button>
           )}
-          {hasQuestionnaire && questionnaireStatus !== "completed" && (
-            <Link href={questionnaireInfo.path}>
-              <Button size="sm" className="w-full">
-                <ClipboardList className="mr-1 h-4 w-4" />
-                Auto-Fill
-              </Button>
-            </Link>
-          )}
-          <Button 
+          <Button
             size="sm" 
             variant="ghost"
             onClick={() => setShowDetails(!showDetails)}
@@ -458,46 +341,31 @@ function FormCard({ form, questionnaireStatus, questionnaireInfo }: FormCardProp
             </div>
           )}
           
-          {hasQuestionnaire && (
-            <div className="p-3 bg-primary/5 rounded-lg">
-              <h5 className="text-sm font-medium flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Auto-Fill Available
-              </h5>
-              <p className="text-sm text-muted-foreground mt-1">
-                Complete the <strong>{questionnaireInfo.name}</strong> and we'll automatically 
-                fill out this form for you. Just answer questions in plain English - no need to 
-                understand legal terminology or PDF forms.
-              </p>
-              <Link href={questionnaireInfo.path}>
-                <Button size="sm" variant="outline" className="mt-2">
-                  {questionnaireStatus === "in_progress" ? "Continue Questionnaire" : "Start Questionnaire"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          )}
-          
-          {form.relatedQuestionnaires.length > 0 && !hasQuestionnaire && (
+          {form.relatedQuestionnaires.length > 0 && (
             <div>
               <h5 className="text-sm font-medium">Related Questionnaires</h5>
               <p className="text-sm text-muted-foreground">
-                Complete these questionnaires to auto-fill this form: {form.relatedQuestionnaires.join(', ')}
+                Questionnaires that collect information relevant to this form:{' '}
+                {form.relatedQuestionnaires.join(', ')}
               </p>
             </div>
           )}
-          
+
+          {/* Month precision for an official row, the sentinel otherwise. The
+              catalog states what the artifact states and nothing finer. */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Last Updated: {form.lastUpdated}</span>
-            <a 
-              href={form.officialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Official Source
-            </a>
+            <span>Last Updated: {formatCatalogLastUpdated(form.lastUpdated)}</span>
+            {form.officialUrl && (
+              <a
+                href={form.officialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Official Source
+              </a>
+            )}
           </div>
         </div>
       )}

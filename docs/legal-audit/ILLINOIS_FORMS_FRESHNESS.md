@@ -7,13 +7,16 @@ The initial commit ships with an unverified baseline (`verification: null` for e
 
 ```bash
 # Offline: just compare catalog ↔ manifest. Safe in CI.
-pnpm forms:verify:offline   # or: tsx scripts/verify-illinois-forms.ts --offline
+npm run forms:verify:offline   # or: tsx scripts/verify-illinois-forms.ts --offline
 
-# Fetch: HEAD each officialUrl on illinoiscourts.gov, write metadata into
-# the manifest, regenerate this report. Operator-run only; touches the
-# public internet.
-tsx scripts/verify-illinois-forms.ts --fetch
+# Fetch: HEAD each pinned officialUrl, write metadata into the manifest,
+# regenerate this report. Operator-run only; touches the public internet.
+npm run forms:verify:fetch     # or: tsx scripts/verify-illinois-forms.ts --fetch
 ```
+
+> `--fetch` **overwrites this entire file** with the generated report. The
+> guidance above is reproduced in the generator's own "Notes & limitations"
+> section; if you edit it here, mirror it in `renderFreshnessReport`.
 
 ## Hard rules
 
@@ -22,8 +25,19 @@ tsx scripts/verify-illinois-forms.ts --fetch
   catalog change requires a human reviewer to compare the official
   illinoiscourts.gov suite page and edit the catalog by hand.
 - Catalog drift relative to the manifest is **flagged**, not auto-fixed.
-- `--offline` exits non-zero if drift is detected so CI can fail the
-  check; `--fetch` writes a fresh manifest snapshot.
+- Drift exits non-zero in **every** mode. `--fetch` refuses before it
+  touches the network or writes anything: it will not fetch from a
+  drifting baseline, so an unreviewed catalog edit cannot be absorbed
+  into the committed manifest and then reported clean.
+- The `--fetch` write path updates `verification` and the run stamp
+  only. It never copies a catalog `version`, `lastUpdated` or
+  `officialUrl` into a manifest entry. A HEAD response is evidence that
+  a URL resolved and about nothing else.
+- Catalog dates carry the precision the artifact states. A printed
+  revision of `03/25` yields `2025-03` — never an invented `2025-03-01`.
+  A row with no corroborated artifact carries the literal `unverified`
+  in place of both its version and its date, in the catalog, in the
+  manifest, and in any UI that renders it.
 
 ## Inputs and outputs
 
@@ -33,17 +47,27 @@ tsx scripts/verify-illinois-forms.ts --fetch
 | Snapshot manifest (committed) | `docs/legal-audit/illinois-court-forms-manifest.json` |
 | Human-readable report (committed) | `docs/legal-audit/ILLINOIS_FORMS_FRESHNESS.md` |
 | Diff unit tests | `__tests__/forms/verify-illinois-forms.test.ts` |
+| Source-classification invariants | `__tests__/forms/catalog-source-classification.test.ts` |
+| Packet withholding invariants | `__tests__/forms/packet-unverified-withholding.test.ts` |
+| Form-surface public-claim boundaries | `__tests__/app/court-forms-claims-boundaries.test.ts` |
 
 ## Notes
 
-- HEAD requests on the `illinoiscourts.gov` suite pages do not expose
-  per-form PDF versions. We capture transport headers (status,
-  content-type, last-modified, etag) and confirm the URL still resolves;
-  that is the boundary of what `--fetch` is allowed to assert.
-- If we ever want machine-read form-version verification, we would need
-  per-form direct PDF URLs (not the current suite landing pages) and a
-  reliable place inside the PDF metadata to read the version from.
-  Pending that, the operator review of catalog drift remains manual.
+- Since the 2026-09-14 reconciliation each official entry pins a **direct
+  PDF URL**, not a suite landing page, along with the printed form code,
+  printed revision, retrieval date, byte length and SHA-256. Those values
+  were read from the retrieved artifacts by a human reviewer; the script
+  does not derive them.
+- `--fetch` still issues **HEAD only**. It captures transport headers
+  (status, content-type, last-modified, etag) and confirms the pinned URL
+  resolves. It does not re-read the PDF, so it cannot corroborate the
+  pinned byte length or SHA-256, and it cannot detect a same-URL content
+  replacement. Byte-level corroboration remains a manual operator step.
+- A non-2xx status is a **transport** observation — a WAF challenge, for
+  instance — not evidence that the form itself has drifted.
+- Reachability is not release authority. Catalog presence, a resolving URL
+  and a matching hash together still do not clear generation, download, or
+  filing for any entry.
 - This is a freshness audit, not a legal review. It does not substitute
   for the dated ILCS/court-form review artifact described in
   `docs/FS_V2_ILCS_CLAIMS_AUDIT.md`.

@@ -17,7 +17,10 @@
 import { ILLINOIS_COUNTIES } from "./illinois-counties"
 import {
   getFormsForCaseType,
+  isAutoPacketComposable,
+  type AutomationStatus,
   type CourtForm,
+  type FormAuthority,
 } from "@/lib/forms/illinois-court-forms"
 import { validateIwo, type IwoRenewalEvidence, type IwoValidation } from "@/lib/forms/iwo-provenance"
 import {
@@ -404,21 +407,80 @@ export interface DeferredPacketItem {
   copy: string[]
 }
 
+/**
+ * A catalog row withheld from automatic composition. Deliberately NOT a
+ * `DeferredPacketItem`: that carries the IWO's disposition and reason-code
+ * vocabulary, and a catalog-side withholding is a different fact from the
+ * federal artifact gate.
+ */
+export interface WithheldCatalogEntry {
+  formId: string
+  name: string
+  authority: FormAuthority
+  automationStatus: AutomationStatus
+}
+
+/** The `CountyPacket` field a withheld row is reported on, by source class. */
+type WithheldBucket =
+  | "withheldUnverified"
+  | "withheldFreshStartTemplates"
+  | "withheldCountyMismatch"
+
+/**
+ * Exhaustive by type: adding a `FormAuthority` forces a decision here rather
+ * than letting a new class fall out of every bucket and vanish from the packet.
+ * `null` marks the classes that are composable and so are never withheld on
+ * catalog grounds — if one of those ever reaches the withheld side, that is an
+ * invariant violation and `composePacket` throws rather than dropping the row.
+ */
+const WITHHELD_BUCKET_BY_AUTHORITY: Record<FormAuthority, WithheldBucket | null> = {
+  illinois_supreme_court: null,
+  federal_acf: null,
+  unverified_identity: "withheldUnverified",
+  freshstart_template: "withheldFreshStartTemplates",
+  county_or_non_statewide: "withheldCountyMismatch",
+}
+
 export interface CountyPacket {
   countyId: string
   forms: CourtForm[]
   /** Items intentionally withheld from automatic packet composition. */
   deferred: DeferredPacketItem[]
+  /**
+   * Rows withheld because NO official artifact corroborates the local name.
+   * An absence of evidence, and nothing else — a document whose authorship we
+   * know does not belong here.
+   */
+  withheldUnverified: WithheldCatalogEntry[]
+  /**
+   * Rows withheld because FreshStart authored them. Authorship is known; the
+   * withholding is that our own template is not an official court form.
+   */
+  withheldFreshStartTemplates: WithheldCatalogEntry[]
+  /**
+   * County-issued artifacts withheld because this packet is not being composed
+   * for the issuing county (or the row names no issuing county at all).
+   */
+  withheldCountyMismatch: WithheldCatalogEntry[]
 }
 
 /**
- * County-aware packet composition.
+ * Options for county-aware packet composition.
  *
- * For counties whose IWO handling is `manual_conditional`, the IWO is withheld
- * from automatic composition and surfaced as a deferred manual-review item —
- * the underlying case data is preserved, and nothing is silently dropped.
- * For every other county the composition is byte-for-byte the existing
- * `getFormsForCaseType` behavior.
+ * Composition applies two independent withholdings, and neither is expressed in
+ * the other's vocabulary:
+ *
+ *  - Catalog class. A row that its class does not clear for automatic
+ *    composition is withheld and reported on the bucket for THAT class —
+ *    uncorroborated identity, FreshStart authorship, and county mismatch stay
+ *    three separate statements rather than one merged "unverified" list.
+ *  - The federal IWO gate. For counties whose IWO handling is
+ *    `manual_conditional`, the IWO is withheld from automatic composition and
+ *    surfaced as a `deferred` manual-review item.
+ *
+ * In both cases the underlying case data is preserved and nothing is silently
+ * dropped. For every other county and every corroborated artifact, composition
+ * is the existing `getFormsForCaseType` behavior.
  */
 export interface PacketCompositionOptions {
   /** Directory holding the guarded federal artifact. */
@@ -435,6 +497,35 @@ function composePacket(
   baseForms: CourtForm[],
   options: PacketCompositionOptions,
 ): CountyPacket {
+  // Catalog class is settled BEFORE any county or federal gate. A row its class
+  // does not clear for automatic composition is not a form this packet can
+  // offer, so it never reaches the gates below — and it is reported on its own
+  // class's bucket rather than silently dropped or merged into another's.
+  const context = { countyId }
+  const composable = baseForms.filter((f) => isAutoPacketComposable(f, context))
+  const withheld: Record<WithheldBucket, WithheldCatalogEntry[]> = {
+    withheldUnverified: [],
+    withheldFreshStartTemplates: [],
+    withheldCountyMismatch: [],
+  }
+  for (const f of baseForms) {
+    if (isAutoPacketComposable(f, context)) continue
+    const bucket = WITHHELD_BUCKET_BY_AUTHORITY[f.authority]
+    if (bucket === null) {
+      // A composable class reached the withheld side. Fail loudly: silently
+      // dropping the row is the failure mode this whole path exists to prevent.
+      throw new Error(
+        `packet composition: ${f.id} (${f.authority}) was withheld with no bucket for its class`,
+      )
+    }
+    withheld[bucket].push({
+      formId: f.id,
+      name: f.name,
+      authority: f.authority,
+      automationStatus: f.automationStatus,
+    })
+  }
+
   const workflow = getCountyIwoWorkflow(countyId)
   const federal = validateIwo(options.artifactDir, options.today ?? new Date(), options.renewalEvidence)
   const federalGateOpen = federal.blockers.length === 0
@@ -451,13 +542,13 @@ function composePacket(
   // its existing procedural default ONLY while that gate is open.
   const countyAllows = workflow.autoPacketPlacementAllowed
   if (countyAllows && federalGateOpen && !disclosureHeld) {
-    return { countyId, forms: baseForms, deferred: [] }
+    return { countyId, forms: composable, deferred: [], ...withheld }
   }
 
-  const forms = baseForms.filter((f) => f.id !== IWO_FORM_ID)
-  if (baseForms.length === forms.length) {
+  const forms = composable.filter((f) => f.id !== IWO_FORM_ID)
+  if (composable.length === forms.length) {
     // The IWO was not in this packet to begin with — nothing to withhold.
-    return { countyId, forms, deferred: [] }
+    return { countyId, forms, deferred: [], ...withheld }
   }
 
   const reasonCodes: IwoReasonCode[] = []
@@ -494,6 +585,7 @@ function composePacket(
   return {
     countyId,
     forms,
+    ...withheld,
     deferred: [
       {
         formId: IWO_FORM_ID,
