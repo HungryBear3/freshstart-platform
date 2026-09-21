@@ -16,6 +16,16 @@ const LEGAL_INFO_REDIRECTS = [
   "/legal-info/process",
   "/legal-info/requirements",
   "/legal-info/court-forms",
+  // Added 2026-09-21 by the catalog reconciliation review. The document guide
+  // carried its own hardcoded form list, independent of the catalog: it labelled
+  // statewide ATJ artifacts with Cook County CCP numbers as `officialId`, named
+  // artifacts the 2026-09-14 evidence packet could not corroborate, and stated
+  // both a generation claim ("Our system fills out official Illinois court
+  // forms using your answers") and a filing-readiness claim. Every catalog entry
+  // is non-automation-eligible, so none of that is true today. The replacement
+  // copy is owner/legal-gated and the page is questionnaire→form mapping, which
+  // that lane does not touch — so the route is closed rather than rewritten.
+  "/legal-info/document-guide",
   "/legal-info/court-resources",
   "/legal-info/cost-estimator",
   "/legal-info/timeline-calculator",

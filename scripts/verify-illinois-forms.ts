@@ -16,6 +16,11 @@
  *   - This script never rewrites lib/forms/illinois-court-forms.ts.
  *   - Drift is flagged for human review, never auto-applied.
  *   - --fetch is the only mode that touches the network.
+ *   - --fetch REFUSES to run from a drifting baseline. It exits non-zero before
+ *     any network call or write, so an unreviewed catalog change cannot be
+ *     absorbed into the manifest and then reported clean.
+ *   - The --fetch write path touches `verification` and the run stamp only. It
+ *     never copies a catalog version, date or URL into a manifest entry.
  *
  * Usage:
  *   tsx scripts/verify-illinois-forms.ts --offline
@@ -145,7 +150,15 @@ export function diffCatalogVsManifest(
         manifestUrl: m.officialUrl,
       });
     }
-    if (c.authority !== m.authority || c.automationStatus !== m.automationStatus || JSON.stringify(c.provenance) !== JSON.stringify(m.provenance)) {
+    // `name` is compared too: it is the customer-visible identity claim, and a
+    // row renamed on one side only (e.g. quietly dropping an "(unverified
+    // identity)" qualifier) is exactly the drift this verifier exists to catch.
+    if (
+      c.name !== m.name ||
+      c.authority !== m.authority ||
+      c.automationStatus !== m.automationStatus ||
+      JSON.stringify(c.provenance) !== JSON.stringify(m.provenance)
+    ) {
       metadataMismatches.push(c.id);
     }
   }
@@ -167,6 +180,52 @@ export function diffCatalogVsManifest(
       versionMismatches.length === 0 &&
       urlMismatches.length === 0 &&
       metadataMismatches.length === 0,
+  };
+}
+
+/**
+ * Whether `--fetch` may proceed.
+ *
+ * The old flow ran the fetch regardless, then rebuilt every manifest entry with
+ * `catalogVersion: c.version`, `catalogLastUpdated: c.lastUpdated` and the
+ * catalog's `officialUrl`. Any unreviewed catalog edit was therefore ADOPTED
+ * into the committed manifest by the act of checking freshness, and the
+ * post-write diff — taken against the manifest that had just been overwritten
+ * from the catalog — came back clean and exited 0. The drift the manifest exists
+ * to catch was erased by the tool that was supposed to report it.
+ *
+ * So the baseline has to be clean before anything is fetched or written.
+ */
+export function fetchPreflight(diff: DiffResult): { proceed: boolean; reason: string | null } {
+  if (diff.ok) return { proceed: true, reason: null };
+  return {
+    proceed: false,
+    reason:
+      "catalog/manifest drift detected before fetching; --fetch will not adopt catalog values into the manifest",
+  };
+}
+
+/**
+ * Apply transport verification results to a manifest.
+ *
+ * Every identity field — id, name, officialUrl, catalogVersion,
+ * catalogLastUpdated, authority, automationStatus, provenance — is carried
+ * through untouched. A HEAD response says a URL resolved; it is not evidence
+ * about any of those, and must never be allowed to rewrite one.
+ */
+export function manifestWithVerifications(
+  manifest: Manifest,
+  verifications: Map<string, ManifestVerification>,
+  meta: { fetchedAt: string; fetchedBy: string },
+): Manifest {
+  return {
+    ...manifest,
+    lastFetchedAt: meta.fetchedAt,
+    lastFetchedBy: meta.fetchedBy,
+    forms: manifest.forms.map((m) => {
+      const verification = verifications.get(m.id);
+      return verification ? { ...m, verification } : m;
+    }),
   };
 }
 
@@ -327,26 +386,40 @@ function renderFreshnessReport(manifest: Manifest, diff: DiffResult): string {
         lines.push(`  - \`${u.id}\` — catalog \`${u.catalogUrl}\` vs manifest \`${u.manifestUrl}\``);
       }
     }
+    // Authority/provenance drift fails `ok` and so must be visible here too;
+    // omitting it produced a report that looked clean on a failing run.
+    if (diff.metadataMismatches.length) {
+      lines.push(`- ⚠️ ${diff.metadataMismatches.length} name/authority/provenance drifts:`);
+      for (const id of diff.metadataMismatches) lines.push(`  - \`${id}\``);
+    }
   }
   lines.push("");
   lines.push("## Per-form verification");
   lines.push("");
-  lines.push("| ID | Name | Catalog version / lastUpdated | Reachable | HTTP | Content-Type | Last-Modified |");
-  lines.push("|---|---|---|---|---|---|---|");
+  lines.push("| ID | Name | Authority | Automation | Printed code / rev | Bytes | SHA-256 (12) | Reachable | HTTP | Content-Type |");
+  lines.push("|---|---|---|---|---|---|---|---|---|---|");
   for (const m of manifest.forms) {
     const v = m.verification;
+    const p = (m.provenance ?? null) as null | {
+      printedCode?: string;
+      printedRevision?: string;
+      bytes?: number;
+      sha256?: string;
+    };
     const reach = v ? (v.reachable ? "✅" : "❌") : "—";
-    const http = v?.httpStatus ?? "—";
-    const ct = v?.contentType ?? "—";
-    const lm = v?.lastModified ?? "—";
+    const printed = p?.printedCode ? `${p.printedCode} (${p.printedRevision ?? "?"})` : "—";
     lines.push(
-      `| \`${m.id}\` | ${m.name} | ${m.catalogVersion} / ${m.catalogLastUpdated} | ${reach} | ${http} | ${ct} | ${lm} |`,
+      `| \`${m.id}\` | ${m.name} | ${m.authority} | ${m.automationStatus} | ${printed} | ${p?.bytes ?? "—"} | ${p?.sha256?.slice(0, 12) ?? "—"} | ${reach} | ${v?.httpStatus ?? "—"} | ${v?.contentType ?? "—"} |`,
     );
   }
   lines.push("");
   lines.push("## Notes & limitations");
   lines.push("");
-  lines.push("- HEAD requests on `illinoiscourts.gov` index pages do not expose per-form PDF versions; we only confirm the official URL still resolves and capture transport headers.");
+  lines.push("- `--fetch` issues HEAD only. It confirms the pinned artifact URL still resolves and captures transport headers; it does NOT re-read the PDF, so it cannot corroborate the pinned byte length or SHA-256, and it cannot detect a same-URL content replacement.");
+  lines.push("- `--fetch` refuses to run at all when the catalog and manifest already disagree: it exits non-zero before any network call or write. It updates `verification` and the run stamp only, and never copies a catalog version, date or URL into a manifest entry — so a drift cannot be resolved by the freshness check absorbing it.");
+  lines.push("- Catalog dates carry the precision the artifact states. A printed revision of `03/25` yields `2025-03`, not an invented `2025-03-01`. Rows with no corroborated artifact carry the literal `unverified` in place of a version and a date.");
+  lines.push("- A non-2xx status is a TRANSPORT observation (a WAF challenge, for instance), not evidence that the form itself has drifted.");
+  lines.push("- Reachability is not release authority. Catalog presence, a resolving URL and a matching hash together still do not clear generation, download, or filing for any entry.");
   lines.push("- This script will NEVER rewrite catalog values from PDF headers — operator must review drifts and edit `lib/forms/illinois-court-forms.ts` by hand.");
   lines.push("- Re-run `npm run forms:verify:fetch` (or `tsx scripts/verify-illinois-forms.ts --fetch`) when you need an updated snapshot.");
   return lines.join("\n") + "\n";
@@ -387,45 +460,41 @@ async function main() {
   console.log("");
   console.log(formatDiffReport(diff));
 
+  // Drift fails the run in EVERY mode, and in --fetch it fails here: before the
+  // network is touched and before anything is written. A freshness check must
+  // not be able to resolve a drift by adopting one side of it.
+  if (!diff.ok) {
+    const preflight = fetchPreflight(diff);
+    console.log("");
+    if (flags.fetch) console.log(`Refusing to fetch: ${preflight.reason}.`);
+    console.log("Drift detected. Review the items above and either:");
+    console.log("  1) update lib/forms/illinois-court-forms.ts after verifying against illinoiscourts.gov, or");
+    console.log("  2) update docs/legal-audit/illinois-court-forms-manifest.json after operator sign-off.");
+    console.log("Neither edit is made by this script.");
+    process.exit(1);
+  }
+
   if (!flags.fetch) {
-    if (!diff.ok) {
-      console.log("");
-      console.log("Offline mode found drift. Review the items above and either:");
-      console.log("  1) update lib/forms/illinois-court-forms.ts after verifying against illinoiscourts.gov, or");
-      console.log("  2) update docs/legal-audit/illinois-court-forms-manifest.json after operator sign-off.");
-      process.exit(1);
-    }
     process.exit(0);
   }
 
-  // --fetch mode
+  // --fetch mode. Reached only from a clean baseline.
   console.log("");
   console.log("Fetching official URLs (HEAD only)…");
-  const updatedForms: ManifestEntry[] = [];
+  const verifications = new Map<string, ManifestVerification>();
   for (const m of manifest.forms) {
-    const c = catalog.find((x) => x.id === m.id);
-    const url = c ? c.officialUrl : m.officialUrl;
-    const result = await fetchUrlHead(url);
-    const verification: ManifestVerification = {
-      verifiedAt: new Date().toISOString(),
-      ...result,
-    };
-    updatedForms.push({
-      ...m,
-      officialUrl: url,
-      catalogVersion: c?.version ?? m.catalogVersion,
-      catalogLastUpdated: c?.lastUpdated ?? m.catalogLastUpdated,
-      verification,
-    });
+    // The manifest's own pinned URL, never the catalog's. They are identical
+    // here by construction — the diff above is clean — and reading the manifest
+    // keeps it that way if that ever stops being true.
+    const result = await fetchUrlHead(m.officialUrl);
+    verifications.set(m.id, { verifiedAt: new Date().toISOString(), ...result });
     console.log(`  ${result.reachable ? "✅" : "❌"} ${m.id}  ${result.httpStatus ?? "ERR"} ${result.contentType ?? ""}`);
   }
 
-  const nextManifest: Manifest = {
-    ...manifest,
-    lastFetchedAt: new Date().toISOString(),
-    lastFetchedBy: process.env.USER || process.env.LOGNAME || "operator",
-    forms: updatedForms,
-  };
+  const nextManifest = manifestWithVerifications(manifest, verifications, {
+    fetchedAt: new Date().toISOString(),
+    fetchedBy: process.env.USER || process.env.LOGNAME || "operator",
+  });
   const nextDiff = diffCatalogVsManifest(catalog, nextManifest);
 
   if (!flags.reportOnly) {

@@ -13,7 +13,7 @@
       "name": "Petition for Divorce",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/f41da79e-f087-483e-9dd8-d71d2739d231/DNC%20Petition.pdf",
       "catalogVersion": "ATJ 103.4 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -31,7 +31,7 @@
       "name": "Petition for Divorce with Children",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/29fc2ee4-ddda-47f4-af12-f3f4d38f6a70/DWC%20Petition.pdf",
       "catalogVersion": "ATJ 105.3 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -49,7 +49,7 @@
       "name": "Summons (Divorce)",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/2b052cc8-5066-4ffb-a678-e17edd400ef6/DIV%20Summons.pdf",
       "catalogVersion": "ATJ 113.8 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -67,7 +67,7 @@
       "name": "Appearance (Divorce)",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/ea73b648-a088-4ca8-81cd-b8bc00c7da37/DIV%20Divorce%20Entry%20of%20Appearance%20Military%20Notice.pdf",
       "catalogVersion": "ATJ 111.5 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -85,7 +85,7 @@
       "name": "Financial Affidavit",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/2cb2c0ce-20f8-4eb5-9d23-05664d7f4404/FA%20Financial%20Affidavit.pdf",
       "catalogVersion": "ATJ 251.5 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -103,7 +103,7 @@
       "name": "Additional My Child Support",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/7b643e9a-9cfd-471f-9c4d-27f688282832/FA%20Additional%20Child%20Support.pdf",
       "catalogVersion": "ATJ 253.1 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -121,7 +121,7 @@
       "name": "Additional Health Insurance",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/f49ad4ac-75d1-4349-8ae2-f19758626a82/FA%20Additional%20Health%20Insurance.pdf",
       "catalogVersion": "ATJ 254.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -139,7 +139,7 @@
       "name": "Additional My Debts",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/91a6366b-69e5-47fe-b2a5-5d7bb17ff879/FA%20Additional%20My%20Debts.pdf",
       "catalogVersion": "ATJ 255.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -157,7 +157,7 @@
       "name": "Additional Cash and Cash Equivalents",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/f1b093cd-5997-40a9-af81-6bcb0c332005/FA%20Additional%20Cash%20and%20Cash%20Equivalents.pdf",
       "catalogVersion": "ATJ 256.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -175,7 +175,7 @@
       "name": "Additional Investment Accounts and Securities",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/be5344c5-6ad0-465a-95e7-b3d7483d6bfc/FA%20Additional%20Investment%20Accounts%20and%20Securities.pdf",
       "catalogVersion": "ATJ 257.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -193,7 +193,7 @@
       "name": "Additional Property and Business Interests",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/180bcc84-8e70-495e-af35-b139cbe1230d/FA%20Additional%20Business%20Interests.pdf",
       "catalogVersion": "ATJ 258.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -211,7 +211,7 @@
       "name": "Additional Life Insurance Policies",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/e0ccfa97-279a-467e-ac21-96c37a43fe13/FA%20Additional%20Life%20Insurance%20Policies.pdf",
       "catalogVersion": "ATJ 259.3 (06/25)",
-      "catalogLastUpdated": "2025-06-01",
+      "catalogLastUpdated": "2025-06",
       "authority": "illinois_supreme_court",
       "automationStatus": "unmapped",
       "provenance": {
@@ -229,7 +229,7 @@
       "name": "Parenting Plan",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/a601856a-12e7-44fe-9076-88a8e150c3a7/DWC%20Parenting%20Plan.pdf",
       "catalogVersion": "ATJ 108.4 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -247,7 +247,7 @@
       "name": "Judgment for Dissolution",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/ee611252-2582-4546-9426-72234f6582af/DNC%20Judgment%20for%20Dissolution.pdf",
       "catalogVersion": "ATJ 104.4 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -265,7 +265,7 @@
       "name": "Judgment for Dissolution with Children",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/28a17a49-16ea-415f-9642-6c186e387d94/DWC%20Judgment%20for%20Dissolution.pdf",
       "catalogVersion": "ATJ 106.2 (03/25)",
-      "catalogLastUpdated": "2025-03-01",
+      "catalogLastUpdated": "2025-03",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {
@@ -280,33 +280,33 @@
     },
     {
       "id": "certificate-of-service",
-      "name": "Certificate of Service (unsupported identity)",
+      "name": "Certificate of Service (unverified identity)",
       "officialUrl": null,
       "catalogVersion": "unverified",
-      "catalogLastUpdated": "2026-09-14",
-      "authority": "county_or_non_statewide",
+      "catalogLastUpdated": "unverified",
+      "authority": "unverified_identity",
       "automationStatus": "unsupported",
       "provenance": null,
       "verification": null
     },
     {
       "id": "affidavit-service-special-process",
-      "name": "Affidavit of Service by Special Process Server (unsupported identity)",
+      "name": "Affidavit of Service by Special Process Server (unverified identity)",
       "officialUrl": null,
       "catalogVersion": "unverified",
-      "catalogLastUpdated": "2026-09-14",
-      "authority": "county_or_non_statewide",
+      "catalogLastUpdated": "unverified",
+      "authority": "unverified_identity",
       "automationStatus": "unsupported",
       "provenance": null,
       "verification": null
     },
     {
       "id": "waiver-service",
-      "name": "Waiver of Service (unsupported identity)",
+      "name": "Waiver of Service (unverified identity)",
       "officialUrl": null,
       "catalogVersion": "unverified",
-      "catalogLastUpdated": "2026-09-14",
-      "authority": "county_or_non_statewide",
+      "catalogLastUpdated": "unverified",
+      "authority": "unverified_identity",
       "automationStatus": "unsupported",
       "provenance": null,
       "verification": null
@@ -316,7 +316,7 @@
       "name": "Marital Settlement Agreement",
       "officialUrl": null,
       "catalogVersion": "unverified",
-      "catalogLastUpdated": "2026-09-14",
+      "catalogLastUpdated": "unverified",
       "authority": "freshstart_template",
       "automationStatus": "unsupported",
       "provenance": null,
@@ -327,7 +327,7 @@
       "name": "Order for Support (Child Support and Maintenance)",
       "officialUrl": "https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources/e3440546-6e6b-4904-9cab-2b029894c518/DCS%20Order%20For%20Support.pdf",
       "catalogVersion": "ATJ 129.5 (09/25)",
-      "catalogLastUpdated": "2025-09-01",
+      "catalogLastUpdated": "2025-09",
       "authority": "illinois_supreme_court",
       "automationStatus": "artifact_and_mapping_review_required",
       "provenance": {

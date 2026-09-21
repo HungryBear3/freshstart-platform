@@ -286,7 +286,7 @@ describe("no static artifact path", () => {
     expect(() => getFormPath(iwo)).toThrow(/no static path/i);
   });
 
-  it("still yields normal static paths for ATJ forms", () => {
+  it("keeps ATJ static paths closed until automation review passes", () => {
     const petition = getFormById("petition-with-children")!;
     expect(() => getFormPath(petition)).toThrow(/not automation-eligible/i);
   });

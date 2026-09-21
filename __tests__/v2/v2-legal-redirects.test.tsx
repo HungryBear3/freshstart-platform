@@ -30,6 +30,9 @@ const RETIRED_LEGAL_INFO_PATHS = [
   "/legal-info/process",
   "/legal-info/requirements",
   "/legal-info/court-forms",
+  // Added 2026-09-21: the document guide carried its own hardcoded form list
+  // making generation and filing-readiness claims, independent of the catalog.
+  "/legal-info/document-guide",
   "/legal-info/court-resources",
   "/legal-info/cost-estimator",
   "/legal-info/timeline-calculator",

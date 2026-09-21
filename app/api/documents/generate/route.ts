@@ -96,6 +96,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Official-form generation stays closed until an entry passes pinned-
+    // artifact, field-mapping, and generated-output comparison review. Reject
+    // before any questionnaire lookup or database write. Never silently fall
+    // back to a summary because that hides that the requested output was absent.
+    if (generationMode === "official") {
+      return NextResponse.json(
+        {
+          error: "Official form generation is unavailable",
+          code: "official_form_generation_paused",
+          message:
+            "Fresh Start is not currently generating official court-form PDFs. No document was created.",
+        },
+        { status: 409, headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } },
+      );
+    }
+
     // Get the questionnaire response
     const response = await prisma.questionnaireResponse.findUnique({
       where: { id: questionnaireResponseId },
@@ -449,22 +465,22 @@ export async function GET(request: NextRequest) {
       {
         type: 'petition',
         name: 'Petition for Dissolution of Marriage',
-        supportsOfficialForm: true,
-        officialFormTypes: ['petition-no-children', 'petition-with-children'],
+        supportsOfficialForm: false,
+        officialFormTypes: [],
         description: 'Initial petition to file for divorce',
       },
       {
         type: 'financial-affidavit',
         name: 'Financial Affidavit',
-        supportsOfficialForm: true,
-        officialFormTypes: ['financial-affidavit'],
+        supportsOfficialForm: false,
+        officialFormTypes: [],
         description: 'Disclosure of income, expenses, assets, and debts',
       },
       {
         type: 'parenting-plan',
         name: 'Parenting Plan',
-        supportsOfficialForm: true,
-        officialFormTypes: ['parenting-plan'],
+        supportsOfficialForm: false,
+        officialFormTypes: [],
         description: 'Custody and parenting time schedule',
       },
       {
