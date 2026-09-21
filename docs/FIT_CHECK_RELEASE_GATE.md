@@ -54,10 +54,11 @@ Both migrations are wrapped in PostgreSQL transactions. On failure, verify both 
 
 Only after Phase 1 is verified:
 
-1. Deploy the reviewed commit.
-2. Confirm `/fit-check` renders and `POST /api/fit-check` records an assessment for a signed-in test account.
-3. Confirm a one-time checkout attempt without a current `fit` assessment is refused with HTTP 409 and code `fit_check_required`, and that no Stripe Customer, Checkout Session, or `checkout_obligations` row was created for it.
-4. Confirm a checkout attempt after a `fit` assessment reaches Stripe Checkout unchanged.
+1. Before cutover, enumerate production `checkout_obligations` rows with `status = 'PENDING'` and a non-null `stripeSessionId`, then read those sessions from Stripe. Record the count of provider sessions that remain `open`. Do not expire, mutate, or replay them automatically. If any remain open, disclose the bounded pre-gate payment window and monitor them through expiry; payment completion must still use the existing webhook reconciliation path.
+2. Deploy the reviewed commit.
+3. Confirm `/fit-check` renders and `POST /api/fit-check` records an assessment for a signed-in test account.
+4. Confirm a one-time checkout attempt without a current `fit` assessment is refused with HTTP 409 and code `fit_check_required`, and that no Stripe Customer, Checkout Session, or `checkout_obligations` row was created for it.
+5. Confirm a checkout attempt after a `fit` assessment reaches Stripe Checkout unchanged.
 
 ## Rollback
 

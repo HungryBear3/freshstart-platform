@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         spouseFinancialRecords: true,
         subscription: true,
         payments: true,
+        fitCheckAssessments: true,
         caseInfo: {
           include: {
             milestones: true,
@@ -127,8 +128,9 @@ export async function GET(request: NextRequest) {
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       })),
+      fitCheckAssessments: userData.fitCheckAssessments,
       exportDate: new Date().toISOString(),
-      exportVersion: "1.1",
+      exportVersion: "1.2",
     }
 
     // Return as downloadable JSON file
