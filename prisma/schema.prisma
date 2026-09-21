@@ -45,6 +45,7 @@ model User {
   spouseFinancialRecords SpouseFinancialRecord[]
   notificationPreferences UserNotificationPreferences?
   badges UserBadge[]
+  fitCheckAssessments FitCheckAssessment[]
 
   @@map("users")
 }
@@ -665,6 +666,25 @@ model CheckoutObligation {
 
   @@index([userId, status])
   @@map("checkout_obligations")
+}
+
+// Server-side record of the pre-payment product-scope check.
+// Holds bounded choice values and bounded reason codes only.
+model FitCheckAssessment {
+  id            String   @id @default(cuid())
+  userId        String
+  policyVersion String
+  result        String
+  answers       Json
+  // Matches the migration's `DEFAULT ARRAY[]::TEXT[]`.
+  reasons       String[] @default([])
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("fit_check_assessments")
 }
 
 // Durable evidence for refunds/disputes that can arrive before checkout settlement.

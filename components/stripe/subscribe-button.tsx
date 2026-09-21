@@ -4,6 +4,13 @@ import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import {
+  buildFitCheckUrl,
+  clearPendingCheckoutIntent,
+  isFitCheckBlock,
+  isFitCheckHardBlock,
+} from "@/app/v2/_components/checkout-intent"
+import { navigateTo } from "@/lib/navigation"
 
 interface SubscribeButtonProps {
   plan?: "one_time"
@@ -36,8 +43,20 @@ export function SubscribeButton({
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to create checkout session")
+        const error = await response.json().catch(() => ({}))
+
+        // The fit gate is a detour, not a checkout failure: send the user to
+        // the fit check with the plan intact instead of showing an error.
+        if (isFitCheckBlock(error?.code)) {
+          // A stored blocked assessment cannot be cleared by answering again,
+          // so any intent left over from another entrypoint is retired rather
+          // than left for the pricing page to resume into the same refusal.
+          if (isFitCheckHardBlock(error?.code)) clearPendingCheckoutIntent()
+          navigateTo(buildFitCheckUrl({ plan, source: "legacy_subscribe_button" }))
+          return
+        }
+
+        throw new Error(error?.error || "Failed to create checkout session")
       }
 
       const { sessionId, url } = await response.json()
@@ -48,7 +67,7 @@ export function SubscribeButton({
 
       // Redirect directly to Stripe Checkout URL
       // This is the new recommended approach (Stripe.js no longer supports redirectToCheckout)
-      window.location.href = url
+      navigateTo(url)
     } catch (error) {
       console.error("Checkout error:", error)
       setCheckoutError(

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/session"
 import { prisma } from "@/lib/db"
 import { stripe } from "@/lib/stripe/config"
 import { parseGaIdentifiersFromCookieHeader } from "@/lib/analytics/ga4-cookies"
+import { fitCheckStatusFor } from "@/lib/fit-check/policy"
 
 const ONE_TIME_AMOUNT_CENTS = 14_900
 const ONE_TIME_CURRENCY = "usd"
@@ -18,6 +19,14 @@ function contractKey(userId: string, priceId: string, cycle: number) {
 
 function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status })
+}
+
+/**
+ * A refusal the client is expected to act on rather than report, so it carries
+ * a machine-readable code alongside the human message.
+ */
+function coded(message: string, code: string, status: number) {
+  return NextResponse.json({ error: message, code }, { status })
 }
 
 function hasCurrentOneTimeAccess(subscription: Awaited<ReturnType<typeof prisma.subscription.findUnique>>) {
@@ -51,6 +60,34 @@ export async function POST(request: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || !priceId) return error("Checkout is not configured", 500)
 
   try {
+    // The fit gate runs before any provider work: no price lookup, no
+    // Customer, no Checkout Session and no obligation row exist until the
+    // session user is shown to own a current, policy-current `fit` assessment.
+    // Client state and request-body claims are never authority here — only the
+    // persisted row is, and a lookup failure falls through to the closed catch.
+    // `id` breaks the tie so "newest" names exactly one row even when two
+    // assessments share a `createdAt` millisecond. A gate that could read
+    // either row is a gate that can disagree with itself between requests.
+    const assessment = await prisma.fitCheckAssessment.findFirst({
+      where: { userId: user.id },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    })
+    const fitStatus = fitCheckStatusFor(assessment, user.id)
+    if (fitStatus === "fit_check_required") {
+      return coded(
+        "Complete the FreshStart fit check before checkout.",
+        "fit_check_required",
+        409,
+      )
+    }
+    if (fitStatus === "fit_check_blocked") {
+      return coded(
+        "Based on your answers, the current FreshStart workflow cannot take this matter through checkout.",
+        "fit_check_blocked",
+        409,
+      )
+    }
+
     const price = await stripe.prices.retrieve(priceId)
     if (
       !price.active ||
