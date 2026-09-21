@@ -49,9 +49,10 @@ export function isFitCheckBlock(code?: string | null): boolean {
 }
 
 /**
- * True only for the refusal a fresh questionnaire cannot clear: the user
- * already has a current assessment that says no. `fit_check_required` is the
- * recoverable one — answering the questions can turn it into a `fit`.
+ * True only when checkout should not automatically retry after the user has a
+ * current non-fit assessment. A later, deliberately submitted assessment can
+ * supersede it; `fit_check_required` instead sends the current attempt directly
+ * through the questionnaire.
  */
 export function isFitCheckHardBlock(code?: string | null): boolean {
   return code === FIT_CHECK_BLOCKED_CODE;

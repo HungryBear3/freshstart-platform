@@ -99,6 +99,11 @@ describe("fit-check assessment migration contract", () => {
     expect(gate).toContain(MIGRATION)
     expect(gate).toContain(RLS_MIGRATION)
 
+    // A bound provider session is OPEN, never PENDING. Pin the exact cutover
+    // population so the operator cannot get a false zero before deployment.
+    expect(gate).toContain("`status = 'OPEN'` and a non-null `stripeSessionId`")
+    expect(gate).not.toContain("`status = 'PENDING'` and a non-null `stripeSessionId`")
+
     // Applying it is an approval-gated production action, never automated.
     expect(gate).toMatch(/explicit approval/i)
     expect(gate).toMatch(/Do not run these steps from tests, previews, or local review/i)
