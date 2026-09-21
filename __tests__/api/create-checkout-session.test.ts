@@ -12,6 +12,7 @@ const mockObligationUpsert = jest.fn();
 const mockObligationFindFirst = jest.fn();
 const mockObligationUpdateMany = jest.fn();
 const mockObligationFindUnique = jest.fn();
+const mockAssessmentFindFirst = jest.fn();
 const mockTransaction = jest.fn();
 
 jest.mock("@/lib/auth/session", () => ({
@@ -39,12 +40,14 @@ jest.mock("@/lib/db", () => ({
       updateMany: (...args: unknown[]) => mockObligationUpdateMany(...args),
       findUnique: (...args: unknown[]) => mockObligationFindUnique(...args),
     },
+    fitCheckAssessment: { findFirst: (...args: unknown[]) => mockAssessmentFindFirst(...args) },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/stripe/create-checkout-session/route";
+import { FIT_CHECK_POLICY_VERSION, FIT_CHECK_VALIDITY_MS } from "@/lib/fit-check/policy";
 
 function request(body: unknown) {
   return new NextRequest("http://localhost:3000/api/stripe/create-checkout-session", {
@@ -65,11 +68,21 @@ const obligation = {
   status: "PENDING",
 };
 
+// This suite covers the checkout contract itself, so every case starts from a
+// user who has already cleared the fit gate. The gate's own behaviour is
+// asserted in create-checkout-session-fit-gate.test.ts.
+const currentFitAssessment = {
+  id: "fca_ok", userId: "user_1", policyVersion: FIT_CHECK_POLICY_VERSION,
+  result: "fit", answers: {}, reasons: [],
+  createdAt: new Date(), expiresAt: new Date(Date.now() + FIT_CHECK_VALIDITY_MS),
+};
+
 describe("POST /api/stripe/create-checkout-session", () => {
   const oldEnv = process.env;
   beforeEach(() => {
     process.env = { ...oldEnv, STRIPE_SECRET_KEY: "sk_test_local", ONE_TIME_PRICE_ID: "price_one_time", NEXT_PUBLIC_APP_URL: "https://www.freshstart-il.com" };
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "user@example.com" });
+    mockAssessmentFindFirst.mockResolvedValue(currentFitAssessment);
     mockCreateCustomer.mockResolvedValue({ id: "cus_1" });
     mockRetrieveCustomer.mockResolvedValue({ id: "cus_1", deleted: false });
     mockSubscriptionFindUnique.mockResolvedValue(null);

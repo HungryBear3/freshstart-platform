@@ -9,6 +9,20 @@ const PLAN_KEY = "fs_checkout_plan";
 const SOURCE_KEY = "fs_checkout_source";
 const AUTO_KEY = "fs_auto_checkout";
 
+/**
+ * Every sessionStorage key a pending checkout intent can occupy, including the
+ * two legacy `subscribe_*`/`auto_*` names `getPendingCheckoutIntent` still
+ * reads. Exported so callers — and tests — enumerate the set from here rather
+ * than restating it and drifting.
+ */
+export const CHECKOUT_INTENT_STORAGE_KEYS = [
+  PLAN_KEY,
+  SOURCE_KEY,
+  AUTO_KEY,
+  "subscribe_plan",
+  "auto_subscribe",
+] as const;
+
 export function planForTier(_tier: string): CheckoutPlan {
   return "one_time";
 }
@@ -19,6 +33,46 @@ export function isCheckoutPlan(plan?: string | null): plan is CheckoutPlan {
 
 export function normalizeCheckoutPlan(plan?: string | null): CheckoutPlan {
   return isCheckoutPlan(plan) ? plan : "one_time";
+}
+
+/**
+ * The two refusal codes the checkout route uses to say "the fit check has to
+ * happen first". Anything else from checkout is a genuine failure and must
+ * still be surfaced as one.
+ */
+const FIT_CHECK_REQUIRED_CODE = "fit_check_required";
+const FIT_CHECK_BLOCKED_CODE = "fit_check_blocked";
+const FIT_CHECK_BLOCK_CODES = [FIT_CHECK_REQUIRED_CODE, FIT_CHECK_BLOCKED_CODE];
+
+export function isFitCheckBlock(code?: string | null): boolean {
+  return typeof code === "string" && FIT_CHECK_BLOCK_CODES.includes(code);
+}
+
+/**
+ * True only for the refusal a fresh questionnaire cannot clear: the user
+ * already has a current assessment that says no. `fit_check_required` is the
+ * recoverable one — answering the questions can turn it into a `fit`.
+ */
+export function isFitCheckHardBlock(code?: string | null): boolean {
+  return code === FIT_CHECK_BLOCKED_CODE;
+}
+
+export function buildFitCheckUrl(intent: CheckoutIntent): string {
+  const params = new URLSearchParams({
+    plan: normalizeCheckoutPlan(intent.plan),
+    source: intent.source,
+  });
+  return `/fit-check?${params.toString()}`;
+}
+
+/**
+ * Where a signed-out visitor is sent to recover the fit check: sign in, then
+ * come straight back to the same questionnaire with the plan and source the
+ * user arrived with still attached.
+ */
+export function buildFitCheckSignInUrl(intent: CheckoutIntent): string {
+  const params = new URLSearchParams({ callbackUrl: buildFitCheckUrl(intent) });
+  return `/auth/signin?${params.toString()}`;
 }
 
 export function buildSignupFirstCheckoutUrl(intent: CheckoutIntent): string {
@@ -49,6 +103,20 @@ export function markCheckoutResumeFromSearch(plan?: string | null, source?: stri
   window.sessionStorage.setItem("auto_subscribe", "true");
 }
 
+/**
+ * Arms a pending checkout intent.
+ *
+ * Only a deliberate user action may call this. Producing a fit result is not
+ * such an action: a `fit` outcome merely permits checkout, it does not request
+ * it, so nothing is armed until the user asks to continue.
+ */
+export function armPendingCheckoutIntent(intent: CheckoutIntent) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(PLAN_KEY, normalizeCheckoutPlan(intent.plan));
+  window.sessionStorage.setItem(SOURCE_KEY, intent.source);
+  window.sessionStorage.setItem(AUTO_KEY, "true");
+}
+
 export function getPendingCheckoutIntent(): CheckoutIntent | null {
   if (typeof window === "undefined") return null;
   const autoCheckout = window.sessionStorage.getItem(AUTO_KEY) === "true" ||
@@ -65,7 +133,7 @@ export function getPendingCheckoutIntent(): CheckoutIntent | null {
 
 export function clearPendingCheckoutIntent() {
   if (typeof window === "undefined") return;
-  for (const key of [PLAN_KEY, SOURCE_KEY, AUTO_KEY, "subscribe_plan", "auto_subscribe"]) {
+  for (const key of CHECKOUT_INTENT_STORAGE_KEYS) {
     window.sessionStorage.removeItem(key);
   }
 }
