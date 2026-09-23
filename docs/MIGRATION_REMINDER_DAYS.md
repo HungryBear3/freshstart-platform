@@ -36,18 +36,24 @@ ALTER TABLE "user_notification_preferences"
 ALTER TABLE "user_notification_preferences" ADD COLUMN IF NOT EXISTS "reminderDaysBefore" INTEGER NOT NULL DEFAULT 7;
 ```
 
-### Enable RLS (fix Supabase security warning)
+### Enable RLS
 
-Run this in Supabase SQL Editor to enable Row Level Security on `user_notification_preferences`:
+Run this in the Supabase SQL Editor to enable Row Level Security on `user_notification_preferences`.
+
+The policy names `service_role` explicitly. Omitting the `TO` clause would store the policy as a grant to **PUBLIC**, which on a Supabase project includes the unauthenticated `anon` role — that would open the table to unauthenticated read and write through the Data API, not restrict it.
 
 ```sql
 ALTER TABLE "user_notification_preferences" ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role can manage user_notification_preferences"
+DROP POLICY IF EXISTS service_role_full_user_notification_preferences
+  ON "user_notification_preferences";
+
+CREATE POLICY service_role_full_user_notification_preferences
 ON "user_notification_preferences"
 FOR ALL
+TO service_role
 USING (true)
 WITH CHECK (true);
 ```
 
-Note: Prisma uses the service role connection, which bypasses RLS. This satisfies the Supabase security scanner.
+Note: the application reaches this table through Prisma on the Postgres **owner** connection, and a table owner bypasses RLS unless `FORCE ROW LEVEL SECURITY` is set. Enabling RLS here restricts the Supabase Data API; it does not scope application traffic. See `prisma/RLS_SETUP_GUIDE.md`.

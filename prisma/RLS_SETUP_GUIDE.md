@@ -1,92 +1,126 @@
-# Row Level Security (RLS) Setup Guide
+# Row Level Security (RLS) — current position
 
-## Overview
+**Status as of 2026-09-07.** Supersedes the previous version of this guide, whose
+instruction to paste `prisma/enable_rls.sql` into the SQL Editor is **retracted**.
+`RLS-SCRIPT-RETRACTED-2026-09-07`
 
-This guide addresses the Supabase security warnings about RLS being disabled on public tables. The migration script enables RLS on all 33 tables and creates appropriate policies.
+## Summary
 
-## Important Notes
+- Row level security is **already enabled on every public table** in Production.
+- RLS for this project is governed by **tracked Prisma migrations** under
+  `prisma/migrations/`, not by ad-hoc SQL Editor scripts.
+- `prisma/enable_rls.sql` is **retracted** and is now an empty tombstone. It was
+  never applied to Production. It must not be reinstated — see the notice inside
+  the file for the full reasoning.
 
-**Your application will continue to work normally** because:
-- Prisma uses the service role connection string (`DATABASE_URL`)
-- Service role connections **bypass RLS entirely** in Supabase
-- The RLS policies are for defense-in-depth and satisfy security scanner requirements
+## Why the old script was withdrawn
 
-## How to Apply
+It created, on 31 tables, policies of the shape
+`FOR ALL USING (true) WITH CHECK (true)` **with no `TO` clause**.
 
-### Step 1: Open Supabase SQL Editor
+PostgreSQL stores a policy with no `TO` clause as a grant to PUBLIC. On a
+Supabase project PUBLIC includes the unauthenticated `anon` role, and Supabase's
+default `GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated` is
+already in place. Running the script would therefore have granted
+unauthenticated read **and write** on `users`, `documents`, `financial_data`,
+`children`, `payments` and 26 other tables to anyone able to reach the project's
+Data API.
 
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your FreshStart IL project
-3. Click **SQL Editor** in the left sidebar
-4. Click **New query**
+The script's own header claimed its policies "check for service_role or NULL".
+They did not; nothing in it ever named a role. That gap between the stated and
+the actual behaviour is why this guide now states the mechanism explicitly.
 
-### Step 2: Run the Migration
+## What was actually verified
 
-1. Open the file: `prisma/enable_rls.sql`
-2. Copy **ALL** the SQL code
-3. Paste it into the Supabase SQL Editor
-4. Click **Run** (or press `Ctrl+Enter` / `Cmd+Enter`)
+A controller-run, **SELECT-only** catalog snapshot of Production was taken on
+2026-09-07. It establishes, for the `public` schema:
 
-### Step 3: Verify RLS is Enabled
+| Fact                                          | Result                   |
+| --------------------------------------------- | ------------------------ |
+| Public tables                                 | 42                       |
+| Public tables with row level security enabled | 42                       |
+| Policies whose grantee is PUBLIC              | 0                        |
+| Policies created by the retracted script      | 0 (it was never applied) |
 
-Run this query in the SQL Editor to verify RLS is enabled on all tables:
+Every policy present names exactly one of `anon`, `authenticated` or
+`service_role`. No database change was made by that snapshot, and none is
+required by this retraction.
 
-```sql
-SELECT 
-  tablename, 
-  rowsecurity as rls_enabled
-FROM pg_tables 
-WHERE schemaname = 'public' 
-  AND tablename IN (
-    'verification_tokens', 'sessions', 'accounts', 'users', 
-    'questionnaire_responses', 'documents', 'case_info', 
-    'milestones', 'deadlines', 'financial_data'
-  )
-ORDER BY tablename;
-```
+Nothing here is a claim about the Supabase security-advisor UI. That surface was
+not read, and this repository makes no assertion about what it displays.
 
-All tables should show `rls_enabled = true`.
+## What RLS does and does not protect here
 
-### Step 4: Check Supabase Security Scanner
+**It restricts the Supabase Data API.** A request arriving over PostgREST with
+the project's `anon` or `authenticated` key is subject to the policies on the
+table.
 
-1. Go to **Project Settings** → **Database** → **Security**
-2. The security warnings about RLS should now be resolved
-3. You should see 0 or significantly fewer security concerns
+**It does not scope this application's access.** The Next.js app reaches the
+database through Prisma on the Postgres **owner** connection, and a table owner
+bypasses RLS unless `FORCE ROW LEVEL SECURITY` is set on the table. It is not
+set, and the tracked migrations deliberately do not set it.
 
-## What This Does
+Per-user authorization for application traffic is therefore enforced **in
+application code** — session checks plus `userId` ownership verification on
+every route — not by RLS. Treat RLS as a second perimeter around a different
+door, not as a backstop for a missing authorization check.
 
-1. **Enables RLS** on all 33 public tables
-2. **Creates policies** that allow access (for documentation and direct DB access scenarios)
-3. **Does NOT affect** your application because Prisma bypasses RLS with service role
+## Adding or changing a policy
 
-## Tables Covered
+1. Write it as a new migration under `prisma/migrations/`. Do not use the SQL
+   Editor for a change you intend to keep.
+2. **Always name the grantee.** An omitted `TO` clause is a grant to PUBLIC —
+   the dangerous default, not a neutral one.
+3. Follow the shape already tracked in
+   `20260506140500_enable_rls_remaining_public_tables` and
+   `20260804201000_enable_rls_checkout_security_tables`:
 
-- Authentication: `verification_tokens`, `sessions`, `accounts`, `users`
-- User Data: `questionnaire_responses`, `documents`, `case_info`, `milestones`, `deadlines`
-- Financial: `financial_data`, `income_sources`, `expenses`, `assets`, `debts`
-- Children: `children`, `child_address_history`, `child_school_history`, `child_doctor_history`
-- Parenting: `parenting_plans`, `parent_education_providers`, `parent_education_completions`
-- Legal: `legal_content`, `form_templates`, `questionnaires`
-- E-Filing: `e_filing_guides`, `county_e_filing_info`
-- Other: `subscriptions`, `payments`, `visitor_counts`, `marketing_links`
+   ```sql
+   ALTER TABLE IF EXISTS public.example ENABLE ROW LEVEL SECURITY;
 
-## Troubleshooting
+   DROP POLICY IF EXISTS service_role_full_example ON public.example;
+   CREATE POLICY service_role_full_example
+     ON public.example
+     FOR ALL
+     TO service_role
+     USING (true)
+     WITH CHECK (true);
+   ```
 
-### Error: "policy already exists"
-If you see this error, the policies were already created. You can either:
-- Drop existing policies first, or
-- Skip the policy creation lines (only run the `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` statements)
+4. Scope any `authenticated` policy to the row's owner, e.g.
+   `USING ((auth.uid())::text = "userId")`. An unconditional `authenticated`
+   policy is a cross-tenant read.
+5. Never write an unconditional policy for `anon` or PUBLIC. Note that an
+   INSERT-only policy has no `USING` clause at all, so
+   `FOR INSERT TO anon WITH CHECK (true)` is fully open despite looking narrow.
+6. Scope **both** predicates. `USING` decides which existing rows are visible,
+   `WITH CHECK` decides which new rows may be written; scoping one does not
+   contain the other. A `FOR ALL` policy for `anon` whose `WITH CHECK` names the
+   row owner but whose `USING` is `true` still hands every row to anonymous
+   readers, and the reverse still hands them arbitrary writes.
 
-### Application Still Works?
-Yes! Prisma uses service role which bypasses RLS. Your application will continue working exactly as before.
+## Guards
 
-### Need to Restrict Access Later?
-If you need to add user-specific access controls in the future, you can modify the policies. However, since you're using NextAuth.js (not Supabase Auth), you'd need to implement custom JWT claims or use a different approach.
+Two offline tests enforce the above. Neither contacts a database.
 
-## Security Benefits
+- `__tests__/security/no-permissive-public-rls-recipe.test.ts` — fails the build
+  if tracked `.sql` files and SQL-fenced blocks in tracked `.md` files contain a
+  policy recipe granting unconditional permissive access to PUBLIC or `anon`.
+- `__tests__/security/rls-doc-attestations.test.ts` — fails the build if the
+  retracted script regains executable content or is presented as something to
+  run, or if any tracked document asserts an outcome in the Supabase
+  security-advisor UI.
 
-Even though Prisma bypasses RLS, enabling it provides:
-- ✅ Defense-in-depth against direct database access
-- ✅ Compliance with Supabase security best practices
-- ✅ Documentation of intended access patterns
-- ✅ Protection if connection strings are accidentally exposed
+## Open items
+
+These are recorded, not resolved:
+
+- Whether the Supabase Data API (PostgREST) is enabled on this project is
+  unconfirmed. It determines whether the `anon` policies are reachable at all.
+- The blanket `GRANT ALL ... TO anon, authenticated` means RLS is currently the
+  only control between the Data API and every row. Narrowing those grants is a
+  separate, un-started change.
+- Some policies present in Production have no tracked-migration provenance.
+  Reconciling them is a separate change. Until then, no migration may sweep
+  policies by table list — it cannot distinguish an undocumented legitimate
+  policy from a dangerous one.
