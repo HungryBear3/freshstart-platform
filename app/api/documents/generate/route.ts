@@ -19,26 +19,13 @@ import { generateFinancialAffidavitPDF } from "@/lib/document-generation/financi
 import { generateSettlementAgreementPDF } from "@/lib/document-generation/settlement-agreement-pdf";
 import { transformFinancialResponses } from "@/lib/document-generation/transform-financial";
 import {
-  generateOfficialForm,
-  isFormTypeSupported,
-  type OfficialFormType,
-} from "@/lib/document-generation/official-forms";
+  generateOfficialFormForDocument,
+  isOfficialFormGenerationPaused,
+} from "@/lib/document-generation/official-form-request";
 import { awardBadge } from "@/lib/badges/award-badge";
 import { identifiesIwo } from "@/lib/forms/iwo-package-guard";
 
 export const dynamic = "force-dynamic";
-
-// Map document types to official form types
-const DOCUMENT_TO_OFFICIAL_FORM: Record<string, OfficialFormType> = {
-  'petition': 'petition-no-children',
-  'petition-no-children': 'petition-no-children',
-  'petition-with-children': 'petition-with-children',
-  'financial-affidavit': 'financial-affidavit',
-  'financial_affidavit': 'financial-affidavit',
-  'financial_affidavit_short': 'financial-affidavit',
-  'parenting-plan': 'parenting-plan',
-  'parenting_plan': 'parenting-plan',
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,7 +87,7 @@ export async function POST(request: NextRequest) {
     // artifact, field-mapping, and generated-output comparison review. Reject
     // before any questionnaire lookup or database write. Never silently fall
     // back to a summary because that hides that the requested output was absent.
-    if (generationMode === "official") {
+    if (generationMode === "official" && isOfficialFormGenerationPaused()) {
       return NextResponse.json(
         {
           error: "Official form generation is unavailable",
@@ -138,6 +125,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const generatedAt = new Date();
+    let pdfBytes: Uint8Array | undefined;
+    let fileName: string = "";
+    let isOfficialForm = false;
+
+    // An official request yields the official form or a refusal — never a
+    // summary. The pause above keeps this unreachable today; if it moves, a
+    // refusal or failure here must reach the caller with nothing written. So it
+    // runs before the placeholder FormTemplate lookup/create below, and outside
+    // the generation try whose catch writes a text document: an unexpected
+    // rejection lands in the outer 500 instead.
+    if (generationMode === "official") {
+      const official = await generateOfficialFormForDocument({
+        documentType,
+        responses: response.responses,
+        fallbackPetitionerName: session.user.name || "Petitioner",
+        flatten,
+        generatedAt,
+      });
+
+      if (!official.ok) {
+        return NextResponse.json(
+          { error: "Official form was not generated", code: official.code, message: official.message },
+          { status: official.status, headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } },
+        );
+      }
+
+      pdfBytes = official.pdfBytes;
+      fileName = official.fileName;
+      isOfficialForm = true;
+      console.log("[Document Generate] Official form generated successfully:", official.formType);
+    }
+
     // Get the form template
     let template = await prisma.formTemplate.findFirst({
       where: {
@@ -160,64 +180,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate PDF based on document type and generation mode
-    const generatedAt = new Date();
-    let pdfBytes: Uint8Array | undefined;
-    let fileName: string = "";
-    let isOfficialForm = false;
-
     console.log("[Document Generate] Generating PDF for type:", documentType, "mode:", generationMode);
 
     try {
-      // Check if user wants official court form and it's supported
-      if (generationMode === 'official') {
-        const officialFormType = DOCUMENT_TO_OFFICIAL_FORM[documentType];
-        
-        if (officialFormType && isFormTypeSupported(officialFormType)) {
-          console.log("[Document Generate] Generating official form:", officialFormType);
-          
-          // Determine if case has children (check response data)
-          const hasChildren = 
-            (response.responses as any)['has-children'] === 'yes' ||
-            (response.responses as any)['hasChildren'] === true ||
-            parseInt((response.responses as any)['number-of-children']) > 0;
-          
-          // For petition, use the appropriate form based on children
-          let formTypeToUse = officialFormType;
-          if (documentType === 'petition' || documentType === 'petition-no-children' || documentType === 'petition-with-children') {
-            formTypeToUse = hasChildren ? 'petition-with-children' : 'petition-no-children';
-          }
-          
-          // Get parent names for parenting plan
-          const parent1Name = (response.responses as any)['petitioner-first-name'] + ' ' + 
-                             (response.responses as any)['petitioner-last-name'];
-          const parent2Name = (response.responses as any)['spouse-first-name'] + ' ' + 
-                             (response.responses as any)['spouse-last-name'];
-          
-          try {
-            pdfBytes = await generateOfficialForm(
-              formTypeToUse,
-              response.responses as Record<string, any>,
-              {
-                hasChildren,
-                parent1Name: parent1Name.trim() || session.user.name || 'Petitioner',
-                parent2Name: parent2Name.trim() || 'Respondent',
-                flatten,
-              }
-            );
-            
-            isOfficialForm = true;
-            const formLabel = formTypeToUse.replace(/-/g, '_');
-            fileName = `Official_${formLabel}_${formatDateForFilename(generatedAt)}.pdf`;
-            
-            console.log("[Document Generate] Official form generated successfully");
-          } catch (officialFormError) {
-            console.warn("[Document Generate] Official form generation failed, falling back to summary:", officialFormError);
-            // Fall through to summary generation
-          }
-        }
-      }
-      
-      // Generate summary PDF if not generating official form or if official form failed
+      // Generate summary PDF if not generating official form
       if (!isOfficialForm) {
         switch (documentType) {
           case "petition":

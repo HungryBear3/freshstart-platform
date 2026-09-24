@@ -15,6 +15,7 @@ import {
   formatGrounds
 } from './field-mappings'
 import { normalizeIllinoisPetitionResponses } from '@/lib/questionnaires/illinois-divorce-grounds'
+import { resolveOfficialFormTemplateSource } from './template-source'
 
 export interface PetitionData {
   // Personal Information
@@ -62,7 +63,7 @@ export async function fillPetitionNoChildren(
   options: FillPetitionOptions = { flatten: true }
 ): Promise<Uint8Array> {
   // Load the template PDF
-  const templatePath = '/forms/petition-dissolution-no-children.pdf'
+  const templatePath = resolveOfficialFormTemplateSource('petition-no-children')
   
   try {
     // In production, this would fetch from public folder or cloud storage
@@ -113,7 +114,7 @@ export async function fillPetitionWithChildren(
   data: PetitionData,
   options: FillPetitionOptions = { flatten: true }
 ): Promise<Uint8Array> {
-  const templatePath = '/forms/petition-dissolution-with-children.pdf'
+  const templatePath = resolveOfficialFormTemplateSource('petition-with-children')
   
   try {
     const response = await fetch(templatePath)

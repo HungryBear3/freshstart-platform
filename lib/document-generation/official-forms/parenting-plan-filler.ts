@@ -20,6 +20,7 @@ import {
   formatExchangeLocation,
   formatTransportation
 } from './field-mappings'
+import { resolveOfficialFormTemplateSource } from './template-source'
 
 export interface ChildInfo {
   name: string
@@ -103,7 +104,7 @@ export async function fillParentingPlan(
   data: ParentingPlanData,
   options: FillParentingPlanOptions = { flatten: true }
 ): Promise<Uint8Array> {
-  const templatePath = '/forms/parenting-plan.pdf'
+  const templatePath = resolveOfficialFormTemplateSource('parenting-plan')
   
   try {
     const response = await fetch(templatePath)

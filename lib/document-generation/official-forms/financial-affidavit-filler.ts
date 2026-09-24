@@ -7,6 +7,7 @@
 
 import { PDFDocument, PDFForm } from 'pdf-lib'
 import { applyFieldMappings, formatCurrency, formatDate } from './field-mappings'
+import { resolveOfficialFormTemplateSource } from './template-source'
 
 export interface FinancialAffidavitData {
   // Personal Information
@@ -138,7 +139,7 @@ export async function fillFinancialAffidavit(
   data: FinancialAffidavitData,
   options: FillFinancialAffidavitOptions = { flatten: true, includeSchedules: false }
 ): Promise<Uint8Array> {
-  const templatePath = '/forms/financial-affidavit.pdf'
+  const templatePath = resolveOfficialFormTemplateSource('financial-affidavit')
   
   try {
     const response = await fetch(templatePath)
