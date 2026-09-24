@@ -53,11 +53,11 @@ export interface RenderedFormDTO {
   /**
    * Only links that name a questionnaire this product actually defines.
    *
-   * The catalog's raw list names eight that it does not, and they reached the
-   * client, which displays them to a customer as the questionnaires that feed
-   * the form. Resolution happens here, server-side.
+   * The catalog once named eight unsupported slugs that reached the client.
+   * Stage 1 retired those declarations and retains only evidence-bound registry
+   * ids. Resolution still happens here, server-side, as a fail-closed boundary.
    *
-   * The unresolved remainder is deliberately NOT carried on this DTO. This
+   * Any future unresolved remainder is deliberately NOT carried on this DTO. This
    * object is handed to a client component, so a field that merely goes
    * unrendered is still serialized into the page — an unsupported claim shipped
    * to the browser. It is exposed to server callers by

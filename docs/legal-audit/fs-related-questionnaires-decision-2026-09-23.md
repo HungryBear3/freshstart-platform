@@ -290,7 +290,7 @@ Deliberately two stages, so the first needs no ruling.
 
 No copy change, no redirect change, no claims change, no catalog row touched.
 
-### Stage 1 — applies the owner ruling; not started
+### Stage 1 — owner approved 2026-09-24; implemented as a separately reviewed candidate
 
 - `lib/forms/illinois-court-forms.ts`: delete `q`; set the 5 evidenced arrays as fresh literals; set the
   other 16 to `[]`. Per risk 4, no in-place mutation.
@@ -300,13 +300,21 @@ No copy change, no redirect change, no claims change, no catalog row touched.
   first time and needs its first test. Do not leave it exported and untested.
 - Restate the two blocking invariants (risk 5) as the durable pair, non-vacuous under every option:
   (a) every declared link resolves — `resolveQuestionnaireLinks(row).unresolved` is `[]` for all 21
-  rows; (b) no row declares its own form id, a `FormCategory`, or a legal-article slug.
+  rows; (b) no row declares a form id or legal-article slug. `petition` is both a legitimate
+  questionnaire id and a `FormCategory`, so category-name exclusion would reject a proven mapping.
 - Add the missing positive-path test (risk 6): a resolved link survives `toDto` onto the DTO and renders
   through the `length > 0` branch.
 - Keep `getUnresolvedQuestionnaireLinkAudit()` and its assertions. Under a clean catalog it returns
   `[]`, and it remains the tripwire for any future unsupported claim.
 - Copy check, not a blocker: "Questionnaires that collect information relevant to this form" is
   compatible with an unverified field map. It must **not** become a generation or filing claim.
+
+The approved ruling is Option 1: five field-map-derived mappings, with the other sixteen rows empty.
+Option 2 was not adopted. The implementation uses fresh array literals and deletes `q`; it does not
+infer any mapping from names, descriptions, categories, or section titles. All automation statuses,
+the empty `AUTOMATION_ELIGIBLE_STATUSES`, template-source refusals, the official-generation pause,
+the IWO gate, and both redirects remain unchanged. Merge, deployment, and every unpause remain
+separate gates.
 
 ### Out of scope for both stages
 
