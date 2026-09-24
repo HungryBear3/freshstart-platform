@@ -30,6 +30,7 @@ import {
 } from "@/lib/forms/official-artifact-access"
 import type { IwoRenewalEvidence } from "@/lib/forms/iwo-provenance"
 import type { IwoOpenPathDisclosureApproval } from "@/lib/forms/iwo-distribution-hold"
+import { resolveQuestionnaireLinks } from "@/lib/questionnaires/registry"
 
 /** The guarded route that serves the federal IWO. Never a static path. */
 export const GUARDED_IWO_HREF = "/api/forms/iwo"
@@ -49,6 +50,19 @@ export interface RenderedFormDTO {
   version: string
   lastUpdated: string
   requiredFor: CourtForm["requiredFor"]
+  /**
+   * Only links that name a questionnaire this product actually defines.
+   *
+   * The catalog's raw list names eight that it does not, and they reached the
+   * client, which displays them to a customer as the questionnaires that feed
+   * the form. Resolution happens here, server-side.
+   *
+   * The unresolved remainder is deliberately NOT carried on this DTO. This
+   * object is handed to a client component, so a field that merely goes
+   * unrendered is still serialized into the page — an unsupported claim shipped
+   * to the browser. It is exposed to server callers by
+   * `getUnresolvedQuestionnaireLinkAudit` instead.
+   */
   relatedQuestionnaires: string[]
   filename: string
   /** Server-decided download location. `null` means: render no download control. */
@@ -84,6 +98,7 @@ export interface CourtFormsReadModelInput {
 }
 
 function toDto(form: CourtForm, downloadHref: string | null): RenderedFormDTO {
+  const { resolved } = resolveQuestionnaireLinks(form.relatedQuestionnaires)
   return {
     id: form.id,
     name: form.name,
@@ -94,7 +109,7 @@ function toDto(form: CourtForm, downloadHref: string | null): RenderedFormDTO {
     version: form.version,
     lastUpdated: form.lastUpdated,
     requiredFor: form.requiredFor,
-    relatedQuestionnaires: form.relatedQuestionnaires,
+    relatedQuestionnaires: resolved,
     filename: form.filename,
     downloadHref,
   }
@@ -138,4 +153,36 @@ export function getCourtFormsReadModel(
   }
 
   return { forms, gatedNotices }
+}
+
+/**
+ * One catalog row's questionnaire claims that name nothing.
+ *
+ * SERVER-SIDE AND AUDIT ONLY. Deliberately not part of `CourtFormsReadModel`:
+ * that object is passed to a client component, and putting this on it would
+ * ship the unsupported claims to the browser in the serialized props, rendered
+ * or not.
+ */
+export interface UnresolvedQuestionnaireLinkAudit {
+  formId: string
+  name: string
+  unresolved: string[]
+}
+
+/**
+ * Every row whose `relatedQuestionnaires` names a questionnaire this product
+ * does not define.
+ *
+ * Reads the catalog directly rather than the read model, so a row the model
+ * withholds behind a closed gate — the federal IWO — still reports its claim.
+ */
+export function getUnresolvedQuestionnaireLinkAudit(): UnresolvedQuestionnaireLinkAudit[] {
+  const audit: UnresolvedQuestionnaireLinkAudit[] = []
+  for (const form of ILLINOIS_COURT_FORMS) {
+    const { unresolved } = resolveQuestionnaireLinks(form.relatedQuestionnaires)
+    if (unresolved.length > 0) {
+      audit.push({ formId: form.id, name: form.name, unresolved })
+    }
+  }
+  return audit
 }
