@@ -19,12 +19,19 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+// Imported from the client-safe leaf, NOT from `illinois-court-forms`. A value
+// import from the catalog module pulls `ILLINOIS_COURT_FORMS` into this browser
+// chunk — the rows are built by top-level calls, so nothing tree-shakes them —
+// and with it every pinned `sha256`, every `officialUrl`, and every unresolved
+// `relatedQuestionnaires` slug the server read model strips from the DTO. The DTO
+// boundary governs the serialized props; only this import governs the bundle.
+// Guarded by __tests__/app/court-forms-client-bundle-boundary.test.ts.
 import {
   FORM_CATEGORIES,
   UNVERIFIED_CATALOG_VALUE,
   formatCatalogLastUpdated,
   type FormCategory
-} from "@/lib/forms/illinois-court-forms"
+} from "@/lib/forms/court-forms-presentation"
 import type { GatedFormNotice, RenderedFormDTO } from "@/lib/forms/court-forms-read-model"
 
 const categoryIcons: Record<FormCategory, React.ReactNode> = {

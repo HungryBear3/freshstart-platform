@@ -1,4 +1,6 @@
 /** Evidence-bound form catalog. Presence here is never release authority. */
+import { UNVERIFIED_CATALOG_VALUE, type FormCategory } from "@/lib/forms/court-forms-presentation"
+
 export type FormAuthority = "illinois_supreme_court" | "federal_acf" | "freshstart_template" | "county_or_non_statewide" | "unverified_identity"
 export type AutomationStatus = "artifact_and_mapping_review_required" | "unmapped" | "unsupported" | "separately_guarded"
 /**
@@ -33,22 +35,19 @@ export const FORM_AUTHORITY_CLASSES: Record<FormAuthority, { description: string
   freshstart_template: { description: "Authored by FreshStart. Never presented as an official court form.", mayCarryOfficialArtifact: false, autoPacketComposability: "never_composable" },
   unverified_identity: { description: "A local name with no corroborated official artifact. Not a source claim of any kind.", mayCarryOfficialArtifact: false, autoPacketComposability: "never_composable" },
 }
-/**
- * The single sentinel used wherever a row has no corroborated artifact to date.
- *
- * It is NOT a date and must never be formatted as one. Stamping a real date on
- * an uncorroborated row — the artifact reconciliation date, say — presents a
- * verification that did not happen.
- */
-export const UNVERIFIED_CATALOG_VALUE = "unverified"
-/**
- * Customer-visible rendering for `CourtForm.lastUpdated`.
- *
- * Official rows carry MONTH precision (`2025-03`), because the printed revision
- * says `03/25` and nothing on the artifact names a day. Uncorroborated rows
- * carry the sentinel and are rendered as a non-date.
- */
-export function formatCatalogLastUpdated(lastUpdated:string){return lastUpdated===UNVERIFIED_CATALOG_VALUE?"not verified":lastUpdated}
+// `UNVERIFIED_CATALOG_VALUE`, `formatCatalogLastUpdated`, `FORM_CATEGORIES` and
+// `FormCategory` now live in the client-safe leaf `court-forms-presentation.ts`
+// and are re-exported here so every existing importer of this module is
+// unchanged. A CLIENT component must import them from the leaf directly: any
+// value import from THIS file drags `ILLINOIS_COURT_FORMS` into the browser
+// bundle, because the rows are built by top-level `il()`/`unsupported()` calls
+// that no bundler can shake out. See the leaf module's header.
+export {
+  UNVERIFIED_CATALOG_VALUE,
+  formatCatalogLastUpdated,
+  FORM_CATEGORIES,
+} from "@/lib/forms/court-forms-presentation"
+export type { FormCategory } from "@/lib/forms/court-forms-presentation"
 export interface ArtifactProvenance { printedCode: string; printedRevision: string; retrievedAt: string; contentType: "application/pdf"; bytes: number; sha256: string }
 export interface CourtForm {
   id: string; name: string; description: string; category: FormCategory; filename: string
@@ -62,12 +61,6 @@ export interface CourtForm {
   /** Required for `county_or_non_statewide` rows; meaningless for any other class. */
   issuingCountyId?: string
   requiredFor: ("with_children" | "no_children" | "both")[]; instructions?: string; relatedQuestionnaires: string[]
-}
-export type FormCategory = "petition" | "financial" | "parenting" | "service" | "judgment" | "support"
-export const FORM_CATEGORIES: Record<FormCategory, { name: string; description: string }> = {
-  petition:{name:"Petition Forms",description:"Forms to initiate divorce proceedings"}, financial:{name:"Financial Disclosure Forms",description:"Income, expenses, assets, and debts"},
-  parenting:{name:"Parenting Forms",description:"Parental responsibilities and parenting time"}, service:{name:"Service Forms",description:"Service and proof of delivery"},
-  judgment:{name:"Judgment Forms",description:"Judgment and agreement documents"}, support:{name:"Support Forms",description:"Child support and maintenance forms"},
 }
 const B="https://ilcourtsaudio.blob.core.windows.net/antilles-resources/resources", R="2026-09-14"
 type V=Omit<CourtForm,"authority"|"automationStatus"|"provenance"|"version"|"lastUpdated">&{code:string;revision:string;bytes:number;sha256:string;automationStatus?:"artifact_and_mapping_review_required"|"unmapped"}
