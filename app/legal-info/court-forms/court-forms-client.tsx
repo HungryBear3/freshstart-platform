@@ -22,9 +22,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 // Imported from the client-safe leaf, NOT from `illinois-court-forms`. A value
 // import from the catalog module pulls `ILLINOIS_COURT_FORMS` into this browser
 // chunk — the rows are built by top-level calls, so nothing tree-shakes them —
-// and with it every pinned `sha256`, every `officialUrl`, and every unresolved
-// `relatedQuestionnaires` slug the server read model strips from the DTO. The DTO
-// boundary governs the serialized props; only this import governs the bundle.
+// and with it every pinned `sha256` and every `officialUrl`. Stage 0 first closed
+// this boundary while unsupported questionnaire slugs still existed; Stage 1
+// retired those slugs. The DTO boundary governs serialized props, while this
+// import boundary continues to govern the browser module graph.
 // Guarded by __tests__/app/court-forms-client-bundle-boundary.test.ts.
 import {
   FORM_CATEGORIES,

@@ -59,13 +59,9 @@ describe("catalog `relatedQuestionnaires` against the registry", () => {
     expect(declared.length).toBeGreaterThan(0)
   })
 
-  it("resolves NONE of them — every declared link names a questionnaire that does not exist", () => {
-    // Recorded as an executable fact, not as an acceptable state. F4 of
-    // docs/legal-audit/fs-field-map-compatibility-ledger-2026-09-23.md.
-    // Each id is asserted on its own: a combined negative passes as soon as a
-    // single member is absent.
+  it("resolves every declared link to a real questionnaire", () => {
     for (const id of declared) {
-      expect(isQuestionnaireId(id)).toBe(false)
+      expect(isQuestionnaireId(id)).toBe(true)
     }
   })
 
@@ -75,11 +71,19 @@ describe("catalog `relatedQuestionnaires` against the registry", () => {
     expect(unresolved).toEqual(["basic-information"])
   })
 
-  it("reports every catalog row's links as unresolved today", () => {
+  it("reports every catalog row's links as resolved", () => {
     for (const form of ILLINOIS_COURT_FORMS) {
       const { resolved, unresolved } = resolveQuestionnaireLinks(form.relatedQuestionnaires)
-      expect(resolved).toEqual([])
-      expect(unresolved).toEqual(form.relatedQuestionnaires)
+      expect(resolved).toEqual(form.relatedQuestionnaires)
+      expect(unresolved).toEqual([])
+    }
+  })
+
+  it("does not reuse form ids or legal-article slugs as questionnaire ids", () => {
+    const formIds = new Set(ILLINOIS_COURT_FORMS.map((form) => form.id))
+    for (const id of declared) {
+      expect(formIds.has(id)).toBe(false)
+      expect(id).not.toBe("property-division")
     }
   })
 })
