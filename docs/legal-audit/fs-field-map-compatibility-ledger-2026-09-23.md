@@ -2,7 +2,8 @@
 
 **Date:** 2026-09-23
 **Base:** `origin/main` @ `416ae5f`
-**Lane:** Fresh Start official-form recovery (local candidate only)
+**Lane:** Fresh Start official-form recovery — committed as `587dc31` on
+`alexy/fs-field-map-closure-20260923` and open as PR #23 against `main`; not merged
 **Disposition:** **NO UNPAUSE.** Nothing here is generation, download, packet, filing, or release
 authority. Fresh Start is not a law firm and does not give legal advice.
 
@@ -148,7 +149,9 @@ into `marital_settlement`). This matters because generation receives one questio
 object: a map reaching across questionnaires would silently emit blanks. It does not.
 
 So for `petition-no-children`, `petition-with-children`, `summons`, `financial-affidavit` and
-`parenting-plan`, the questionnaire side is proven and the **PDF side is the sole remaining blocker**.
+`parenting-plan`, the questionnaire side is proven. Artifact-bound PDF-field comparison remains a
+blocker for all five. `summons` has the additional, independently enforced blocker that this module
+has no summons filler; proving its field map alone cannot make summons generation supported.
 
 ### F6 — Incidental: `npm ci` fails on the `prepare` script
 
@@ -227,17 +230,19 @@ construction", which is the precondition the 2026-09-21 review's §7.7 names, no
 
 ## 5. Actions not performed
 
-No commit, push, pull request, deploy, environment change, email, filing, court or provider contact,
-payment, order, customer document, or database mutation. No official PDF was fetched, replaced, or
+No merge, deploy, environment change, email, filing, court or provider contact, payment, order,
+customer document, or database mutation. The candidate itself has since been committed (`587dc31`)
+and opened as PR #23 against `main`; that PR is not merged. No official PDF was fetched, replaced, or
 regenerated. No production or preview state was touched. No legal advice is given or implied.
 
 ---
 
 ## 6. Verification of this candidate
 
-Worktree: `/Users/abigailclaw/cc-worktrees/fs-form-recovery-20260923`, detached at `416ae5f`
-(`origin/main`), uncommitted. The existing `/Users/abigailclaw/freshstart-platform` checkout and its
-untracked files were not touched.
+Worktree: `/Users/abigailclaw/cc-worktrees/fs-form-recovery-20260923`, based on `416ae5f`
+(`origin/main`). The checks below were recorded against that working tree before it was committed
+as `587dc31` on `alexy/fs-field-map-closure-20260923` (PR #23). The existing
+`/Users/abigailclaw/freshstart-platform` checkout and its untracked files were not touched.
 
 | Check | Command | Result |
 |---|---|---|
@@ -258,8 +263,8 @@ across the five maps, 140 in total, **0** absent from their owning questionnaire
 against a pinned artifact.
 
 Not run: `graphify update .`. This repository carries no `AGENTS.md`, this worktree has no
-`graphify-out/`, and the candidate is uncommitted; regenerating a graph here would create a new index
-for a tree that is not the checkout the existing graph describes.
+`graphify-out/`, and it is not the checkout the existing graph describes; regenerating a graph here
+would create a new index for a different tree.
 
 ---
 

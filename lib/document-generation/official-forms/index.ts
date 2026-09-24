@@ -104,6 +104,28 @@ export const OFFICIAL_FORM_TYPES = [
 export type OfficialFormType = (typeof OFFICIAL_FORM_TYPES)[number]
 
 /**
+ * The generation identities this module has a filler for.
+ *
+ * Narrower than `OFFICIAL_FORM_TYPES` by `summons`: it has a catalog row and a
+ * bound field map, so it is a generation identity, but no summons filler has
+ * ever been written. Identity and implementation are separate facts, and a
+ * verified summons map must not read as "can generate a summons". Kept as an
+ * allowlist so a type added to `OFFICIAL_FORM_TYPES` starts out unimplemented.
+ */
+export const OFFICIAL_FORM_FILLER_TYPES = [
+  'petition-no-children',
+  'petition-with-children',
+  'financial-affidavit',
+  'parenting-plan',
+] as const satisfies readonly OfficialFormType[]
+
+type OfficialFormFillerType = (typeof OFFICIAL_FORM_FILLER_TYPES)[number]
+
+function hasOfficialFormFiller(formType: string): formType is OfficialFormFillerType {
+  return (OFFICIAL_FORM_FILLER_TYPES as readonly string[]).includes(formType)
+}
+
+/**
  * Identities this module accepted for generation before the catalog was
  * reconciled, now closed — recorded rather than deleted.
  *
@@ -148,18 +170,27 @@ export async function generateOfficialForm(
 
   // Identity first, before any filler is selected. Each filler also refuses at
   // the template choke point; this refuses earlier so no filler is entered and
-  // no request is issued. Deliberately NOT worded "not yet implemented": five of
-  // these maps exist and are fully written, and the blocker is that none has
-  // been compared against the PDF the catalog pins for it.
+  // no request is issued.
+  //
+  // An id off the catalog entirely — a quarantined identity a caller still
+  // holds, or a row since retired — must refuse here rather than fall through
+  // to a compatibility lookup that throws about a form that does not exist.
+  if (!getFormById(formType)) {
+    throw new Error(
+      `${formType} is not a catalog entry. No official form was generated.`
+    )
+  }
+  // A generation identity with no filler is refused as such, whatever its field
+  // map's state: a proven map would otherwise be reported as the only blocker.
+  if (!hasOfficialFormFiller(formType)) {
+    throw new Error(
+      `${formType} has no filler in this module; generation is not implemented for it. No official form was generated.`
+    )
+  }
+  // Deliberately NOT worded "not yet implemented": these four maps exist and
+  // are fully written, and the blocker is that none has been compared against
+  // the PDF the catalog pins for it.
   if (!isFieldMapCompatibilityProven(formType)) {
-    // An id off the catalog entirely — a quarantined identity a caller still
-    // holds, or a row since retired — must refuse here rather than fall through
-    // to a compatibility lookup that throws about a form that does not exist.
-    if (!getFormById(formType)) {
-      throw new Error(
-        `${formType} is not a catalog entry. No official form was generated.`
-      )
-    }
     const { status, blockers } = getFieldMapCompatibility(formType)
     throw new Error(
       `${formType} has no verified field map (${status}): ${blockers.join('; ')}. No official form was generated.`
@@ -187,20 +218,25 @@ export async function generateOfficialForm(
         { flatten }
       )
     
-    default:
-      throw new Error(`Form type "${formType}" is not yet implemented`)
+    default: {
+      // Unreachable: every filler type has a case above, which `never` enforces.
+      const unhandled: never = formType
+      throw new Error(`${unhandled} has no filler in this module. No official form was generated.`)
+    }
   }
 }
 
 /**
  * Whether a form type may be filled.
  *
- * Decided by proven field-map compatibility, not by a hand-kept allowlist. The
- * previous list named four types whose maps had never been compared against any
- * artifact, so "supported" meant only that someone had written a map.
+ * Requires both a filler in this module and proven field-map compatibility. The
+ * previous hand-kept list named four types whose maps had never been compared
+ * against any artifact, so "supported" meant only that someone had written a
+ * map; compatibility alone would repeat that for `summons`, which has a map and
+ * no filler.
  */
 export function isFormTypeSupported(formType: string): boolean {
-  return isFieldMapCompatibilityProven(formType)
+  return hasOfficialFormFiller(formType) && isFieldMapCompatibilityProven(formType)
 }
 
 /**
