@@ -18,7 +18,10 @@ import { generateParentingPlanPDF } from "@/lib/document-generation/parenting-pl
 import { generateFinancialAffidavitPDF } from "@/lib/document-generation/financial-affidavit-pdf";
 import { generateSettlementAgreementPDF } from "@/lib/document-generation/settlement-agreement-pdf";
 import { transformFinancialResponses } from "@/lib/document-generation/transform-financial";
-import { generateOfficialFormForDocument } from "@/lib/document-generation/official-form-request";
+import {
+  generateOfficialFormForDocument,
+  isOfficialFormGenerationPaused,
+} from "@/lib/document-generation/official-form-request";
 import { awardBadge } from "@/lib/badges/award-badge";
 import { identifiesIwo } from "@/lib/forms/iwo-package-guard";
 
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
     // artifact, field-mapping, and generated-output comparison review. Reject
     // before any questionnaire lookup or database write. Never silently fall
     // back to a summary because that hides that the requested output was absent.
-    if (generationMode === "official") {
+    if (generationMode === "official" && isOfficialFormGenerationPaused()) {
       return NextResponse.json(
         {
           error: "Official form generation is unavailable",
@@ -122,6 +125,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const generatedAt = new Date();
+    let pdfBytes: Uint8Array | undefined;
+    let fileName: string = "";
+    let isOfficialForm = false;
+
+    // An official request yields the official form or a refusal — never a
+    // summary. The pause above keeps this unreachable today; if it moves, a
+    // refusal or failure here must reach the caller with nothing written. So it
+    // runs before the placeholder FormTemplate lookup/create below, and outside
+    // the generation try whose catch writes a text document: an unexpected
+    // rejection lands in the outer 500 instead.
+    if (generationMode === "official") {
+      const official = await generateOfficialFormForDocument({
+        documentType,
+        responses: response.responses,
+        fallbackPetitionerName: session.user.name || "Petitioner",
+        flatten,
+        generatedAt,
+      });
+
+      if (!official.ok) {
+        return NextResponse.json(
+          { error: "Official form was not generated", code: official.code, message: official.message },
+          { status: official.status, headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } },
+        );
+      }
+
+      pdfBytes = official.pdfBytes;
+      fileName = official.fileName;
+      isOfficialForm = true;
+      console.log("[Document Generate] Official form generated successfully:", official.formType);
+    }
+
     // Get the form template
     let template = await prisma.formTemplate.findFirst({
       where: {
@@ -144,41 +180,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate PDF based on document type and generation mode
-    const generatedAt = new Date();
-    let pdfBytes: Uint8Array | undefined;
-    let fileName: string = "";
-    let isOfficialForm = false;
-
     console.log("[Document Generate] Generating PDF for type:", documentType, "mode:", generationMode);
 
     try {
-      // An official request yields the official form or a refusal — never a
-      // summary. This used to catch any official-form error and fall through to
-      // the summary PDF below, returned 201 as though the request had been
-      // served. The pause above keeps this unreachable today; if it moves, a
-      // failure here must still reach the caller, with no document written.
-      if (generationMode === 'official') {
-        const official = await generateOfficialFormForDocument({
-          documentType,
-          responses: response.responses,
-          fallbackPetitionerName: session.user.name || 'Petitioner',
-          flatten,
-          generatedAt,
-        });
-
-        if (!official.ok) {
-          return NextResponse.json(
-            { error: "Official form was not generated", code: official.code, message: official.message },
-            { status: official.status, headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } },
-          );
-        }
-
-        pdfBytes = official.pdfBytes;
-        fileName = official.fileName;
-        isOfficialForm = true;
-        console.log("[Document Generate] Official form generated successfully:", official.formType);
-      }
-      
       // Generate summary PDF if not generating official form
       if (!isOfficialForm) {
         switch (documentType) {

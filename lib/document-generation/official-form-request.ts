@@ -18,6 +18,18 @@ import {
   type OfficialFormType,
 } from "@/lib/document-generation/official-forms"
 
+/**
+ * The release hold on official-form generation. The generate route refuses
+ * every official request with 409 while this is true.
+ *
+ * A constant, not configuration: lifting it is a reviewed code change, never an
+ * environment flag. It is a function only so a test can reach the branch behind
+ * the hold and prove that branch still refuses with nothing written.
+ */
+export function isOfficialFormGenerationPaused(): boolean {
+  return true
+}
+
 // Map document types to official form types
 const DOCUMENT_TO_OFFICIAL_FORM: Record<string, OfficialFormType> = {
   petition: "petition-no-children",

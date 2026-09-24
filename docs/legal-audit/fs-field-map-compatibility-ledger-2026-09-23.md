@@ -2,8 +2,10 @@
 
 **Date:** 2026-09-23
 **Base:** `origin/main` @ `416ae5f`
-**Lane:** Fresh Start official-form recovery — committed as `587dc31` on
-`alexy/fs-field-map-closure-20260923` and open as PR #23 against `main`; not merged
+**Lane:** Fresh Start official-form recovery — branch `alexy/fs-field-map-closure-20260923`, open as
+PR #23 against `main`; not merged. Commits: `587dc31` (catalog/field-map closure, review round 1),
+`c680cad` (filler allowlist and non-throwing official dispatch, review round 2), and the round-3
+commit on top (official refusal before writes and route-level regression coverage)
 **Disposition:** **NO UNPAUSE.** Nothing here is generation, download, packet, filing, or release
 authority. Fresh Start is not a law firm and does not give legal advice.
 
@@ -184,9 +186,17 @@ a clean `npm ci` exits 1 unless `CI=1` is set. Pre-existing, unrelated to forms,
 4. `lib/document-generation/official-forms/template-source.ts` — the single choke point for an
    official template location. It throws for every form id until compatibility is proven.
 5. F2/F3 closed. `getFormTemplatePath` throws instead of returning a path; the five hardcoded
-   `/forms/` constants route through the choke point; `isFormTypeSupported` is decided by proven
-   compatibility; `generateOfficialForm` refuses before dispatch, and refuses an id off the catalog
-   without crashing on a lookup for a form that does not exist.
+   `/forms/` constants route through the choke point.
+
+   A generation identity and a filler are separate facts. `OFFICIAL_FORM_FILLER_TYPES` (added in
+   `c680cad`) is an allowlist of the **four** identities this module has a filler for —
+   `petition-no-children`, `petition-with-children`, `financial-affidavit`, `parenting-plan`. It is
+   `OFFICIAL_FORM_TYPES` minus `summons`, which has a catalog row and a bound field map but no
+   filler. `isFormTypeSupported` requires **both** a filler and proven field-map compatibility, so a
+   verified summons map can never read as "can generate a summons"; today it is false for every id
+   because compatibility is false for every id. `generateOfficialForm` refuses in a fixed order
+   before any filler is entered: an id off the catalog (without crashing on a lookup for a form that
+   does not exist), then an identity with no filler, then an unproven field map.
 
    `OFFICIAL_FORM_TYPES` is narrowed from the legacy nine to the **five** ids that are both a
    statewide official catalog row and a bound field map — asserted against that derived set, so the
@@ -208,6 +218,14 @@ a clean `npm ci` exits 1 unless `CI=1` is set. Pre-existing, unrelated to forms,
    directly so a row the model withholds behind a closed gate (the federal IWO) still reports its
    claim. A test scans the serialized payload for the slugs. The catalog rows themselves are left
    exactly as they are, and the client needed no change.
+7. The generate route's official branch fails closed behind its pause (`c680cad`, then §9). It
+   used to catch any official-form error and fall through to the summary PDF, returning 201 as
+   though the official request had been served — §8.2. The dispatch now lives in
+   `lib/document-generation/official-form-request.ts`, never throws, and returns either the
+   official form or a refusal; and the route runs it before the placeholder `FormTemplate`
+   lookup/create and outside the try whose catch writes a text document, so an unsupported or
+   failed official request performs no database write — §9.1. The 409 pause is unchanged and still
+   refuses every official request before the questionnaire lookup.
 
 Nothing above enables a lane. Each change moves a surface from "closed by accident" to "closed by
 construction", which is the precondition the 2026-09-21 review's §7.7 names, not a substitute for it.
@@ -231,8 +249,8 @@ construction", which is the precondition the 2026-09-21 review's §7.7 names, no
 ## 5. Actions not performed
 
 No merge, deploy, environment change, email, filing, court or provider contact, payment, order,
-customer document, or database mutation. The candidate itself has since been committed (`587dc31`)
-and opened as PR #23 against `main`; that PR is not merged. No official PDF was fetched, replaced, or
+customer document, or database mutation. The candidate itself has since been committed (`587dc31`,
+then `c680cad`) and opened as PR #23 against `main`; that PR is not merged. No official PDF was fetched, replaced, or
 regenerated. No production or preview state was touched. No legal advice is given or implied.
 
 ---
@@ -240,8 +258,9 @@ regenerated. No production or preview state was touched. No legal advice is give
 ## 6. Verification of this candidate
 
 Worktree: `/Users/abigailclaw/cc-worktrees/fs-form-recovery-20260923`, based on `416ae5f`
-(`origin/main`). The checks below were recorded against that working tree before it was committed
-as `587dc31` on `alexy/fs-field-map-closure-20260923` (PR #23). The existing
+(`origin/main`). The checks in this section were recorded against that working tree before it was
+committed as `587dc31` on `alexy/fs-field-map-closure-20260923` (PR #23); they are the 587dc31
+record, not the current head. Current counts are in §9.3. The existing
 `/Users/abigailclaw/freshstart-platform` checkout and its untracked files were not touched.
 
 | Check | Command | Result |
@@ -296,3 +315,89 @@ Re-verification after the fixes: `npx tsc --noEmit` PASS; `npx jest` PASS at 89 
 (5 suites / 34 tests repo-skipped); `npm run build` PASS; `npm run forms:verify:offline` PASS 21↔21;
 `git diff --check` clean; `npx eslint` on the changed files reports the same 3 pre-existing
 `no-explicit-any` errors as the base and no new finding.
+
+---
+
+## 8. Review round 2 — two findings, closed in `c680cad`
+
+An exact-head review of `587dc31` returned two low findings. Both are closed in `c680cad`
+("fix: keep official form generation fail closed"). Disposition unchanged: **NO UNPAUSE**.
+
+**8.1 `summons` could read as supported once its map was verified.** `isFormTypeSupported` was
+decided by field-map compatibility alone, and `summons` has a catalog row and a bound field map but
+no filler. Closed by the `OFFICIAL_FORM_FILLER_TYPES` allowlist and the refusal order described in
+§3.5; F5's earlier claim that the PDF side was summons' "sole remaining blocker" was corrected at the
+same time. `__tests__/lib/document-generation/official-form-summons-contract.test.ts` (5 tests) pins
+it.
+
+**8.2 Silent summary fallback for official requests.** The route caught any official-form error and
+fell through to the summary PDF, then returned 201 with a FreshStart summary — nothing told the
+caller the requested official form was absent. Unreachable in practice behind the 409 pause, but
+live the day that pause moved. The dispatch was extracted to
+`lib/document-generation/official-form-request.ts`, which never throws and never produces a summary:
+it returns the official form's bytes or a refusal (409 `official_form_unsupported`, 500
+`official_form_generation_failed`) that the route returns as-is.
+`__tests__/lib/document-generation/official-form-request.test.ts` (10 tests) pins the helper.
+
+Left open by `c680cad`, and the subject of §9: the route still ran the placeholder `FormTemplate`
+lookup — and, when absent, **created** one — before reaching the official dispatch, and the dispatch
+still sat inside the try whose catch writes a text `Document`. Its route-level coverage was source
+regex only.
+
+Verified at `c680cad` (detached worktree, same `node_modules`): `npx jest --runInBand` PASS —
+91 suites / 1,311 tests; 5 suites / 34 tests skipped by the repository.
+
+---
+
+## 9. Review round 3 — two findings, closed in the round-3 commit
+
+An exact-head review of `c680cad` returned two findings. Both are closed in the round-3 commit on
+top of `c680cad`. Disposition unchanged: **NO UNPAUSE**. The 409 pause, the IWO rejection that precedes
+it, and every IWO gate are untouched.
+
+**9.1 Official refusal ran after a placeholder `FormTemplate` write.** Once the pause moves, an
+unsupported or failed official request would first look up a `FormTemplate` and, if none existed,
+create a placeholder row — a database write for a request that produces nothing. And because the
+dispatch sat inside the generation try, an unexpected rejection from it would land in the catch that
+writes a text `Document` and returns 201: the silent summary of §8.2 by another route. Closed in
+`app/api/documents/generate/route.ts`: the official dispatch now runs immediately after the
+ownership and completion checks — before the `FormTemplate` lookup/create — and outside that try, so
+an unexpected rejection reaches the outer handler's 500, which writes nothing. The questionnaire
+response read still precedes it; the dispatch needs the responses. A *successful* official
+generation still performs the template lookup/create and the `Document` write after dispatch, as
+every summary request does; that path is unreachable today and is not changed here.
+
+To test the branch behind the pause through `POST`, the hold predicate was made a function:
+`isOfficialFormGenerationPaused()` in `official-form-request.ts`, which returns the constant `true`.
+It is not configuration — lifting it is a reviewed code change, never an environment flag — and the
+route's refusal is otherwise identical. `__tests__/api/documents-generate-official-dispatch.test.ts`
+(11 tests) drives the real route with the predicate mocked to `false` and every Prisma call mocked:
+an unsupported type, each of the three supported types with an unproven map, each with the map
+forced proven so the template choke point throws, a regeneration with a `documentId`, and a
+rejecting dispatch. Each must return its refusal with `formTemplate.findFirst`/`create`,
+`document.create`/`update`/`findUnique`/`findMany` and `awardBadge` never called. Two more cases pin
+that the mocked-`true` predicate still refuses before the questionnaire lookup, and that the real
+predicate returns `true`. Against `c680cad`'s route with only the predicate seam applied, 9 of
+the 11 fail: eight on
+`formTemplate.findFirst` being called, one on a 201 text-summary response to a rejecting dispatch.
+The existing pause suite (4 tests) is unchanged and passes.
+
+**9.2 This ledger was stale.** It described `587dc31` only: §3.5 stated `isFormTypeSupported` was
+decided by compatibility alone, the silent-summary defect and its fix were absent, the commit
+history stopped at `587dc31`, and the only suite counts were `587dc31`'s. Corrected in the header,
+§3.5, §3.7, §5, §6, §8 and here.
+
+**9.3 Verification of the round-3 candidate** (committed on top of `c680cad`):
+
+| Check | Command | Result |
+|---|---|---|
+| Targeted | `npx jest __tests__/api/documents-generate __tests__/lib/document-generation __tests__/forms` | PASS — 12 suites / 182 tests |
+| Typecheck | `npx tsc --noEmit` | PASS |
+| Full suite | `npx jest --runInBand` | PASS — 92 suites / 1,322 tests; 5 suites / 34 tests skipped by the repository |
+| Production build | `npm run build` | PASS — compiled successfully, 128 static pages |
+| Offline verifier | `npm run forms:verify:offline` | PASS — 21 catalog entries matched 21 manifest entries |
+| Whitespace | `git diff --check` | clean |
+| Lint | `npx eslint <changed files>` | new test and `official-form-request.ts` clean; `route.ts` reports the same 6 errors + 1 warning as at `c680cad` (5 `no-explicit-any`, 1 `prefer-const`, 1 unused `request`), line numbers shifted; no new finding |
+
+Suite history: `587dc31` 89 / 1,296 → `c680cad` 91 / 1,311 (+ official-form-request 10,
+summons contract 5) → round 3 92 / 1,322 (+ official dispatch 11).
