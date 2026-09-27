@@ -259,10 +259,20 @@ describe("R5 the advice policy refuses recommendations in customer text", () => 
     expect(renderNonOfficialSummary(withValue(text)).ok).toBe(false)
   })
 
-  it("accepts plain facts", () => {
-    for (const fact of ["Cook", "None", "2", "Married in 2015", "Jos\u00e9 Pe\u00f1a"]) {
-      expect(findLegalAdviceContent(fact)).toEqual([])
-      expect(renderNonOfficialSummary(withValue(fact)).ok).toBe(true)
+  it("accepts plain facts, each in its own label's closed schema", () => {
+    const facts: [NonOfficialInput["summary"][number]["labelId"], string][] = [
+      ["county", "Cook"],
+      ["county", "De Witt"],
+      ["children_under_18", "None"],
+      ["children_under_18", "2"],
+      ["marriage_year", "2015"],
+      ["separation_year", "2024"],
+    ]
+    for (const [labelId, value] of facts) {
+      const i = input()
+      i.summary = [{ labelId, value }]
+      expect(findLegalAdviceContent(value)).toEqual([])
+      expect(renderNonOfficialSummary(i).ok).toBe(true)
     }
   })
 
@@ -270,5 +280,35 @@ describe("R5 the advice policy refuses recommendations in customer text", () => 
     const r = renderNonOfficialSummary(input())
     if (!r.ok) throw new Error("render refused")
     expect(findLegalAdviceContent(r.document.text)).toEqual([])
+  })
+})
+
+describe("R5 no free text at all: summary values are closed per-label schemas", () => {
+  it.each([
+    ["county", "Consider giving up maintenance"],
+    ["county", "Take what they offer"],
+    ["county", "Cook County, and let them keep the house"],
+    ["county", "Springfield"],
+    ["children_under_18", "two"],
+    ["children_under_18", "20"],
+    ["children_under_18", "None, give up custody"],
+    ["marriage_year", "15"],
+    ["marriage_year", "2015 (you should settle)"],
+    ["separation_year", "1899"],
+  ])("%s = %j is refused", (labelId, value) => {
+    const i = input()
+    i.summary = [{ labelId: labelId as never, value }]
+    const r = renderNonOfficialSummary(i)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.violations).toContain(`summary_value_invalid:${labelId}`)
+  })
+
+  it("the blocked advice sentence cannot be placed anywhere in the input", () => {
+    const text = "You should waive maintenance and accept this settlement."
+    for (const labelId of ["county", "children_under_18", "marriage_year", "separation_year"]) {
+      const i = input()
+      i.summary = [{ labelId: labelId as never, value: text }]
+      expect(renderNonOfficialSummary(i).ok).toBe(false)
+    }
   })
 })

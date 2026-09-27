@@ -55,7 +55,7 @@ const request = (): PacketRequest => ({
   nonOfficialInputs: [
     {
       titleId: "divorce_organizer",
-      summary: [{ labelId: "county", value: "Synthetic Cookfact" }],
+      summary: [{ labelId: "county", value: "Cook" }],
       checklist: [{ itemId: "gather_pay_stubs", done: false }],
       guidance: ["ask_clerk_which_forms"],
     },
@@ -112,7 +112,8 @@ describe("PR-6 packet contents", () => {
     expect(art[0].sha256).toMatch(/^[0-9a-f]{64}$/)
     expect(art[0].officialMarkers).toEqual([])
     const whole = p.entries.map(e => e.content).join("\n")
-    expect(whole).not.toContain("Synthetic Cookfact")
+    expect(whole).not.toContain("Gather your recent pay stubs")
+    expect(whole).not.toContain("Cook")
   })
 
   it("always carries the pinned holds, which the caller cannot drop", () => {
@@ -207,11 +208,11 @@ describe("PR-6 adversarial", () => {
     refuses(r => (r.classificationQueries[0].bytes = 1.5), "classificationQueries[0].bytes", "1.5")
   })
 
-  it("customer text is hashed, never copied: PII in a summary value appears nowhere", () => {
+  it("customer text is hashed, never copied; PII in a summary value is refused unechoed", () => {
     const r = request()
     r.nonOfficialInputs[0].summary[0].value = "Jane 3125550142 jane.doe@example.com"
     const out = buildOperatorReviewPacket(r, { clock: FIXED })
-    expect(out.ok).toBe(true)
+    expect(out.ok).toBe(false)
     const bytes = JSON.stringify(out)
     for (const pii of ["3125550142", "jane.doe@example.com", "Jane"])
       expect(bytes).not.toContain(pii)
