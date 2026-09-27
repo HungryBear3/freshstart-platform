@@ -63,11 +63,12 @@ describe("PR-2 provenance ledger — pinned state", () => {
     }).toThrow(TypeError)
   })
 
-  it("reports the canonical-URL host mismatch as an open uncertainty, not a fix", () => {
+  it("agrees exactly with main's reconciled acf.gov canonical URL — no open uncertainty", () => {
     const r = reconcileIwoProvenance()
-    expect(r.openUncertainties).toContain("canonical_url_host_differs_from_retrieval_receipt")
-    // No artifact replacement or repin happens as a side effect.
-    expect(IWO_PROVENANCE.canonicalUrl).toMatch(/acf\.hhs\.gov/)
+    const artifact = IWO_SOURCE_RECEIPTS.find(x => x.id === "acf_legacy_iwo_pdf_20260901")!
+    expect(IWO_PROVENANCE.canonicalUrl).toBe(artifact.locator)
+    expect(r.openUncertainties).toEqual([])
+    expect(r.discrepancies).not.toContain("canonical_url_differs_from_receipt")
   })
 
   it("records the revised successor only as DOCX receipts", () => {
@@ -79,6 +80,31 @@ describe("PR-2 provenance ledger — pinned state", () => {
 
 describe("PR-2 provenance ledger — drift is detected, never absorbed", () => {
   const base = () => ({ provenance: clone(IWO_PROVENANCE), oira: clone(PINNED_OIRA_APPROVAL) })
+
+  // R6: a synthetic mismatch, injected. Production data is never restored to the
+  // obsolete host to keep this tested.
+  it.each([
+    [
+      "obsolete acf.hhs.gov host",
+      "https://www.acf.hhs.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+    ],
+    [
+      "same host, query dropped",
+      "https://acf.gov/sites/default/files/documents/ocse/omb_0970_0154.pdf",
+    ],
+    [
+      "same host, other path",
+      "https://acf.gov/sites/default/files/documents/ocse/other.pdf?download=1",
+    ],
+  ])("flags an injected canonical-URL drift (%s) as a discrepancy", (_name, url) => {
+    const m = base()
+    m.provenance.canonicalUrl = url
+    const r = reconcileIwoProvenance(m)
+    expect(r.consistent).toBe(false)
+    expect(r.discrepancies).toContain("canonical_url_differs_from_receipt")
+    // Reported, never repaired: the real runtime value is untouched.
+    expect(IWO_PROVENANCE.canonicalUrl).toMatch(/^https:\/\/acf\.gov\//)
+  })
 
   it("flags a runtime cutoff moved to the third-party 2027-08-31 wording", () => {
     const m = base()
