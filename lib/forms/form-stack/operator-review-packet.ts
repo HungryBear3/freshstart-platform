@@ -36,6 +36,7 @@ import {
   type NonOfficialInput,
 } from "@/lib/forms/form-stack/non-official-output"
 import { validatePacketRequest } from "@/lib/forms/form-stack/packet-request-schema"
+import { parseStrictUtcTimestamp } from "@/lib/forms/form-stack/strict-date"
 
 export const OPERATOR_PACKET_VERSION = "cc05-2026-09-26.1"
 
@@ -45,6 +46,13 @@ export interface PacketHold {
   owner: string
 }
 
+/**
+ * R8: the holds every packet carries, whoever builds it. The builder injects
+ * them, the manifest binds their ids, and the verifier re-checks their exact
+ * text — so a caller cannot omit one and a forger who re-hashes every entry
+ * consistently still cannot remove or reword one. Lifting any of them is a
+ * reviewed code change here, never a request field.
+ */
 export const PINNED_PACKET_HOLDS: readonly PacketHold[] = deepFreeze([
   {
     id: "official_form_generation_paused",
@@ -68,10 +76,29 @@ export const PINNED_PACKET_HOLDS: readonly PacketHold[] = deepFreeze([
   },
   {
     id: "no_proven_field_map_binding",
-    reason: "PINNED_FIELD_MAP_BINDINGS is empty.",
+    reason: "No field map is proven against a pinned artifact (main and PR-4 both empty).",
     owner: "evidence owner",
   },
+  {
+    id: "pr5_copy_content_approval_pending",
+    reason: "PR-5 banner, chrome and template copy have no owner approval.",
+    owner: "product owner",
+  },
+  {
+    id: "independent_exact_sha_review_pending",
+    reason: "No independent exact-SHA review of this candidate has passed.",
+    owner: "reviewer",
+  },
+  {
+    id: "release_activation_approval_pending",
+    reason: "No release or activation approval exists.",
+    owner: "product owner",
+  },
 ])
+
+export const MANDATORY_PACKET_HOLD_IDS: readonly string[] = deepFreeze(
+  PINNED_PACKET_HOLDS.map(h => h.id)
+)
 
 /**
  * Holds a caller may ADD, by id. Fixed text; a caller can never supply reason
@@ -129,6 +156,8 @@ export interface OperatorReviewPacket {
   candidateSha: string
   builtAt: string
   delivery: "none"
+  /** R8: bound into the manifest; must equal `MANDATORY_PACKET_HOLD_IDS`. */
+  mandatoryHoldIds: readonly string[]
   entries: PacketEntry[]
   manifestSha256: string
 }
@@ -177,13 +206,15 @@ function entry(name: string, value: unknown): PacketEntry {
   return { name, sha256: sha256(content), bytes: Buffer.byteLength(content), content }
 }
 
-function manifestHash(p: Omit<OperatorReviewPacket, "manifestSha256">): string {
+/** The manifest hash of a packet body. Exported so verifiers can recompute it. */
+export function computeManifestSha256(p: Omit<OperatorReviewPacket, "manifestSha256">): string {
   return sha256(
     canonicalJson({
       version: p.version,
       candidateSha: p.candidateSha,
       builtAt: p.builtAt,
       delivery: p.delivery,
+      mandatoryHoldIds: p.mandatoryHoldIds,
       entries: p.entries.map(e => ({ name: e.name, sha256: e.sha256, bytes: e.bytes })),
     })
   )
@@ -269,6 +300,7 @@ export function buildOperatorReviewPacket(
     candidateSha: req.candidateSha,
     builtAt: now.toISOString(),
     delivery: "none" as const,
+    mandatoryHoldIds: [...MANDATORY_PACKET_HOLD_IDS],
     entries: [
       entry("provenance.json", reconcileIwoProvenance()),
       entry("classification.json", classification),
@@ -287,7 +319,45 @@ export function buildOperatorReviewPacket(
       entry("holds.json", holds),
     ],
   }
-  return { ok: true, packet: { ...body, manifestSha256: manifestHash(body) } }
+  const packet = { ...body, manifestSha256: computeManifestSha256(body) }
+  // The builder refuses to hand out a packet its own verifier would reject.
+  const self = verifyOperatorReviewPacket(packet, packet.manifestSha256)
+  if (!self.valid) return { ok: false, violations: self.reasons }
+  return { ok: true, packet }
+}
+
+/** R8: every mandatory hold present with its exact pinned text. */
+function mandatoryHoldDefects(packet: OperatorReviewPacket): string[] {
+  const out: string[] = []
+  const ids = packet.mandatoryHoldIds
+  if (
+    !Array.isArray(ids) ||
+    ids.length !== MANDATORY_PACKET_HOLD_IDS.length ||
+    ids.some((id, i) => id !== MANDATORY_PACKET_HOLD_IDS[i])
+  ) {
+    out.push("mandatory_hold_set_mismatch")
+  }
+  const holdsEntries = packet.entries.filter(e => e.name === "holds.json")
+  if (holdsEntries.length !== 1) return [...out, "holds_entry_missing"]
+  let holds: unknown
+  try {
+    holds = JSON.parse(holdsEntries[0].content)
+  } catch {
+    return [...out, "holds_entry_malformed"]
+  }
+  if (!Array.isArray(holds)) return [...out, "holds_entry_malformed"]
+  for (const pinned of PINNED_PACKET_HOLDS) {
+    const found = holds.filter(h => h && typeof h === "object" && h.id === pinned.id)
+    if (found.length === 0) out.push(`mandatory_hold_missing:${pinned.id}`)
+    else if (
+      found.length > 1 ||
+      found[0].reason !== pinned.reason ||
+      found[0].owner !== pinned.owner
+    ) {
+      out.push(`mandatory_hold_altered:${pinned.id}`)
+    }
+  }
+  return out
 }
 
 export function verifyOperatorReviewPacket(
@@ -296,12 +366,14 @@ export function verifyOperatorReviewPacket(
 ): { valid: boolean; reasons: string[] } {
   const reasons: string[] = []
   if (packet.delivery !== "none") reasons.push("delivery_not_none")
+  if (parseStrictUtcTimestamp(packet.builtAt) === null) reasons.push("malformed_built_at")
+  reasons.push(...mandatoryHoldDefects(packet))
   for (const e of packet.entries) {
     if (sha256(e.content) !== e.sha256 || Buffer.byteLength(e.content) !== e.bytes) {
       reasons.push(`entry_hash_mismatch:${e.name}`)
     }
   }
-  const recomputed = manifestHash(packet)
+  const recomputed = computeManifestSha256(packet)
   if (recomputed !== packet.manifestSha256) reasons.push("manifest_hash_mismatch")
   if (recomputed !== reviewedManifestSha256) reasons.push("manifest_changed_after_review")
   return { valid: reasons.length === 0, reasons }
