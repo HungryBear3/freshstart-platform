@@ -12,10 +12,15 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import crypto from "node:crypto"
+
 import {
+  MANDATORY_PACKET_HOLD_IDS,
   PINNED_PACKET_HOLDS,
   buildOperatorReviewPacket,
+  computeManifestSha256,
   verifyOperatorReviewPacket,
+  type OperatorReviewPacket,
   type PacketRequest,
 } from "@/lib/forms/form-stack/operator-review-packet"
 
@@ -268,5 +273,97 @@ describe("PR-6 adversarial", () => {
       "utf8"
     )
     expect(src).not.toMatch(/\bfetch\(|resend|nodemailer|sendEmail|@vercel\/blob|prisma|writeFile/i)
+  })
+})
+
+describe("R8 mandatory holds cannot be dropped", () => {
+  const MANDATORY = [
+    "official_form_generation_paused",
+    "official_form_delivery_paused",
+    "activation_dormant",
+    "no_official_current_evidence",
+    "no_proven_field_map_binding",
+    "pr5_copy_content_approval_pending",
+    "independent_exact_sha_review_pending",
+    "release_activation_approval_pending",
+  ]
+  const sha = (c: string) => crypto.createHash("sha256").update(c).digest("hex")
+
+  /** A forger who rewrites an entry AND recomputes every hash consistently. */
+  const forge = (
+    p: OperatorReviewPacket,
+    over: Partial<OperatorReviewPacket> = {},
+    holds?: (h: { id: string; reason: string; owner: string }[]) => unknown
+  ): OperatorReviewPacket => {
+    const entries = p.entries.map(e => {
+      if (e.name !== "holds.json" || !holds) return e
+      const content = JSON.stringify(holds(JSON.parse(e.content)))
+      return { ...e, content, sha256: sha(content), bytes: Buffer.byteLength(content) }
+    })
+    const body = { ...p, entries, ...over }
+    return { ...body, manifestSha256: computeManifestSha256(body) }
+  }
+  const verifyForged = (f: OperatorReviewPacket) => verifyOperatorReviewPacket(f, f.manifestSha256)
+
+  it("pins exactly the eight mandatory hold identities", () => {
+    expect([...MANDATORY_PACKET_HOLD_IDS]).toEqual(MANDATORY)
+    expect(PINNED_PACKET_HOLDS.map(h => h.id)).toEqual(MANDATORY)
+    expect(Object.isFrozen(MANDATORY_PACKET_HOLD_IDS)).toBe(true)
+  })
+
+  it("injects every mandatory hold and binds the set into the manifest", () => {
+    const r = request()
+    r.holdIds = []
+    const p = build(r)
+    expect(p.mandatoryHoldIds).toEqual(MANDATORY)
+    const holds = JSON.parse(p.entries.find(e => e.name === "holds.json")!.content)
+    expect(holds.map((h: { id: string }) => h.id).slice(0, 8)).toEqual(MANDATORY)
+    expect(verifyOperatorReviewPacket(p, p.manifestSha256)).toEqual({ valid: true, reasons: [] })
+    const unbound = { ...p, mandatoryHoldIds: MANDATORY.slice(1) }
+    expect(verifyOperatorReviewPacket(unbound, p.manifestSha256).reasons).toContain(
+      "manifest_hash_mismatch"
+    )
+  })
+
+  it("a caller cannot pass a mandatory id as an optional hold to restate it", () => {
+    const r = request()
+    r.holdIds = ["activation_dormant" as never]
+    const out = buildOperatorReviewPacket(r, { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:holdIds[0]:unknown_hold_id")
+  })
+
+  it.each(MANDATORY)("a consistently re-hashed packet without %s is invalid", id => {
+    const f = forge(build(), {}, hs => hs.filter(h => h.id !== id))
+    const v = verifyForged(f)
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(`mandatory_hold_missing:${id}`)
+  })
+
+  it("a reworded mandatory hold is invalid", () => {
+    const f = forge(build(), {}, hs =>
+      hs.map(h => (h.id === "activation_dormant" ? { ...h, reason: "Activation is fine." } : h))
+    )
+    expect(verifyForged(f).reasons).toContain("mandatory_hold_altered:activation_dormant")
+  })
+
+  it("a shrunken mandatory id list is invalid even when re-hashed", () => {
+    const f = forge(build(), { mandatoryHoldIds: MANDATORY.slice(0, 5) })
+    expect(verifyForged(f).reasons).toContain("mandatory_hold_set_mismatch")
+  })
+
+  it("a packet with no holds entry, or an unparseable one, is invalid", () => {
+    const p = build()
+    const noHolds = { ...p, entries: p.entries.filter(e => e.name !== "holds.json") }
+    const f1 = { ...noHolds, manifestSha256: computeManifestSha256(noHolds) }
+    expect(verifyForged(f1).reasons).toContain("holds_entry_missing")
+    const f2 = forge(p, {}, () => "not holds")
+    expect(verifyForged(f2).reasons).toContain("holds_entry_malformed")
+  })
+
+  it("R4: a builtAt that is not a canonical real timestamp is invalid", () => {
+    for (const builtAt of ["2026-02-30T15:00:00.000Z", "2026-09-26T15:00:00+00:00"]) {
+      expect(verifyForged(forge(build(), { builtAt })).reasons).toContain("malformed_built_at")
+    }
   })
 })
