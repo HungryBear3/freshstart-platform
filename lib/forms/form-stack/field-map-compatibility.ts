@@ -45,9 +45,61 @@ export const PINNED_FIELD_MAP_BINDINGS: readonly FieldMapBinding[] = deepFreeze(
 /** Only these classes can ever carry a mapping. Successor/guidance/unknown never can. */
 const MAPPABLE_CLASSES: readonly SourceClass[] = ["official_current", "official_legacy"]
 
+/**
+ * R2: the inventory is serialized as typed, versioned canonical JSON. Joining
+ * names with a newline made `['A','B']` and `['A\nB']` the same bytes; JSON
+ * string escaping cannot collide that way, and the type/version tag keeps a
+ * future format from ever hashing equal to this one.
+ */
+export const FIELD_INVENTORY_SERIALIZATION = deepFreeze({
+  type: "fs.acroform-field-inventory",
+  version: 1,
+} as const)
+
+const MAX_FIELD_NAME_LENGTH = 256
+const MAX_INVENTORY_SIZE = 5000
+// Controls, invisible format characters and line/paragraph separators. Built
+// from an ASCII string so no raw separator ever sits in the source.
+const FIELD_NAME_FORBIDDEN = new RegExp("[\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}]", "u")
+
+/** Structural defects in an inventory. Empty array = valid. Codes only, never names. */
+export function validateFieldInventory(fields: readonly string[]): string[] {
+  if (!Array.isArray(fields)) return ["inventory_not_array"]
+  const out = new Set<string>()
+  if (fields.length > MAX_INVENTORY_SIZE) out.add("inventory_too_large")
+  const seen = new Set<string>()
+  for (const f of fields as unknown[]) {
+    if (typeof f !== "string") {
+      out.add("field_name_not_string")
+      continue
+    }
+    if (f.length === 0) out.add("empty_field_name")
+    if (f.length > MAX_FIELD_NAME_LENGTH) out.add("field_name_too_long")
+    if (FIELD_NAME_FORBIDDEN.test(f)) out.add("field_name_control_character")
+    if (seen.has(f)) out.add("duplicate_field_name")
+    seen.add(f)
+  }
+  return [...out].sort()
+}
+
+/** Canonical bytes of a VALID inventory. Throws with the defect codes otherwise. */
+export function canonicalFieldInventory(fields: readonly string[]): string {
+  const defects = validateFieldInventory(fields)
+  if (defects.length > 0) throw new Error(`invalid field inventory: ${defects.join(",")}`)
+  // Keys in sorted order; names sorted by UTF-16 code unit, which is deterministic.
+  return JSON.stringify({
+    fields: [...fields].sort(),
+    type: FIELD_INVENTORY_SERIALIZATION.type,
+    version: FIELD_INVENTORY_SERIALIZATION.version,
+  })
+}
+
 export function fieldInventorySha256(fields: readonly string[]): string {
-  const canonical = [...new Set(fields)].sort().join("\n")
-  return crypto.createHash("sha256").update(canonical).digest("hex")
+  return crypto.createHash("sha256").update(canonicalFieldInventory(fields)).digest("hex")
+}
+
+function safeInventorySha256(fields: readonly string[]): string | null {
+  return validateFieldInventory(fields).length === 0 ? fieldInventorySha256(fields) : null
 }
 
 export interface ObservedArtifact {
@@ -84,11 +136,19 @@ function bindingDefects(b: FieldMapBinding): string[] {
     /^[0-9a-f]{64}$/.test(b.artifactSha256) &&
     b.artifactBytes > 0 &&
     !!b.sourceReceiptId &&
+    Array.isArray(b.fieldInventory) &&
     b.fieldInventory.length > 0 &&
+    Array.isArray(b.criticalFields) &&
     b.criticalFields.length > 0 &&
+    Array.isArray(b.mappedFields) &&
     b.mappedFields.length > 0
-  if (!complete) out.push("binding_incomplete")
-  if (fieldInventorySha256(b.fieldInventory) !== b.fieldInventorySha256) {
+  if (!complete) return ["binding_incomplete"]
+  const inventoryDefects = validateFieldInventory(b.fieldInventory)
+  for (const d of inventoryDefects) out.push(`binding_inventory_invalid:${d}`)
+  if (
+    inventoryDefects.length > 0 ||
+    safeInventorySha256(b.fieldInventory) !== b.fieldInventorySha256
+  ) {
     out.push("binding_inventory_hash_invalid")
   }
   const inventory = new Set(b.fieldInventory)
@@ -146,18 +206,30 @@ export function checkFieldMapCompatibility(
     reasons.push("source_identity_mismatch")
   }
 
-  if (fieldInventorySha256(a.fieldInventory) !== b.fieldInventorySha256) {
+  // R2: exact set comparison runs unconditionally. A matching hash is
+  // corroboration, never a reason to skip looking at the fields themselves.
+  const observedDefects = validateFieldInventory(a.fieldInventory)
+  for (const d of observedDefects) reasons.push(`observed_inventory_invalid:${d}`)
+  const observedList = Array.isArray(a.fieldInventory) ? a.fieldInventory : []
+  if (observedDefects.length > 0 || safeInventorySha256(observedList) !== b.fieldInventorySha256) {
     reasons.push("field_inventory_drift")
-    const observed = new Set(a.fieldInventory)
-    const bound = new Set(b.fieldInventory)
-    for (const f of b.criticalFields)
-      if (!observed.has(f)) reasons.push(`missing_critical_field:${f}`)
-    for (const f of b.mappedFields) {
-      if (!observed.has(f) && !b.criticalFields.includes(f))
-        reasons.push(`missing_mapped_field:${f}`)
-    }
-    for (const f of observed) if (!bound.has(f)) reasons.push(`unexpected_field:${f}`)
   }
+  const observed = new Set<unknown>(observedList)
+  const bound = new Set<unknown>(b.fieldInventory)
+  let setMismatch = observed.size !== bound.size
+  for (const f of b.criticalFields)
+    if (!observed.has(f)) reasons.push(`missing_critical_field:${f}`)
+  for (const f of b.mappedFields) {
+    if (!observed.has(f) && !b.criticalFields.includes(f)) reasons.push(`missing_mapped_field:${f}`)
+  }
+  for (const f of bound) if (!observed.has(f)) setMismatch = true
+  for (const f of observed) {
+    if (!bound.has(f)) {
+      setMismatch = true
+      reasons.push(`unexpected_field:${String(f)}`)
+    }
+  }
+  if (setMismatch) reasons.push("inventory_set_mismatch")
 
   return result(reasons)
 }
