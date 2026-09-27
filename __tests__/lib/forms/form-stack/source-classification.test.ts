@@ -16,6 +16,7 @@ import {
   validateCatalog,
   type ClassifiedSource,
 } from "@/lib/forms/form-stack/source-classification"
+import { getFormById } from "@/lib/forms/illinois-court-forms"
 
 const LEGACY = {
   sha256: "2b15c02a46b66a7d0fa2bd80d4644d5d6d5e6798911225f8e0272b45fe20b551",
@@ -24,6 +25,16 @@ const LEGACY = {
   formId: "income-withholding-order",
 }
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+// A supplemental official_current entry that AGREES with main's pinned catalog row.
+const PNC = getFormById("petition-no-children")!.provenance!
+const MAIN_AGREEING: ClassifiedSource = {
+  sha256: PNC.sha256,
+  bytes: PNC.bytes,
+  mediaType: "application/pdf",
+  formId: "petition-no-children",
+  sourceClass: "official_current",
+  receiptId: "synthetic-current-receipt",
+}
 const SUCCESSOR = {
   sha256: "6cc4f2c57ae0b590591caad4b9335f2fbe55df4f663cdb1daa001b07e4b4e6e3",
   bytes: 50777,
@@ -81,15 +92,7 @@ describe("PR-3 positive identification", () => {
   })
 
   it("even an official_current entry is never shippable from this module", () => {
-    const current: ClassifiedSource = {
-      sha256: "1".repeat(64),
-      bytes: 10,
-      mediaType: "application/pdf",
-      formId: "synthetic-current",
-      sourceClass: "official_current",
-      receiptId: "synthetic",
-    }
-    const r = classifySource({ ...current }, [...SOURCE_CATALOG, current])
+    const r = classifySource({ ...MAIN_AGREEING }, [...SOURCE_CATALOG, MAIN_AGREEING])
     expect(r.sourceClass).toBe("official_current")
     expect(r.shippable).toBe(false)
   })
@@ -157,5 +160,52 @@ describe("PR-3 adversarial — unknown and conflict fail closed", () => {
     expect(validateCatalog([...SOURCE_CATALOG, bad])).toContain(
       `catalog_entry_cannot_be_unknown:${bad.sha256}`
     )
+  })
+})
+
+describe("R7 main's catalog stays authoritative — the supplement can only narrow", () => {
+  const withEntry = (e: ClassifiedSource) => classifySource({ ...e }, [...SOURCE_CATALOG, e])
+
+  it("reports main's own identity for the legacy IWO alongside the supplemental class", () => {
+    const r = classifySource(LEGACY)
+    expect(r.sourceClass).toBe("official_legacy")
+    expect(r.mainCatalog).toEqual({
+      formId: "income-withholding-order",
+      authority: "federal_acf",
+      automationStatus: "separately_guarded",
+    })
+  })
+
+  it("an official class for a form main does not catalog → unknown", () => {
+    const r = withEntry({ ...MAIN_AGREEING, formId: "synthetic-current" })
+    expect(r.sourceClass).toBe("unknown")
+    expect(r.reasons).toContain("main_catalog_unknown_form")
+  })
+
+  it("an official class whose bytes differ from main's pinned artifact → unknown", () => {
+    const r = withEntry({ ...MAIN_AGREEING, sha256: "1".repeat(64) })
+    expect(r.sourceClass).toBe("unknown")
+    expect(r.reasons).toContain("main_catalog_artifact_mismatch")
+  })
+
+  it.each([
+    ["certificate-of-service", "unverified_identity"],
+    ["marital-settlement-agreement", "freshstart_template"],
+  ])("never classifies main's unsupported identity %s as official", (formId, authority) => {
+    const r = withEntry({ ...MAIN_AGREEING, sha256: "2".repeat(64), formId })
+    expect(r.sourceClass).toBe("unknown")
+    expect(r.reasons).toContain(`main_catalog_identity_unsupported:${authority}`)
+  })
+
+  it("bytes main pins to one form cannot be classified under another form id", () => {
+    const r = withEntry({ ...MAIN_AGREEING, formId: "summons" })
+    expect(r.sourceClass).toBe("unknown")
+    expect(r.reasons).toContain("main_catalog_pins_hash_to_other_form")
+  })
+
+  it("the non-official successor DOCX, absent from main, stays non-shippable", () => {
+    const r = classifySource(SUCCESSOR)
+    expect(r.sourceClass).toBe("official_successor_not_shippable")
+    expect(r.mainCatalog).toBeNull()
   })
 })

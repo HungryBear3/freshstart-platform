@@ -36,6 +36,7 @@ const request = (): PacketRequest => ({
     {
       mappingId: "petition-no-children",
       mappingVersion: "unbound",
+      countyId: "cook",
       artifact: {
         formId: "petition-no-children",
         path: "public/forms/petition-dissolution-no-children.pdf",

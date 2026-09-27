@@ -22,14 +22,17 @@ import {
   type GateReceipt,
 } from "@/lib/forms/form-stack/activation-gates"
 import { SOURCE_CATALOG, type ClassifiedSource } from "@/lib/forms/form-stack/source-classification"
+import { getFormById } from "@/lib/forms/illinois-court-forms"
 
 const SHA = "3c68207aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".replace(/[^0-9a-f]/g, "a").padEnd(40, "a")
 const MANIFEST = "e".repeat(64)
+// Synthetic evidence that agrees with main's pinned catalog row (R7).
+const PNC = getFormById("petition-no-children")!.provenance!
 const CURRENT: ClassifiedSource = {
-  sha256: "c".repeat(64),
-  bytes: 10,
+  sha256: PNC.sha256,
+  bytes: PNC.bytes,
   mediaType: "application/pdf",
-  formId: "synthetic-current",
+  formId: "petition-no-children",
   sourceClass: "official_current",
   receiptId: "synthetic-evidence",
 }
@@ -198,6 +201,23 @@ describe("R4 receipt dates are validated before trust or freshness", () => {
     )
     expect(r.state).toBe("release_approved_compiled_off")
     expect(r.active).toBe(false)
+  })
+})
+
+describe("R7 current-form evidence must agree with main's catalog", () => {
+  it("an injected official_current entry main does not corroborate is not evidence", () => {
+    const rogue: ClassifiedSource = { ...CURRENT, sha256: "c".repeat(64), formId: "synthetic" }
+    const rs = all().map(r =>
+      r.gate === "authoritative_current_form_evidence"
+        ? { ...r, evidenceArtifactSha256: rogue.sha256 }
+        : r
+    )
+    const r = evaluateActivation(
+      { subject, receipts: rs, env: {} },
+      { clock: NOW, registry: registryFor(rs), catalog: [...SOURCE_CATALOG, rogue] }
+    )
+    expect(r.gates[1].reasons).toContain("evidence_not_official_current:unknown")
+    expect(r.state).toBe("owner_approved")
   })
 })
 

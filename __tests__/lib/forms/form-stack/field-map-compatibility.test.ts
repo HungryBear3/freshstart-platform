@@ -68,7 +68,13 @@ const observedA = () => ({
 const deps = { bindings: [BINDING_A], catalog: CATALOG }
 const check = (over: Partial<ReturnType<typeof observedA>> = {}, q: Record<string, string> = {}) =>
   checkFieldMapCompatibility(
-    { mappingId: "map-a", mappingVersion: "1", ...q, artifact: { ...observedA(), ...over } },
+    {
+      mappingId: "map-a",
+      mappingVersion: "1",
+      countyId: "cook",
+      ...q,
+      artifact: { ...observedA(), ...over },
+    },
     deps
   )
 
@@ -78,6 +84,7 @@ describe("PR-4 pinned state", () => {
     const r = checkFieldMapCompatibility({
       mappingId: "petition-no-children",
       mappingVersion: "any",
+      countyId: "cook",
       artifact: { ...observedA(), formId: "petition-no-children" },
     })
     expect(r.compatible).toBe(false)
@@ -142,7 +149,12 @@ describe("R2 set checks are unconditional", () => {
   }
   const run = (binding: FieldMapBinding, fieldInventory: string[]) =>
     checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: { ...observedA(), fieldInventory } },
+      {
+        mappingId: "map-a",
+        mappingVersion: "1",
+        countyId: "cook",
+        artifact: { ...observedA(), fieldInventory },
+      },
       { bindings: [binding], catalog: CATALOG }
     )
 
@@ -187,11 +199,22 @@ describe("R2 set checks are unconditional", () => {
 })
 
 describe("PR-4 exact binding", () => {
-  it("accepts only the exact artifact, inventory, version and source", () => {
+  it("supplemental checks passing is not enough — main's gates still refuse", () => {
     const r = check()
-    expect(r.reasons).toEqual([])
-    expect(r.compatible).toBe(true)
+    expect(r.compatible).toBe(false)
     expect(r.generationAuthorized).toBe(false)
+    // Every supplemental check passed; only main's canonical gates refuse.
+    expect(r.reasons.every(x => x.startsWith("main_") || x.startsWith("classification:"))).toBe(
+      true
+    )
+    expect(r.reasons).toEqual(
+      expect.arrayContaining([
+        "classification:main_catalog_unknown_form",
+        "main_field_map_not_proven",
+        "main_template_source_unavailable",
+        "main_has_no_field_map",
+      ])
+    )
   })
 
   it("rejects a stale mapping version", () => {
@@ -240,7 +263,7 @@ describe("PR-4 exact binding", () => {
   it("rejects a binding whose own inventory hash does not match its inventory", () => {
     const bad = { ...BINDING_A, fieldInventorySha256: "d".repeat(64) }
     const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: observedA() },
+      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
       { bindings: [bad], catalog: CATALOG }
     )
     expect(r.reasons).toContain("binding_inventory_hash_invalid")
@@ -249,7 +272,7 @@ describe("PR-4 exact binding", () => {
   it("rejects a binding whose critical field is not mapped", () => {
     const bad = { ...BINDING_A, mappedFields: ["Petitioner Name"] }
     const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: observedA() },
+      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
       { bindings: [bad], catalog: CATALOG }
     )
     expect(r.reasons).toContain("critical_field_unmapped:Respondent Name")
@@ -258,7 +281,7 @@ describe("PR-4 exact binding", () => {
   it("rejects a binding with no critical fields", () => {
     const bad = { ...BINDING_A, criticalFields: [] }
     const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: observedA() },
+      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
       { bindings: [bad], catalog: CATALOG }
     )
     expect(r.reasons).toContain("binding_incomplete")
@@ -266,7 +289,7 @@ describe("PR-4 exact binding", () => {
 
   it("rejects a mapping onto an artifact the catalog does not know", () => {
     const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: observedA() },
+      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
       { bindings: [BINDING_A], catalog: SOURCE_CATALOG }
     )
     expect(r.reasons).toContain("source_not_mappable:unknown")
@@ -275,7 +298,7 @@ describe("PR-4 exact binding", () => {
   it("rejects a binding whose source receipt differs from the catalog identity", () => {
     const bad = { ...BINDING_A, sourceReceiptId: "someone-else" }
     const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", artifact: observedA() },
+      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
       { bindings: [bad], catalog: CATALOG }
     )
     expect(r.reasons).toContain("source_identity_mismatch")
@@ -294,6 +317,7 @@ describe("PR-4 exact binding", () => {
       {
         mappingId: "map-a",
         mappingVersion: "1",
+        countyId: "cook",
         artifact: {
           ...observedA(),
           formId: succ.formId,
