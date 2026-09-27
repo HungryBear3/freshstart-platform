@@ -64,7 +64,7 @@ const request = (): PacketRequest => ({
       skipped: 0,
     },
   ],
-  holds: [{ id: "owner_copy_approval_banner", reason: "New banner copy", owner: "product owner" }],
+  holdIds: ["banner_copy_owner_review"],
 })
 
 const build = (r = request()) => {
@@ -91,13 +91,14 @@ describe("PR-6 packet contents", () => {
     expect(body("compatibility.json")[0].reasons).toContain("no_bound_mapping")
   })
 
-  it("ignores caller-supplied verdicts smuggled into queries", () => {
+  it("refuses caller-supplied verdicts smuggled into queries (closed schema)", () => {
     const r = request() as unknown as { compatibilityQueries: Record<string, unknown>[] }
     r.compatibilityQueries[0].compatible = true
     r.compatibilityQueries[0].reasons = []
-    const p = build(r as unknown as PacketRequest)
-    const compat = JSON.parse(p.entries.find(e => e.name === "compatibility.json")!.content)
-    expect(compat[0].compatible).toBe(false)
+    const out = buildOperatorReviewPacket(r as unknown as PacketRequest, { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok)
+      expect(out.violations).toContain("request_invalid:compatibilityQueries[0]:unknown_key")
   })
 
   it("carries non-official artifacts by hash and shape only, never their body", () => {
@@ -111,7 +112,7 @@ describe("PR-6 packet contents", () => {
 
   it("always carries the pinned holds, which the caller cannot drop", () => {
     const r = request()
-    r.holds = []
+    r.holdIds = []
     const p = build(r)
     const holds = JSON.parse(p.entries.find(e => e.name === "holds.json")!.content)
     for (const h of PINNED_PACKET_HOLDS)
@@ -124,18 +125,101 @@ describe("PR-6 packet contents", () => {
 })
 
 describe("PR-6 adversarial", () => {
-  it("refuses PII anywhere in the request", () => {
-    for (const pii of [
-      "jane.doe@example.com",
-      "(312) 555-0142",
-      "123-45-6789",
-      "4111 1111 1111 1111",
-    ]) {
-      const r = request()
-      r.holds.push({ id: "x", reason: pii, owner: "o" })
-      const out = buildOperatorReviewPacket(r, { clock: FIXED })
-      expect(out.ok).toBe(false)
-    }
+  // R3: a closed, length-bounded schema per metadata field. Every rejection
+  // is a code and a path — never the offending value.
+  const PHONES = [
+    "3125550142",
+    "(312) 555-0142",
+    "312.555.0142",
+    "+1 312 555 0142",
+    "+44 20 7946 0958",
+    "312-555-0142 x12",
+    "(312) 555-0142 ext. 7",
+  ]
+  const PII = [...PHONES, "jane.doe@example.com", "123-45-6789", "123456789", "4111 1111 1111 1111"]
+
+  const refuses = (mutate: (r: PacketRequest) => void, path: string, pii: string) => {
+    const r = request()
+    mutate(r)
+    const out = buildOperatorReviewPacket(r, { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok)
+      expect(out.violations.some(v => v.startsWith(`request_invalid:${path}`))).toBe(true)
+    expect(JSON.stringify(out)).not.toContain(pii)
+  }
+
+  it.each(PII)("refuses %j in a test command, without echoing it", pii => {
+    refuses(r => (r.tests[0].command = `jest ${pii}`), "tests[0].command", pii)
+  })
+
+  it.each(PII)("refuses %j as a hold (holds are ids, never text)", pii => {
+    refuses(r => (r.holdIds = [pii] as never), "holdIds[0]", pii)
+    refuses(r => (r.holdIds = [`call ${pii}`] as never), "holdIds[0]", pii)
+  })
+
+  it.each(PHONES)("refuses %j in every identifier-shaped field", pii => {
+    refuses(r => (r.classificationQueries[0].formId = pii), "classificationQueries[0].formId", pii)
+    refuses(
+      r => (r.compatibilityQueries[0].mappingId = pii),
+      "compatibilityQueries[0].mappingId",
+      pii
+    )
+    refuses(
+      r => (r.compatibilityQueries[0].mappingVersion = pii),
+      "compatibilityQueries[0].mappingVersion",
+      pii
+    )
+    refuses(
+      r => (r.compatibilityQueries[0].countyId = pii),
+      "compatibilityQueries[0].countyId",
+      pii
+    )
+    refuses(
+      r => (r.compatibilityQueries[0].artifact.path = `public/forms/${pii}.pdf`),
+      "compatibilityQueries[0].artifact.path",
+      pii
+    )
+    refuses(
+      r => (r.compatibilityQueries[0].artifact.fieldInventory = [`Phone ${pii}`]),
+      "compatibilityQueries[0].artifact.fieldInventory",
+      pii
+    )
+  })
+
+  it("refuses out-of-vocabulary media types, classes and statuses", () => {
+    refuses(
+      r => (r.classificationQueries[0].mediaType = "text/plain"),
+      "classificationQueries[0].mediaType",
+      "text/plain"
+    )
+    refuses(
+      r => (r.classificationQueries[0].claimedClass = "trusted" as never),
+      "classificationQueries[0].claimedClass",
+      "trusted"
+    )
+    refuses(r => (r.tests[0].status = "MOSTLY" as never), "tests[0].status", "MOSTLY")
+    refuses(r => (r.tests[0].passed = -1), "tests[0].passed", "-1")
+    refuses(r => (r.classificationQueries[0].bytes = 1.5), "classificationQueries[0].bytes", "1.5")
+  })
+
+  it("customer text is hashed, never copied: PII in a summary value appears nowhere", () => {
+    const r = request()
+    r.nonOfficialInputs[0].summary[0].value = "Jane 3125550142 jane.doe@example.com"
+    const out = buildOperatorReviewPacket(r, { clock: FIXED })
+    expect(out.ok).toBe(true)
+    const bytes = JSON.stringify(out)
+    for (const pii of ["3125550142", "jane.doe@example.com", "Jane"])
+      expect(bytes).not.toContain(pii)
+  })
+
+  it("field names never appear in compatibility reasons, only their digests", () => {
+    const r = request()
+    r.compatibilityQueries[0].artifact.fieldInventory = ["Petitioner Name", "Zeta Field"]
+    const out = buildOperatorReviewPacket(r, { clock: FIXED })
+    if (!out.ok) throw new Error(out.violations.join(","))
+    const bytes = JSON.stringify(out)
+    expect(bytes).not.toContain("Zeta Field")
+    expect(bytes).not.toContain("Petitioner Name")
   })
 
   it("refuses a non-official artifact that fails its own boundary", () => {
