@@ -17,10 +17,13 @@
  * a court form; it says nothing about whether it gives legal advice. So every
  * sentence Fresh Start writes here — title, labels, checklist items, guidance —
  * is a fixed template chosen by id from `NON_OFFICIAL_TEMPLATES`; callers can
- * no longer pass guidance text at all. The only free text left is the
- * customer's own summary values, and those (and the assembled document) must
- * pass `findLegalAdviceContent`, which refuses recommendations about rights,
- * strategy, settlement, waiver, outcomes, or what anyone "should" do.
+ * no longer pass guidance text at all. Summary values are the customer's own
+ * answers, and each must fit its label's CLOSED schema (a county name from the
+ * statewide list, a child count, a year) — so there is no free text left in
+ * which to phrase advice. `findLegalAdviceContent`, which refuses
+ * recommendations about rights, strategy, settlement, waiver, outcomes, or what
+ * anyone "should" do, still runs on every value and on the assembled document
+ * as a second, independent layer.
  *
  * The banner, chrome and every template are NEW user-visible copy and are held
  * for owner copy approval (`copyApproval` says so on every document). This
@@ -30,6 +33,7 @@
  */
 import crypto from "node:crypto"
 
+import { ALL_ILLINOIS_COUNTIES } from "@/lib/counties/all-counties"
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
 import {
   canonicalizeForDetection,
@@ -114,6 +118,17 @@ export type TitleId = keyof Templates["titles"]
 export type SummaryLabelId = keyof Templates["summaryLabels"]
 export type ChecklistItemId = keyof Templates["checklistItems"]
 export type GuidanceId = keyof Templates["guidance"]
+
+const YEAR = /^(19[3-9]\d|20\d\d)$/
+const COUNTY_NAMES: ReadonlySet<string> = new Set(ALL_ILLINOIS_COUNTIES)
+
+/** The only values each summary label accepts. No label takes free text. */
+const SUMMARY_VALUE_SCHEMAS: Readonly<Record<SummaryLabelId, (v: string) => boolean>> = {
+  county: v => COUNTY_NAMES.has(v),
+  children_under_18: v => /^(None|[1-9]|1\d)$/.test(v),
+  marriage_year: v => YEAR.test(v),
+  separation_year: v => YEAR.test(v),
+}
 
 export interface NonOfficialInput {
   titleId: TitleId
@@ -208,7 +223,11 @@ function resolveInput(input: NonOfficialInput, violations: Set<string>): Resolve
   }
   for (const s of input.summary) {
     if (!s || !isStr(s.value)) return null
-    out.summary.push({ label: need(template(T.summaryLabels, s.labelId)), value: s.value })
+    const label = template(T.summaryLabels, s.labelId)
+    if (label !== null && !SUMMARY_VALUE_SCHEMAS[s.labelId](s.value)) {
+      violations.add(`summary_value_invalid:${s.labelId}`)
+    }
+    out.summary.push({ label: need(label), value: s.value })
   }
   for (const c of input.checklist) {
     if (!c || typeof c.done !== "boolean") return null
