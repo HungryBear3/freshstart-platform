@@ -324,10 +324,12 @@ export function reconcileIwoProvenance(
     )
   }
 
+  // Main reconciled the canonical URL to the exact retrieval address
+  // (acf.gov, `?download=1`). Any difference from the receipt is drift now,
+  // not an open question — compared as whole strings, not by host.
+  check(p.canonicalUrl === artifact.locator, "canonical_url_differs_from_receipt")
+
   const openUncertainties: string[] = []
-  if (new URL(p.canonicalUrl).host !== new URL(artifact.locator).host) {
-    openUncertainties.push("canonical_url_host_differs_from_retrieval_receipt")
-  }
 
   return { consistent: out.length === 0, discrepancies: out, openUncertainties }
 }
