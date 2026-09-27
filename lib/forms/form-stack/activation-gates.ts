@@ -28,6 +28,7 @@ import crypto from "node:crypto"
 
 import { calendarDateInTimeZone, FORM_EXPIRATION_TIME_ZONE } from "@/lib/forms/iwo-provenance"
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
+import { parseStrictIsoDate } from "@/lib/forms/form-stack/strict-date"
 import { canonicalJson } from "@/lib/forms/form-stack/operator-review-packet"
 import { SOURCE_CATALOG, type ClassifiedSource } from "@/lib/forms/form-stack/source-classification"
 
@@ -114,9 +115,6 @@ export function inspectActivationFlags(env: Record<string, string | undefined>):
   return out
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-const dayNumber = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000
-
 function checkReceipt(
   gate: GateId,
   candidates: GateReceipt[],
@@ -134,8 +132,7 @@ function checkReceipt(
     r.receiptId.length > 0 &&
     typeof r.issuedBy === "string" &&
     r.issuedBy.length > 0 &&
-    ISO_DATE.test(r.issuedOn) &&
-    !Number.isNaN(dayNumber(r.issuedOn)) &&
+    parseStrictIsoDate(r.issuedOn) !== null &&
     /^[0-9a-f]{40}$/.test(r.boundCommitSha) &&
     /^[0-9a-f]{64}$/.test(r.boundPacketManifestSha256)
   if (!wellFormed) return { gate, satisfied: false, reasons: [...reasons, "malformed_receipt"] }
@@ -145,9 +142,16 @@ function checkReceipt(
   if (r.boundPacketManifestSha256 !== subject.packetManifestSha256)
     reasons.push("receipt_bound_to_different_packet")
 
-  const age = dayNumber(today) - dayNumber(r.issuedOn)
-  if (age < 0) reasons.push("future_dated_receipt")
-  if (age > MAX_RECEIPT_AGE_DAYS) reasons.push("stale_receipt")
+  // `issuedOn` was validated above, before any trust check. An invalid clock
+  // yields no day at all, which can never count as fresh.
+  const todayDay = parseStrictIsoDate(today)
+  if (todayDay === null) {
+    reasons.push("invalid_clock")
+  } else {
+    const age = todayDay - parseStrictIsoDate(r.issuedOn)!
+    if (age < 0) reasons.push("future_dated_receipt")
+    if (age > MAX_RECEIPT_AGE_DAYS) reasons.push("stale_receipt")
+  }
 
   if (gate === "independent_exact_sha_review" && r.issuedBy === subject.author) {
     reasons.push("review_not_independent")

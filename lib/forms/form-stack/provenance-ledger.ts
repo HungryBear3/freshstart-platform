@@ -22,6 +22,7 @@ import {
   PINNED_OIRA_APPROVAL,
   type IwoOiraApproval,
 } from "@/lib/forms/iwo-provenance"
+import { addCalendarYearsStrict } from "@/lib/forms/form-stack/strict-date"
 
 export function deepFreeze<T>(value: T): T {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
@@ -252,11 +253,6 @@ function receipt(id: string): SourceReceipt {
   return r
 }
 
-function plusOneCalendarYear(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-")
-  return `${Number(y) + 1}-${m}-${d}`
-}
-
 /**
  * Compare the runtime model with the ledger. The default argument is the real
  * runtime model; tests pass modified copies to prove drift is caught.
@@ -296,7 +292,7 @@ export function reconcileIwoProvenance(
   // and must never coincide with a value an authority actually stated.
   const cutoff = IWO_DERIVED_POLICY.find(x => x.id === "legacy_transition_first_blocked_date")!
   check(
-    cutoff.value === plusOneCalendarYear(fact("oira_approval_date")) &&
+    addCalendarYearsStrict(fact("oira_approval_date"), 1) === cutoff.value &&
       p.legacyTransitionFirstBlockedDate === cutoff.value,
     "legacy_transition_first_blocked_date_differs_from_derivation"
   )
