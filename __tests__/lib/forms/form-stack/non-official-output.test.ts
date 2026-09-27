@@ -142,3 +142,35 @@ describe("PR-5 adversarial — official markers refuse the whole render", () => 
     if (!r.ok) expect(r.violations).toContain("multiline_value")
   })
 })
+
+describe("R1 renderer uses the hardened canonicalizer", () => {
+  it.each([
+    ["tab caption", "IN THE CIRCUIT\tCOURT OF COOK COUNTY", "court_caption"],
+    ["U+2011 court-ready", "Your court\u2011ready packet", "completion_or_acceptance_claim"],
+    ["ffi ligature", "Your o\ufb03cial form", "official_claim"],
+    ["zero-width official", "Offi\u200bcial form", "official_claim"],
+    ["NBSP caption", "circuit\u00a0court of Cook", "court_caption"],
+    ["line-separator caption", "In re the\u2028Marriage of A", "court_caption"],
+  ])("refuses a %s in customer text", (_n, text, code) => {
+    const i = input()
+    i.summary[0].value = text
+    const r = renderNonOfficialSummary(i)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.violations).toContain(code)
+  })
+
+  it("refuses invisible or noncanonical display text even with no marker", () => {
+    for (const value of ["Co\u200bok", "\uff23ook", "C\u043eok"]) {
+      const i = input()
+      i.summary[0].value = value
+      expect(renderNonOfficialSummary(i).ok).toBe(false)
+    }
+  })
+
+  it("refuses a spaced or unicode-dashed banner forgery", () => {
+    const i = input()
+    i.summary[0].value = "not\u00a0a court\u2011form"
+    const r = renderNonOfficialSummary(i)
+    expect(r.ok).toBe(false)
+  })
+})
