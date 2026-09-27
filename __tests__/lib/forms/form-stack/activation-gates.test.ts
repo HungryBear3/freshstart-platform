@@ -166,6 +166,41 @@ describe("PR-7 adversarial receipts", () => {
   })
 })
 
+describe("R4 receipt dates are validated before trust or freshness", () => {
+  // A clock under which the rolled-forward date (Feb 30 -> Mar 2) would be fresh.
+  const MARCH = () => new Date("2026-03-10T12:00:00Z")
+
+  it.each([
+    "2026-02-30",
+    "2026-02-29",
+    "2026-03-05T00:00:00Z",
+    "2026-03-05T00:00:00+05:00",
+    "2026-3-05",
+    " 2026-03-05",
+  ])("an impossible or noncanonical issuedOn %j is malformed even when trusted", issuedOn => {
+    const rs = all().map(r => ({ ...r, issuedOn }))
+    const r = evaluateActivation(
+      { subject, receipts: rs, env: {} },
+      { clock: MARCH, registry: registryFor(rs), catalog: [...SOURCE_CATALOG, CURRENT] }
+    )
+    expect(r.state).toBe("dormant")
+    for (const g of r.gates) {
+      expect(g.satisfied).toBe(false)
+      expect(g.reasons).toEqual(["malformed_receipt"])
+    }
+  })
+
+  it("a real date under the same clock and registry still progresses (control)", () => {
+    const rs = all().map(r => ({ ...r, issuedOn: "2026-03-02" }))
+    const r = evaluateActivation(
+      { subject, receipts: rs, env: {} },
+      { clock: MARCH, registry: registryFor(rs), catalog: [...SOURCE_CATALOG, CURRENT] }
+    )
+    expect(r.state).toBe("release_approved_compiled_off")
+    expect(r.active).toBe(false)
+  })
+})
+
 describe("PR-7 flags never enable", () => {
   it("absent flags are the default-off state", () => {
     expect(inspectActivationFlags({})).toEqual([])
