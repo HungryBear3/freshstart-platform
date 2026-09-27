@@ -12,23 +12,32 @@
 import {
   NON_OFFICIAL_BANNER,
   NON_OFFICIAL_OUTPUT_VERSION,
+  NON_OFFICIAL_TEMPLATES,
+  findLegalAdviceContent,
   findOfficialMarkers,
   renderNonOfficialSummary,
   type NonOfficialInput,
 } from "@/lib/forms/form-stack/non-official-output"
 
 const input = (): NonOfficialInput => ({
-  title: "Your divorce organizer",
+  titleId: "divorce_organizer",
   summary: [
-    { label: "County you told us", value: "Cook" },
-    { label: "Children under 18", value: "None" },
+    { labelId: "county", value: "Cook" },
+    { labelId: "children_under_18", value: "None" },
   ],
   checklist: [
-    { text: "Gather last two years of tax returns", done: true },
-    { text: "List bank accounts and balances", done: false },
+    { itemId: "gather_tax_returns", done: true },
+    { itemId: "list_bank_accounts", done: false },
   ],
-  guidance: ["Ask the circuit clerk's office which forms your county expects."],
+  guidance: ["ask_clerk_which_forms"],
 })
+
+/** The only free text left in the input is a summary value. */
+const withValue = (text: string): NonOfficialInput => {
+  const i = input()
+  i.summary[0].value = text
+  return i
+}
 
 describe("PR-5 rendered document", () => {
   it("renders a typed non-official document with the banner at top and bottom", () => {
@@ -72,45 +81,27 @@ describe("PR-5 rendered document", () => {
 })
 
 describe("PR-5 adversarial — official markers refuse the whole render", () => {
-  const cases: [string, (i: NonOfficialInput) => void, string][] = [
-    ["court caption", i => (i.title = "IN THE CIRCUIT COURT OF COOK COUNTY"), "court_caption"],
-    ["marriage caption", i => (i.guidance = ["In re the Marriage of A and B"]), "court_caption"],
-    ["case number", i => (i.summary[0].value = "Case No. 2026D001234"), "case_number"],
-    ["OMB number", i => (i.guidance = ["Use OMB 0970-0154"]), "official_form_number"],
-    ["state form code", i => (i.checklist[0].text = "Fill out ATJ 129.5"), "official_form_number"],
-    ["signature", i => (i.checklist[1].text = "Signature of Petitioner"), "signature"],
-    ["signature line", i => (i.guidance = ["Sign here: ________"]), "signature"],
-    ["perjury verification", i => (i.guidance = ["Under penalties of perjury"]), "signature"],
-    ["court-ready", i => (i.title = "Your court-ready packet"), "completion_or_acceptance_claim"],
-    ["form-ready", i => (i.title = "Form ready documents"), "completion_or_acceptance_claim"],
-    [
-      "ready to file",
-      i => (i.guidance = ["This is ready to file"]),
-      "completion_or_acceptance_claim",
-    ],
-    [
-      "completed forms",
-      i => (i.guidance = ["Your completed forms"]),
-      "completion_or_acceptance_claim",
-    ],
-    [
-      "prepared forms",
-      i => (i.guidance = ["We prepared your forms"]),
-      "completion_or_acceptance_claim",
-    ],
-    [
-      "clerk acceptance",
-      i => (i.guidance = ["Accepted by the clerk"]),
-      "completion_or_acceptance_claim",
-    ],
-    ["guarantee", i => (i.guidance = ["Guaranteed approval"]), "completion_or_acceptance_claim"],
-    ["official", i => (i.title = "Official divorce form"), "official_claim"],
+  const cases: [string, string, string][] = [
+    ["court caption", "IN THE CIRCUIT COURT OF COOK COUNTY", "court_caption"],
+    ["marriage caption", "In re the Marriage of A and B", "court_caption"],
+    ["case number", "Case No. 2026D001234", "case_number"],
+    ["OMB number", "Use OMB 0970-0154", "official_form_number"],
+    ["state form code", "Fill out ATJ 129.5", "official_form_number"],
+    ["signature", "Signature of Petitioner", "signature"],
+    ["signature line", "Sign here: ________", "signature"],
+    ["perjury verification", "Under penalties of perjury", "signature"],
+    ["court-ready", "Your court-ready packet", "completion_or_acceptance_claim"],
+    ["form-ready", "Form ready documents", "completion_or_acceptance_claim"],
+    ["ready to file", "This is ready to file", "completion_or_acceptance_claim"],
+    ["completed forms", "Your completed forms", "completion_or_acceptance_claim"],
+    ["prepared forms", "We prepared your forms", "completion_or_acceptance_claim"],
+    ["clerk acceptance", "Accepted by the clerk", "completion_or_acceptance_claim"],
+    ["guarantee", "Guaranteed approval", "completion_or_acceptance_claim"],
+    ["official", "Official divorce form", "official_claim"],
   ]
 
-  it.each(cases)("%s → refused", (_name, mutate, code) => {
-    const i = input()
-    mutate(i)
-    const r = renderNonOfficialSummary(i)
+  it.each(cases)("%s → refused", (_name, text, code) => {
+    const r = renderNonOfficialSummary(withValue(text))
     expect(r.ok).toBe(false)
     if (r.ok) return
     expect(r.violations.some(v => v.startsWith(code))).toBe(true)
@@ -118,17 +109,16 @@ describe("PR-5 adversarial — official markers refuse the whole render", () => 
 
   it("refuses malformed input instead of coercing it", () => {
     const bad = input() as unknown as { summary: unknown[] }
-    bad.summary.push({ label: "x", value: 42 })
+    bad.summary.push({ labelId: "county", value: 42 })
     const r = renderNonOfficialSummary(bad as unknown as NonOfficialInput)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.violations).toContain("malformed_input")
   })
 
   it("refuses input that would forge the banner or a chrome line", () => {
-    const i = input()
-    i.guidance = [NON_OFFICIAL_BANNER]
-    const r = renderNonOfficialSummary(i)
+    const r = renderNonOfficialSummary(withValue(NON_OFFICIAL_BANNER))
     expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.violations).toContain("chrome_forgery")
   })
 
   it("refuses multi-line values that could inject layout", () => {
@@ -172,5 +162,113 @@ describe("R1 renderer uses the hardened canonicalizer", () => {
     i.summary[0].value = "not\u00a0a court\u2011form"
     const r = renderNonOfficialSummary(i)
     expect(r.ok).toBe(false)
+  })
+})
+
+describe("R5 no free-text guidance: every sentence we write is a reviewed template", () => {
+  it("title, labels, checklist and guidance are template ids, never strings", () => {
+    const r = renderNonOfficialSummary(input())
+    if (!r.ok) throw new Error(r.violations.join(","))
+    expect(r.document.text).toContain(NON_OFFICIAL_TEMPLATES.guidance.ask_clerk_which_forms)
+    expect(r.document.text).toContain(NON_OFFICIAL_TEMPLATES.checklistItems.gather_tax_returns)
+    expect(r.document.copyApproval).toBe("unapproved_pending_owner_review")
+  })
+
+  it("refuses an unknown or free-text guidance entry", () => {
+    const i = input() as unknown as { guidance: string[] }
+    i.guidance = ["You should waive maintenance and accept this settlement."]
+    const r = renderNonOfficialSummary(i as unknown as NonOfficialInput)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.violations).toContain("unknown_template_id")
+  })
+
+  it("refuses unknown title, label and checklist ids", () => {
+    for (const mutate of [
+      (i: Record<string, unknown>) => (i.titleId = "Official divorce form"),
+      (i: Record<string, unknown>) =>
+        ((i.summary as { labelId: string }[])[0].labelId = "You should settle"),
+      (i: Record<string, unknown>) =>
+        ((i.checklist as { itemId: string }[])[0].itemId = "waive maintenance"),
+      (i: Record<string, unknown>) => (i.guidance = ["constructor"]),
+      (i: Record<string, unknown>) => (i.guidance = ["__proto__"]),
+    ]) {
+      const i = input() as unknown as Record<string, unknown>
+      mutate(i)
+      const r = renderNonOfficialSummary(i as unknown as NonOfficialInput)
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.violations).toContain("unknown_template_id")
+    }
+  })
+
+  it("every shipped template passes the marker scan and the advice policy", () => {
+    const all = [
+      ...Object.values(NON_OFFICIAL_TEMPLATES.titles),
+      ...Object.values(NON_OFFICIAL_TEMPLATES.summaryLabels),
+      ...Object.values(NON_OFFICIAL_TEMPLATES.checklistItems),
+      ...Object.values(NON_OFFICIAL_TEMPLATES.guidance),
+    ]
+    expect(all.length).toBeGreaterThan(0)
+    for (const t of all) {
+      expect(findOfficialMarkers(t)).toEqual([])
+      expect(findLegalAdviceContent(t)).toEqual([])
+    }
+    expect(Object.isFrozen(NON_OFFICIAL_TEMPLATES.guidance)).toBe(true)
+    expect(NON_OFFICIAL_TEMPLATES.approval).toBe("unapproved_pending_owner_review")
+  })
+})
+
+describe("R5 the advice policy refuses recommendations in customer text", () => {
+  it("refuses the blocked counterexample", () => {
+    const text = "You should waive maintenance and accept this settlement."
+    expect(findLegalAdviceContent(text)).toEqual(
+      expect.arrayContaining(["prescriptive", "waiver", "settlement"])
+    )
+    const r = renderNonOfficialSummary(withValue(text))
+    expect(r.ok).toBe(false)
+    if (!r.ok)
+      expect(r.violations).toEqual(
+        expect.arrayContaining([
+          "legal_advice:prescriptive",
+          "legal_advice:waiver",
+          "legal_advice:settlement",
+        ])
+      )
+  })
+
+  it.each([
+    ["should", "You should file in Cook", "prescriptive"],
+    ["ought", "You ought to ask for the house", "prescriptive"],
+    ["must", "You must ask for maintenance", "prescriptive"],
+    ["recommend", "We recommend joint custody", "recommendation"],
+    ["advise", "We advise against mediation", "recommendation"],
+    ["best option", "Mediation is the best option", "recommendation"],
+    ["waiver", "Sign the waiver", "waiver"],
+    ["settle", "Settle before trial", "settlement"],
+    ["accept offer", "Accept the offer from your spouse", "settlement"],
+    ["outcome", "You will get the house", "outcome"],
+    ["likely", "The judge will likely award support", "outcome"],
+    ["chances", "Your chances of winning are high", "outcome"],
+    ["rights", "Your rights to the pension", "rights"],
+    ["entitled", "You are entitled to half", "rights"],
+    ["strategy", "A good strategy is to delay", "strategy"],
+    ["leverage", "Use the house as leverage", "strategy"],
+    ["unicode should", "You sh\u200bould waive", "prescriptive"],
+    ["fullwidth waive", "\uff37aive it", "waiver"],
+  ])("%s → %s", (_n, text, code) => {
+    expect(findLegalAdviceContent(text)).toContain(code)
+    expect(renderNonOfficialSummary(withValue(text)).ok).toBe(false)
+  })
+
+  it("accepts plain facts", () => {
+    for (const fact of ["Cook", "None", "2", "Married in 2015", "Jos\u00e9 Pe\u00f1a"]) {
+      expect(findLegalAdviceContent(fact)).toEqual([])
+      expect(renderNonOfficialSummary(withValue(fact)).ok).toBe(true)
+    }
+  })
+
+  it("re-applies the advice policy to the assembled document", () => {
+    const r = renderNonOfficialSummary(input())
+    if (!r.ok) throw new Error("render refused")
+    expect(findLegalAdviceContent(r.document.text)).toEqual([])
   })
 })

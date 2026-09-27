@@ -48,10 +48,10 @@ const request = (): PacketRequest => ({
   ],
   nonOfficialInputs: [
     {
-      title: "Synthetic organizer",
-      summary: [{ label: "County you told us", value: "Cook" }],
-      checklist: [{ text: "Gather pay stubs", done: false }],
-      guidance: ["Ask the circuit clerk's office which forms your county expects."],
+      titleId: "divorce_organizer",
+      summary: [{ labelId: "county", value: "Synthetic Cookfact" }],
+      checklist: [{ itemId: "gather_pay_stubs", done: false }],
+      guidance: ["ask_clerk_which_forms"],
     },
   ],
   tests: [
@@ -105,7 +105,7 @@ describe("PR-6 packet contents", () => {
     expect(art[0].sha256).toMatch(/^[0-9a-f]{64}$/)
     expect(art[0].officialMarkers).toEqual([])
     const whole = p.entries.map(e => e.content).join("\n")
-    expect(whole).not.toContain("Gather pay stubs")
+    expect(whole).not.toContain("Synthetic Cookfact")
   })
 
   it("always carries the pinned holds, which the caller cannot drop", () => {
@@ -139,7 +139,7 @@ describe("PR-6 adversarial", () => {
 
   it("refuses a non-official artifact that fails its own boundary", () => {
     const r = request()
-    r.nonOfficialInputs[0].title = "Your court-ready forms"
+    r.nonOfficialInputs[0].summary[0].value = "Your court-ready forms"
     const out = buildOperatorReviewPacket(r, { clock: FIXED })
     expect(out.ok).toBe(false)
     if (!out.ok) expect(out.violations).toContain("non_official_render_refused:0")
