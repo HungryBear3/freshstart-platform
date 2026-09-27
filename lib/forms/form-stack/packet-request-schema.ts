@@ -70,12 +70,10 @@ export function looksLikePersonalData(text: string): boolean {
 
 type Field = (value: unknown) => string | null
 
-const oneOf =
-  (vocab: ReadonlySet<string> | readonly string[]): Field =>
-  v =>
-    typeof v === "string" && (vocab instanceof Set ? vocab.has(v) : vocab.includes(v))
-      ? null
-      : "not_in_vocabulary"
+const oneOf = (vocab: Iterable<string>): Field => {
+  const allowed: ReadonlySet<string> = new Set(vocab)
+  return v => (typeof v === "string" && allowed.has(v) ? null : "not_in_vocabulary")
+}
 const sha256: Field = v => (typeof v === "string" && SHA256.test(v) ? null : "malformed_sha256")
 const boundedInt =
   (min: number, max: number): Field =>
