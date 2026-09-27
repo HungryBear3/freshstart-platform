@@ -12,8 +12,10 @@
  *     manifest hash covers every entry. `verifyOperatorReviewPacket` detects any
  *     change made after the hash an operator reviewed.
  *   - PII-MINIMIZED. Non-official artifacts appear by hash and shape only —
- *     never their text. Every other request string is scanned, and an email,
- *     phone, SSN or card-like number refuses the whole packet.
+ *     never their text. Every other request field is checked against a closed,
+ *     length-bounded schema (R3, `packet-request-schema.ts`); holds are ids
+ *     from a fixed catalog, never caller text; AcroForm field names appear in
+ *     compatibility reasons only as digests; violations never echo a value.
  *   - NO DELIVERY. `delivery` is the literal "none". This module builds an
  *     in-memory object; it has no network, email, storage or database path.
  */
@@ -33,6 +35,7 @@ import {
   renderNonOfficialSummary,
   type NonOfficialInput,
 } from "@/lib/forms/form-stack/non-official-output"
+import { validatePacketRequest } from "@/lib/forms/form-stack/packet-request-schema"
 
 export const OPERATOR_PACKET_VERSION = "cc05-2026-09-26.1"
 
@@ -70,6 +73,32 @@ export const PINNED_PACKET_HOLDS: readonly PacketHold[] = deepFreeze([
   },
 ])
 
+/**
+ * Holds a caller may ADD, by id. Fixed text; a caller can never supply reason
+ * or owner strings, so no customer or contact text can ride in on a hold.
+ */
+export const OPTIONAL_PACKET_HOLDS: readonly PacketHold[] = deepFreeze([
+  {
+    id: "banner_copy_owner_review",
+    reason: "The PR-5 banner and chrome copy await owner review.",
+    owner: "product owner",
+  },
+  {
+    id: "template_copy_owner_review",
+    reason: "The PR-5 procedural templates await owner review.",
+    owner: "product owner",
+  },
+  {
+    id: "homoglyph_coverage_partial",
+    reason: "Confusable folding covers a Cyrillic/Greek subset, not all of Unicode TR39.",
+    owner: "engineering",
+  },
+])
+export type OptionalHoldId =
+  | "banner_copy_owner_review"
+  | "template_copy_owner_review"
+  | "homoglyph_coverage_partial"
+
 export interface PacketTestResult {
   command: string
   status: "PASS" | "FAIL" | "NOT_RUN"
@@ -84,7 +113,8 @@ export interface PacketRequest {
   compatibilityQueries: CompatibilityQuery[]
   nonOfficialInputs: NonOfficialInput[]
   tests: PacketTestResult[]
-  holds: PacketHold[]
+  /** Optional holds, by id only. Mandatory holds are always injected. */
+  holdIds: OptionalHoldId[]
 }
 
 export interface PacketEntry {
@@ -107,12 +137,21 @@ export type PacketBuild =
   | { ok: true; packet: OperatorReviewPacket }
   | { ok: false; violations: string[] }
 
-const PII: readonly (readonly [string, RegExp])[] = [
-  ["email", /[^\s@"]+@[^\s@"]+\.[a-z]{2,}/i],
-  ["ssn", /\b\d{3}-\d{2}-\d{4}\b/],
-  ["phone", /\(?\b\d{3}\)?[-.\s]?\d{3}[-.\s]\d{4}\b/],
-  ["card_number", /\b(?:\d[ -]?){13,19}\b/],
-]
+/** Codes whose suffix is an AcroForm field name; the packet carries a digest instead. */
+const FIELD_BEARING = new Set([
+  "missing_critical_field",
+  "missing_mapped_field",
+  "unexpected_field",
+  "critical_field_not_in_inventory",
+  "critical_field_unmapped",
+  "mapped_field_not_in_inventory",
+])
+
+function redactFieldName(reason: string): string {
+  const i = reason.indexOf(":")
+  if (i < 0 || !FIELD_BEARING.has(reason.slice(0, i))) return reason
+  return `${reason.slice(0, i)}:field#${sha256(reason.slice(i + 1)).slice(0, 16)}`
+}
 
 function sha256(s: string): string {
   return crypto.createHash("sha256").update(s).digest("hex")
@@ -154,14 +193,14 @@ export function buildOperatorReviewPacket(
   req: PacketRequest,
   deps: { clock: () => Date }
 ): PacketBuild {
-  const violations: string[] = []
-  if (!/^[0-9a-f]{40}$/.test(req.candidateSha)) violations.push("malformed_candidate_sha")
+  const optionalIds = new Set(OPTIONAL_PACKET_HOLDS.map(h => h.id))
+  const violations = validatePacketRequest(req, optionalIds)
   const now = deps.clock()
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) violations.push("invalid_clock")
+  // Nothing below may run on a request that failed its schema.
+  if (violations.length > 0) return { ok: false, violations }
 
-  // Customer inputs are rendered and hashed, never copied; everything else is scanned.
-  const scanned = canonicalJson({ ...req, nonOfficialInputs: [] })
-  for (const [code, re] of PII) if (re.test(scanned)) violations.push(`pii_detected:${code}`)
+  // Customer inputs are rendered and hashed, never copied.
 
   const artifacts = req.nonOfficialInputs.map((input, i) => {
     const r = renderNonOfficialSummary(input)
@@ -215,13 +254,15 @@ export function buildOperatorReviewPacket(
     return {
       mappingId: r.mappingId,
       compatible: r.compatible,
-      reasons: r.reasons,
+      reasons: r.reasons.map(redactFieldName),
       sourceClass: r.classification.sourceClass,
       generationAuthorized: r.generationAuthorized,
     }
   })
-  const holdIds = new Set(PINNED_PACKET_HOLDS.map(h => h.id))
-  const holds = [...PINNED_PACKET_HOLDS, ...req.holds.filter(h => !holdIds.has(h.id))]
+  const holds = [
+    ...PINNED_PACKET_HOLDS,
+    ...OPTIONAL_PACKET_HOLDS.filter(h => (req.holdIds as string[]).includes(h.id)),
+  ]
 
   const body = {
     version: OPERATOR_PACKET_VERSION,
@@ -235,7 +276,13 @@ export function buildOperatorReviewPacket(
       entry("non-official-artifacts.json", artifacts),
       entry(
         "tests.json",
-        req.tests.map(t => ({ ...t }))
+        req.tests.map(t => ({
+          command: t.command,
+          status: t.status,
+          passed: t.passed,
+          failed: t.failed,
+          skipped: t.skipped,
+        }))
       ),
       entry("holds.json", holds),
     ],
