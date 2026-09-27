@@ -39,7 +39,7 @@ describe("R4 parseStrictIsoDate", () => {
     "2026-09-25T00:00:00Z",
     "2026-09-25T00:00:00+05:00",
     "2026/09/25",
-    "２０２６-09-25",
+    "\uff12\uff10\uff12\uff16-09-25",
     "",
   ])("rejects %j", value => {
     expect(parseStrictIsoDate(value)).toBeNull()

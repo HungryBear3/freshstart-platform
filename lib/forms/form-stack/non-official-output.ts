@@ -21,6 +21,10 @@
 import crypto from "node:crypto"
 
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
+import {
+  canonicalizeForDetection,
+  findDisplayTextDefects,
+} from "@/lib/forms/form-stack/text-canonicalization"
 
 export const NON_OFFICIAL_OUTPUT_VERSION = "cc05-2026-09-26.1"
 
@@ -37,29 +41,33 @@ const CHROME = deepFreeze({
   guidance: "Filing guidance to confirm with your county",
 })
 
+// Patterns run on canonical text (see text-canonicalization.ts): lowercase,
+// single spaces, "-" for every dash, invisible characters removed or spaced.
 const MARKERS: readonly (readonly [string, RegExp])[] = deepFreeze([
   [
     "court_caption",
-    /\bin the circuit court\b|\bcircuit court of\b|\bin re (the )?marriage of\b|\bjudicial circuit\b/i,
+    /\bin the circuit court\b|\bcircuit court of\b|\bin re (the )?marriage of\b|\bjudicial circuit\b/,
   ],
-  ["case_number", /\bcase\s*(no\.?|number|#)\s*[:#]?\s*\w*\d/i],
+  ["case_number", /\bcase ?(no\.?|number|#) ?[:#]? ?\w*\d/],
   [
     "official_form_number",
-    /\bOMB\b|\b\d{4}-\d{4}\b|\b(ATJ|DV-WI|HFS)\s*[-\d]|\bform\s+(no\.?|number|code)\b/i,
+    /\bomb\b|\b\d{4}-\d{4}\b|\b(atj|dv-?wi|hfs) ?[-\d]|\bform (no\.?|number|code)\b/,
   ],
   [
     "signature",
-    /\bsignature\b|\bsign here\b|_{3,}|\/s\/|penalt(y|ies) of perjury|\bnotar(y|ized)\b|\bverification by certification\b/i,
+    /\bsignature\b|\bsign here\b|_{3,}|\/s\/|penalt(y|ies) of perjury|\bnotar(y|ized)\b|\bverification by certification\b/,
   ],
   [
     "completion_or_acceptance_claim",
-    /\b(court|form|filing)[- ]ready\b|\bready to (be )?filed?\b|\bcompleted? (court |official |legal )?forms?\b|\bprepared (court |official |legal )?(forms?|documents?|packets?)\b|\b(we|fresh start) prepared\b|\baccepted by (the )?(clerk|court|judge)\b|\bclerk[- ]accept|\bguarantee/i,
+    /\b(court|form|filing)-? ?ready\b|\bready to (be )?filed?\b|\bcompleted? (court |official |legal )?forms?\b|\bprepared (court |official |legal )?(forms?|documents?|packets?)\b|\b(we|fresh start) prepared\b|\baccepted by (the )?(clerk|court|judge)\b|\bclerk-? ?accept|\bguarantee/,
   ],
-  ["official_claim", /\bofficial\b/i],
+  ["official_claim", /\bofficial/],
 ])
 
+/** Marker codes found in ANY canonical variant of `text`. */
 export function findOfficialMarkers(text: string): string[] {
-  return MARKERS.filter(([, re]) => re.test(text)).map(([code]) => code)
+  const variants = canonicalizeForDetection(text)
+  return MARKERS.filter(([, re]) => variants.some(v => re.test(v))).map(([code]) => code)
 }
 
 export interface NonOfficialInput {
@@ -115,13 +123,17 @@ export function renderNonOfficialSummary(input: NonOfficialInput): NonOfficialRe
   const violations = new Set<string>()
   const lists = [input.summary, input.checklist, input.guidance]
   if (lists.some(l => l.length > MAX_ITEMS)) violations.add("input_too_large")
-  const chrome = [NON_OFFICIAL_BANNER, ...Object.values(CHROME)].map(s => s.toLowerCase())
+  const chrome = new Set(
+    [NON_OFFICIAL_BANNER, ...Object.values(CHROME)].flatMap(canonicalizeForDetection)
+  )
   for (const s of strings) {
     if (s.length > MAX_LEN) violations.add("input_too_large")
     if (LINE_BREAK.test(s)) violations.add("multiline_value")
-    const lower = s.toLowerCase()
-    if (lower.includes("not a court form") || chrome.includes(lower.trim()))
-      violations.add("chrome_forgery")
+    // Original text is displayed only if it is already plain, canonical text.
+    for (const d of findDisplayTextDefects(s)) violations.add(d)
+    for (const v of canonicalizeForDetection(s)) {
+      if (v.includes("not a court form") || chrome.has(v)) violations.add("chrome_forgery")
+    }
     for (const m of findOfficialMarkers(s)) violations.add(m)
   }
   if (violations.size > 0) return { ok: false, violations: [...violations].sort() }

@@ -44,22 +44,22 @@ const SEPARATORS: [string, string][] = [
   ["vertical tab", "\u000b"],
   ["form feed", "\f"],
   ["NEL", "\u0085"],
-  ["no-break space", " "],
-  ["line separator", " "],
-  ["paragraph separator", " "],
-  ["ideographic space", "　"],
-  ["thin space", " "],
-  ["zero-width space", "​"],
+  ["no-break space", "\u00a0"],
+  ["line separator", "\u2028"],
+  ["paragraph separator", "\u2029"],
+  ["ideographic space", "\u3000"],
+  ["thin space", "\u2009"],
+  ["zero-width space", "\u200b"],
   ["double space", "  "],
 ]
 const INVISIBLES: [string, string][] = [
-  ["zero-width space", "​"],
-  ["ZWNJ", "‌"],
-  ["ZWJ", "‍"],
-  ["word joiner", "⁠"],
-  ["soft hyphen", "­"],
-  ["BOM", "﻿"],
-  ["RLO", "‮"],
+  ["zero-width space", "\u200b"],
+  ["ZWNJ", "\u200c"],
+  ["ZWJ", "\u200d"],
+  ["word joiner", "\u2060"],
+  ["soft hyphen", "\u00ad"],
+  ["BOM", "\ufeff"],
+  ["RLO", "\u202e"],
 ]
 
 /** Replace the first ASCII space with `sep`, or append `sep` + text when none. */
@@ -72,8 +72,8 @@ const withInvisible = (text: string, inv: string) =>
 describe("R1 required rejections", () => {
   it.each([
     ["IN THE CIRCUIT\tCOURT OF COOK COUNTY", "court_caption"],
-    ["Your court‑ready packet", "completion_or_acceptance_claim"],
-    ["Your oﬃcial form", "official_claim"],
+    ["Your court\u2011ready packet", "completion_or_acceptance_claim"],
+    ["Your o\ufb03cial form", "official_claim"],
   ])("%j → %s", (text, code) => {
     expect(findOfficialMarkers(text)).toContain(code)
   })
@@ -97,35 +97,43 @@ describe("R1 every marker, every separator, every invisible", () => {
 })
 
 describe("R1 dash-like punctuation and confusables", () => {
-  it.each(["‐", "‑", "‒", "–", "—", "―", "−", "﹣", "－", "⁃"])(
-    "court%sready is a completion claim",
-    dash => {
-      expect(findOfficialMarkers(`court${dash}ready`)).toContain("completion_or_acceptance_claim")
-    }
-  )
+  it.each([
+    "\u2010",
+    "\u2011",
+    "\u2012",
+    "\u2013",
+    "—",
+    "\u2015",
+    "\u2212",
+    "\ufe63",
+    "\uff0d",
+    "\u2043",
+  ])("court%sready is a completion claim", dash => {
+    expect(findOfficialMarkers(`court${dash}ready`)).toContain("completion_or_acceptance_claim")
+  })
 
   it("folds Cyrillic/Greek lookalikes and diacritics before matching", () => {
-    expect(findOfficialMarkers("Оfficial form")).toContain("official_claim") // Cyrillic О
-    expect(findOfficialMarkers("οfficial form")).toContain("official_claim") // Greek ο
-    expect(findOfficialMarkers("Officiál form")).toContain("official_claim")
-    expect(findOfficialMarkers("Officıal form")).toContain("official_claim") // dotless ı
+    expect(findOfficialMarkers("\u041efficial form")).toContain("official_claim") // Cyrillic \u041e
+    expect(findOfficialMarkers("\u03bffficial form")).toContain("official_claim") // Greek \u03bf
+    expect(findOfficialMarkers("Offici\u00e1l form")).toContain("official_claim")
+    expect(findOfficialMarkers("Offic\u0131al form")).toContain("official_claim") // dotless \u0131
   })
 
   it("court - ready with spaced dash is still a claim", () => {
-    expect(findOfficialMarkers("court – ready")).toContain("completion_or_acceptance_claim")
+    expect(findOfficialMarkers("court \u2013 ready")).toContain("completion_or_acceptance_claim")
   })
 })
 
 describe("R1 canonicalizer contract", () => {
   it("is versioned and returns joined and spaced detection variants", () => {
     expect(DETECTION_CANONICALIZATION_VERSION).toMatch(/^cc05-/)
-    const v = canonicalizeForDetection("Of​ficial\tCOURT‑ready")
+    const v = canonicalizeForDetection("Of\u200bficial\tCOURT\u2011ready")
     expect(v).toContain("official court-ready")
     expect(v).toContain("of ficial court-ready")
   })
 
   it("never returns raw separators, controls or invisible characters", () => {
-    const v = canonicalizeForDetection("a b\u0000c​d e")
+    const v = canonicalizeForDetection("a\u2028b\u0000c\u200bd\u00a0e")
     for (const s of v) expect(s).toMatch(/^[\x20-\x7e]*$/)
   })
 
@@ -139,18 +147,18 @@ describe("R1 display text is validated before it is ever rendered", () => {
     ["tab", "Cook\tCounty", "display_text_invalid_character"],
     ["newline", "Cook\nCounty", "display_text_invalid_character"],
     ["NUL", "Cook\u0000", "display_text_invalid_character"],
-    ["zero-width", "Co​ok", "display_text_invalid_character"],
-    ["bidi", "‮Cook", "display_text_invalid_character"],
-    ["no-break space", "Cook County", "display_text_invalid_character"],
-    ["ligature", "oﬃce", "display_text_not_canonical"],
-    ["fullwidth", "Ｃook", "display_text_not_canonical"],
-    ["mixed script", "Cоok", "display_text_mixed_script"],
+    ["zero-width", "Co\u200bok", "display_text_invalid_character"],
+    ["bidi", "\u202eCook", "display_text_invalid_character"],
+    ["no-break space", "Cook\u00a0County", "display_text_invalid_character"],
+    ["ligature", "o\ufb03ce", "display_text_not_canonical"],
+    ["fullwidth", "\uff23ook", "display_text_not_canonical"],
+    ["mixed script", "C\u043eok", "display_text_mixed_script"],
   ])("%s → %s", (_n, text, code) => {
     expect(findDisplayTextDefects(text)).toContain(code)
   })
 
   it("accepts ordinary Latin text, including accented names", () => {
     expect(findDisplayTextDefects("Cook")).toEqual([])
-    expect(findDisplayTextDefects("José Peña")).toEqual([])
+    expect(findDisplayTextDefects("Jos\u00e9 Pe\u00f1a")).toEqual([])
   })
 })
