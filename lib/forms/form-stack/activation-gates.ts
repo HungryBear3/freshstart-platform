@@ -220,7 +220,8 @@ export function evaluateActivation(
   // STATES has no active member: `reached === 4` maps to a compiled-off state.
   const state: ActivationState = anomalies.length > 0 ? "held_flag_anomaly" : STATES[reached]
 
-  return {
+  // Frozen: a caller holding the evaluation cannot flip an output either.
+  return deepFreeze({
     state,
     active: false,
     generationEnabled: false,
@@ -229,5 +230,5 @@ export function evaluateActivation(
     terminalActivationReachable: false,
     gates,
     anomalies,
-  }
+  })
 }
