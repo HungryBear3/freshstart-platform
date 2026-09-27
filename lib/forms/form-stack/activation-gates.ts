@@ -30,7 +30,11 @@ import { calendarDateInTimeZone, FORM_EXPIRATION_TIME_ZONE } from "@/lib/forms/i
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
 import { parseStrictIsoDate } from "@/lib/forms/form-stack/strict-date"
 import { canonicalJson } from "@/lib/forms/form-stack/operator-review-packet"
-import { SOURCE_CATALOG, type ClassifiedSource } from "@/lib/forms/form-stack/source-classification"
+import {
+  SOURCE_CATALOG,
+  classifySource,
+  type ClassifiedSource,
+} from "@/lib/forms/form-stack/source-classification"
 
 export const ACTIVATION_COMPILED_OFF = true as const
 
@@ -157,8 +161,20 @@ function checkReceipt(
     reasons.push("review_not_independent")
   }
   if (gate === "authoritative_current_form_evidence") {
+    // R7: re-classified through PR-3, so main's catalog must corroborate it too.
     const hit = deps.catalog.filter(e => e.sha256 === r.evidenceArtifactSha256)
-    const cls = hit.length === 1 ? hit[0].sourceClass : "unknown"
+    const cls =
+      hit.length === 1
+        ? classifySource(
+            {
+              sha256: hit[0].sha256,
+              bytes: hit[0].bytes,
+              mediaType: hit[0].mediaType,
+              formId: hit[0].formId,
+            },
+            deps.catalog
+          ).sourceClass
+        : "unknown"
     if (cls !== "official_current") reasons.push(`evidence_not_official_current:${cls}`)
   }
   return { gate, satisfied: reasons.length === 0, reasons }

@@ -115,6 +115,14 @@ describe("R7 both halves must pass", () => {
     expect(r2.reasons).toContain("main_mapping_fields_differ")
   })
 
+  it("a binding whose source receipt differs from the catalog identity is refused", () => {
+    const r = checkFieldMapCompatibility(query(), {
+      ...deps,
+      bindings: [{ ...BINDING, sourceReceiptId: "someone-else" }],
+    })
+    expect(r.reasons).toEqual(["source_identity_mismatch"])
+  })
+
   it("the federal IWO is never mappable here, even with main's gates open", () => {
     const iwo = getFormById("income-withholding-order")!
     const b = {

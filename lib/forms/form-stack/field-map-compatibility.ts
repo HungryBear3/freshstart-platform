@@ -14,10 +14,27 @@
  *
  * `compatible: true` is a statement about one mapping and one artifact. It is
  * never generation authority — `generationAuthorized` is the literal `false`.
+ *
+ * R7 — DUAL GATE. This module supplements main's canonical controls and never
+ * replaces them. `compatible` requires ALL of main's answers as well:
+ * `isFieldMapCompatibilityProven` (catalog row + questionnaire fields + pinned
+ * artifact verification), `resolveOfficialFormTemplateSource` (the only template
+ * location authority), a canonical county for which main's
+ * `isAutoPacketComposable` holds, an automation status main does not exclude,
+ * dual source classification (PR-3), and a binding whose name and written
+ * fields are exactly main's own map for that form. Main answers "no" for every
+ * form today, so nothing here can be compatible in production.
  */
 import crypto from "node:crypto"
 
+import { isCanonicalCountyId } from "@/lib/counties/county-iwo-workflow"
+import { resolveOfficialFormTemplateSource } from "@/lib/document-generation/official-forms/template-source"
+import {
+  OFFICIAL_FIELD_MAP_BINDINGS,
+  isFieldMapCompatibilityProven,
+} from "@/lib/forms/field-map-compatibility"
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
+import { getFormById, isAutoPacketComposable } from "@/lib/forms/illinois-court-forms"
 import {
   SOURCE_CATALOG,
   classifySource,
@@ -115,6 +132,8 @@ export interface ObservedArtifact {
 export interface CompatibilityQuery {
   mappingId: string
   mappingVersion: string
+  /** The county whose packet this would serve. Required — there is no default. */
+  countyId: string
   artifact: ObservedArtifact
 }
 
@@ -202,6 +221,9 @@ export function checkFieldMapCompatibility(
 
   if (!MAPPABLE_CLASSES.includes(classification.sourceClass)) {
     reasons.push(`source_not_mappable:${classification.sourceClass}`)
+    for (const r of classification.reasons) {
+      if (r.startsWith("main_")) reasons.push(`classification:${r}`)
+    }
   } else if (classification.receiptId !== b.sourceReceiptId) {
     reasons.push("source_identity_mismatch")
   }
@@ -231,5 +253,49 @@ export function checkFieldMapCompatibility(
   }
   if (setMismatch) reasons.push("inventory_set_mismatch")
 
+  reasons.push(...mainGateRefusals(q, b))
   return result(reasons)
+}
+
+/** Main's automation statuses this module never maps onto. */
+const EXCLUDED_AUTOMATION: readonly string[] = ["unsupported", "separately_guarded"]
+
+/**
+ * R7: main's canonical answers, every one required. Codes only, `main_`-prefixed,
+ * so a reader can see which authority refused.
+ */
+function mainGateRefusals(q: CompatibilityQuery, b: FieldMapBinding): string[] {
+  const out: string[] = []
+  const formId = q.artifact.formId
+  const row = getFormById(formId)
+  if (row) {
+    if (EXCLUDED_AUTOMATION.includes(row.automationStatus)) {
+      out.push(`main_automation_status_excluded:${row.automationStatus}`)
+    }
+    if (!isCanonicalCountyId(q.countyId)) {
+      out.push("main_invalid_county_context")
+    } else if (!isAutoPacketComposable(row, { countyId: q.countyId })) {
+      out.push("main_not_composable_for_county")
+    }
+  } else if (!isCanonicalCountyId(q.countyId)) {
+    out.push("main_invalid_county_context")
+  }
+  if (!isFieldMapCompatibilityProven(formId)) out.push("main_field_map_not_proven")
+  try {
+    resolveOfficialFormTemplateSource(formId)
+  } catch {
+    out.push("main_template_source_unavailable")
+  }
+  const mainMap = OFFICIAL_FIELD_MAP_BINDINGS.find(m => m.formId === formId)
+  if (!mainMap) {
+    out.push("main_has_no_field_map")
+  } else {
+    if (mainMap.mapName !== b.mappingId) out.push("main_mapping_name_mismatch")
+    const mainFields = new Set(mainMap.mapping.map(m => m.pdfField))
+    const bound = new Set(b.mappedFields)
+    if (mainFields.size !== bound.size || [...mainFields].some(f => !bound.has(f))) {
+      out.push("main_mapping_fields_differ")
+    }
+  }
+  return out
 }

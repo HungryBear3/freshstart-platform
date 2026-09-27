@@ -202,6 +202,7 @@ export function buildOperatorReviewPacket(
     const r = checkFieldMapCompatibility({
       mappingId: q.mappingId,
       mappingVersion: q.mappingVersion,
+      countyId: q.countyId,
       artifact: {
         formId: a.formId,
         path: a.path,

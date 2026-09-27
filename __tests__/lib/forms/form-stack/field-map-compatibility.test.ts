@@ -204,9 +204,12 @@ describe("PR-4 exact binding", () => {
     expect(r.compatible).toBe(false)
     expect(r.generationAuthorized).toBe(false)
     // Every supplemental check passed; only main's canonical gates refuse.
-    expect(r.reasons.every(x => x.startsWith("main_") || x.startsWith("classification:"))).toBe(
-      true
-    )
+    // (`source_not_mappable:unknown` is PR-3's dual classification deferring to main.)
+    const refusedByMain = (x: string) =>
+      x.startsWith("main_") ||
+      x.startsWith("classification:") ||
+      x === "source_not_mappable:unknown"
+    expect(r.reasons.every(refusedByMain)).toBe(true)
     expect(r.reasons).toEqual(
       expect.arrayContaining([
         "classification:main_catalog_unknown_form",
@@ -295,14 +298,9 @@ describe("PR-4 exact binding", () => {
     expect(r.reasons).toContain("source_not_mappable:unknown")
   })
 
-  it("rejects a binding whose source receipt differs from the catalog identity", () => {
-    const bad = { ...BINDING_A, sourceReceiptId: "someone-else" }
-    const r = checkFieldMapCompatibility(
-      { mappingId: "map-a", mappingVersion: "1", countyId: "cook", artifact: observedA() },
-      { bindings: [bad], catalog: CATALOG }
-    )
-    expect(r.reasons).toContain("source_identity_mismatch")
-  })
+  // "binding whose source receipt differs from the catalog identity" moved to
+  // field-map-compatibility.dual-gate.test.ts: after R7 a synthetic form id is
+  // refused by main's catalog before the receipt comparison is reachable.
 
   it("never maps onto the revised successor DOCX", () => {
     const succ = SOURCE_CATALOG.find(s => s.sourceClass === "official_successor_not_shippable")!
