@@ -27,7 +27,10 @@ import {
   type OperatorReviewPacket,
   type PacketRequest,
 } from "@/lib/forms/form-stack/operator-review-packet"
-import { PACKET_TEST_CATALOG } from "@/lib/forms/form-stack/packet-request-schema"
+import {
+  PACKET_TEST_CATALOG,
+  statusMatchesCounts,
+} from "@/lib/forms/form-stack/packet-request-schema"
 
 const CANDIDATE = "2e165d22010d51b66c568ab7ecda41a375a9cb19"
 const FIXED = () => new Date("2026-09-26T15:00:00.000Z")
@@ -935,5 +938,401 @@ describe("B3 sparse lists and inherited fields are refused", () => {
     const v2 = verifyOperatorReviewPacket({ ...p, entries: inherited } as never, p.manifestSha256)
     expect(v2.valid).toBe(false)
     expect(v2.reasons).toContain("packet_invalid:entries[0]:not_object")
+  })
+})
+
+/** Rewrite one entry's parsed body, re-canonicalize, then re-hash everything. */
+const forgeEntry = (name: string, mutate: (body: unknown) => unknown, p = build()) =>
+  rehash({
+    ...p,
+    entries: p.entries.map(e =>
+      e.name === name ? { ...e, content: canonicalJson(mutate(JSON.parse(e.content))) } : e
+    ),
+  })
+const FREE_TEXT_MARKS = ["Jane", "Maple", "3125550142", "jane_doe"]
+
+describe("X2 a forged classification reason must come from the closed catalog", () => {
+  const asUnknown = (reasons: unknown[]) => (b: unknown) => [
+    { ...(b as Loose[])[0], sourceClass: "unknown", receiptId: null, reasons },
+  ]
+
+  it("matched control: a re-hashed unknown classification with a catalog reason verifies", () => {
+    const v = verdictOf(forgeEntry("classification.json", asUnknown(["unknown_artifact_hash"])))
+    expect(v).toEqual({ valid: true, reasons: [] })
+  })
+
+  it.each([
+    "Jane Doe 42 Maple St 3125550142",
+    "unknown_artifact_hash Jane",
+    " unknown_artifact_hash",
+    "UNKNOWN_ARTIFACT_HASH",
+    "main_catalog_identity_unsupported:jane_doe",
+    "constructor",
+    "__proto__",
+    "toString",
+    "",
+  ])("reason %j is refused and never echoed", reason => {
+    const f = forgeEntry("classification.json", asUnknown([reason]))
+    const v = verdictOf(f)
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(
+      "entry_schema_invalid:classification.json:[0].reasons[0]:not_in_vocabulary"
+    )
+    for (const m of FREE_TEXT_MARKS) expect(JSON.stringify(v)).not.toContain(m)
+  })
+
+  it("a free-text reason beside a catalog reason is refused", () => {
+    const v = verdictOf(
+      forgeEntry(
+        "classification.json",
+        asUnknown(["unknown_artifact_hash", "Jane Doe 42 Maple St 3125550142"])
+      )
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(
+      "entry_schema_invalid:classification.json:[0].reasons[1]:not_in_vocabulary"
+    )
+  })
+})
+
+const failingRequest = (): PacketRequest => ({
+  ...request(),
+  tests: [{ testId: "form_stack_focused", status: "FAIL", passed: 0, failed: 9, skipped: 0 }],
+})
+const testsOf = (p: OperatorReviewPacket) =>
+  JSON.parse(p.entries.find(e => e.name === "tests.json")!.content)
+const FAIL_0_9 = {
+  testId: "form_stack_focused",
+  command: PACKET_TEST_CATALOG.form_stack_focused,
+  status: "FAIL",
+  passed: 0,
+  failed: 9,
+  skipped: 0,
+}
+
+/**
+ * A data object whose FIRST own-descriptor read of each key yields `first` and
+ * every later read — or any ordinary `get` — yields `later`. A reader that
+ * reads once and builds from its copy sees only `first`; `get` is counted.
+ */
+const doubleRead = (first: Loose, later: Loose) => {
+  const reads: Record<string, number> = {}
+  let gets = 0
+  const proxy = new Proxy(
+    { ...first },
+    {
+      get: (t, k) => {
+        gets++
+        return typeof k === "string" && k in later ? later[k] : Reflect.get(t, k)
+      },
+      getOwnPropertyDescriptor: (t, k) => {
+        const d = Reflect.getOwnPropertyDescriptor(t, k)
+        if (!d || typeof k !== "string") return d
+        reads[k] = (reads[k] ?? 0) + 1
+        return { ...d, value: reads[k] === 1 ? first[k] : later[k] }
+      },
+    }
+  )
+  return { proxy, reads, gets: () => gets }
+}
+
+describe("X3 the emitted packet is bound to the validated snapshot", () => {
+  it("a clock callback that rewrites the request after validation cannot change the packet", () => {
+    const r = failingRequest()
+    const out = buildOperatorReviewPacket(r, {
+      clock: () => {
+        Object.assign(r.tests[0], { status: "PASS", passed: 855, failed: 0 })
+        r.tests.push({ testId: "typescript", status: "PASS", passed: 1, failed: 0, skipped: 0 })
+        r.holdIds = []
+        r.candidateSha = "f".repeat(40)
+        r.classificationQueries[0].claimedClass = "official_successor_not_shippable"
+        r.nonOfficialInputs[0].summary[0].value = "Jane Doe 3125550142"
+        return FIXED()
+      },
+    })
+    if (!out.ok) throw new Error(out.violations.join(","))
+    expect(testsOf(out.packet)).toEqual([FAIL_0_9])
+    expect(out.packet.candidateSha).toBe(CANDIDATE)
+    expect(out.packet.manifestSha256).toBe(build(failingRequest()).manifestSha256)
+    expect(JSON.stringify(out)).not.toContain("3125550142")
+  })
+
+  it("a double-read Proxy is read once per field and never through a getter", () => {
+    const passing = {
+      testId: "form_stack_focused",
+      status: "PASS",
+      passed: 855,
+      failed: 0,
+      skipped: 0,
+    }
+    const { testId, status, passed, failed, skipped } = FAIL_0_9
+    const dr = doubleRead({ testId, status, passed, failed, skipped }, passing)
+    const r = request() as unknown as Loose
+    r.tests = [dr.proxy]
+    const out = buildOperatorReviewPacket(r as unknown as PacketRequest, { clock: FIXED })
+    if (!out.ok) throw new Error(out.violations.join(","))
+    expect(testsOf(out.packet)).toEqual([FAIL_0_9])
+    expect(dr.gets()).toBe(0)
+    expect(dr.reads).toEqual({ testId: 1, status: 1, passed: 1, failed: 1, skipped: 1 })
+    expect(out.packet.manifestSha256).toBe(build(failingRequest()).manifestSha256)
+  })
+})
+
+describe("R1 a compatibility or classification verdict must agree with the mandatory holds", () => {
+  const compat = (over: Loose) => (b: unknown) => [{ ...(b as Loose[])[0], ...over }]
+  const CONTRADICTS_BINDING_HOLD =
+    "entry_schema_invalid:compatibility.json:[0]:contradicts_hold:no_proven_field_map_binding"
+  const CONTRADICTS_EVIDENCE_HOLD =
+    "entry_schema_invalid:compatibility.json:[0]:contradicts_hold:no_official_current_evidence"
+
+  it("the reviewed forgery — compatible, no reasons, official_current — is invalid", () => {
+    const f = forgeEntry(
+      "compatibility.json",
+      compat({ compatible: true, reasons: [], sourceClass: "official_current" })
+    )
+    const v = verdictOf(f)
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toEqual(
+      expect.arrayContaining([CONTRADICTS_BINDING_HOLD, CONTRADICTS_EVIDENCE_HOLD])
+    )
+  })
+
+  it.each([
+    [
+      "compatible, official_legacy",
+      { compatible: true, reasons: [], sourceClass: "official_legacy" },
+    ],
+    ["compatible, unknown class", { compatible: true, reasons: [], sourceClass: "unknown" }],
+    ["reachable-looking reason", { reasons: ["main_field_map_not_proven"] }],
+    ["extra reason", { reasons: ["no_bound_mapping", "main_has_no_field_map"] }],
+    ["reason twice", { reasons: ["no_bound_mapping", "no_bound_mapping"] }],
+    ["other early reason", { reasons: ["ambiguous_mapping_binding"] }],
+    [
+      "digested field reason",
+      { reasons: ["no_bound_mapping", `unexpected_field:field#${"0".repeat(16)}`] },
+    ],
+  ])("%s contradicts no_proven_field_map_binding", (_n, over) => {
+    const v = verdictOf(forgeEntry("compatibility.json", compat(over)))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(CONTRADICTS_BINDING_HOLD)
+  })
+
+  it("official_current with the one reachable result still contradicts no_official_current_evidence", () => {
+    const v = verdictOf(
+      forgeEntry("compatibility.json", compat({ sourceClass: "official_current" }))
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(CONTRADICTS_EVIDENCE_HOLD)
+    expect(v.reasons).not.toContain(CONTRADICTS_BINDING_HOLD)
+  })
+
+  it("an official_current classification contradicts no_official_current_evidence", () => {
+    const v = verdictOf(
+      forgeEntry("classification.json", b => [
+        { ...(b as Loose[])[0], sourceClass: "official_current" },
+      ])
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(
+      "entry_schema_invalid:classification.json:[0]:contradicts_hold:no_official_current_evidence"
+    )
+  })
+
+  it.each([
+    "official_legacy",
+    "official_successor_not_shippable",
+    "local_guidance_only",
+    "unknown",
+  ])(
+    "matched control: %s with compatible false and exactly no_bound_mapping verifies",
+    sourceClass => {
+      const v = verdictOf(
+        forgeEntry(
+          "compatibility.json",
+          compat({ compatible: false, reasons: ["no_bound_mapping"], sourceClass })
+        )
+      )
+      expect(v).toEqual({ valid: true, reasons: [] })
+    }
+  )
+
+  it("the holds the rule relies on are mandatory, and what they claim is still true", () => {
+    expect(MANDATORY_PACKET_HOLD_IDS).toEqual(
+      expect.arrayContaining(["no_official_current_evidence", "no_proven_field_map_binding"])
+    )
+    const p = build()
+    const compatibility = JSON.parse(p.entries.find(e => e.name === "compatibility.json")!.content)
+    expect(compatibility.map((c: Loose) => [c.compatible, c.reasons])).toEqual([
+      [false, ["no_bound_mapping"]],
+    ])
+  })
+})
+
+describe("R2 a test status must agree with its counts", () => {
+  type Row = [string, number, number, number]
+  const INCONSISTENT: Row[] = [
+    ["PASS", 1, 500, 0],
+    ["PASS", 0, 0, 0],
+    ["PASS", 0, 0, 7],
+    ["PASS", 0, 3, 0],
+    ["FAIL", 9, 0, 0],
+    ["FAIL", 0, 0, 0],
+    ["FAIL", 0, 0, 4],
+    ["NOT_RUN", 900, 0, 0],
+    ["NOT_RUN", 0, 1, 0],
+    ["NOT_RUN", 5, 5, 0],
+  ]
+  const CONSISTENT: Row[] = [
+    ["PASS", 1, 0, 0],
+    ["PASS", 855, 0, 34],
+    ["FAIL", 0, 9, 0],
+    ["FAIL", 850, 5, 2],
+    ["NOT_RUN", 0, 0, 0],
+    ["NOT_RUN", 0, 0, 12],
+  ]
+  const row = ([status, passed, failed, skipped]: Row) => ({
+    testId: "form_stack_focused",
+    status,
+    passed,
+    failed,
+    skipped,
+  })
+  const withTests = (tests: unknown[]) => ({ ...request(), tests }) as unknown as PacketRequest
+  const INCONSISTENT_REQUEST = "request_invalid:tests[0]:status_counts_inconsistent"
+  const INCONSISTENT_ENTRY = "entry_schema_invalid:tests.json:[0]:status_counts_inconsistent"
+
+  it.each(INCONSISTENT)("the request %s passed=%d failed=%d skipped=%d is refused", (...r) => {
+    const out = buildOperatorReviewPacket(withTests([row(r)]), { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain(INCONSISTENT_REQUEST)
+  })
+
+  it.each(CONSISTENT)("the request %s passed=%d failed=%d skipped=%d builds", (...r) => {
+    const out = buildOperatorReviewPacket(withTests([row(r)]), { clock: FIXED })
+    if (!out.ok) throw new Error(out.violations.join(","))
+    expect(testsOf(out.packet)).toEqual([
+      { ...row(r), command: PACKET_TEST_CATALOG.form_stack_focused },
+    ])
+  })
+
+  it.each(INCONSISTENT)("a re-hashed tests.json with %s %d/%d/%d is invalid", (...r) => {
+    const v = verdictOf(forgeEntry("tests.json", b => [{ ...(b as Loose[])[0], ...row(r) }]))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(INCONSISTENT_ENTRY)
+  })
+
+  it.each(CONSISTENT)(
+    "matched control: a re-hashed tests.json with %s %d/%d/%d verifies",
+    (...r) => {
+      const v = verdictOf(forgeEntry("tests.json", b => [{ ...(b as Loose[])[0], ...row(r) }]))
+      expect(v).toEqual({ valid: true, reasons: [] })
+    }
+  )
+
+  it("the rule is judged on the one validated read, not a later one", () => {
+    const good = doubleRead(row(["FAIL", 0, 9, 0]), row(["PASS", 1, 500, 0]))
+    const ok = buildOperatorReviewPacket(withTests([good.proxy]), { clock: FIXED })
+    if (!ok.ok) throw new Error(ok.violations.join(","))
+    expect(testsOf(ok.packet)).toEqual([FAIL_0_9])
+    expect(good.gets()).toBe(0)
+
+    const bad = doubleRead(row(["PASS", 1, 500, 0]), row(["PASS", 1, 0, 0]))
+    const refused = buildOperatorReviewPacket(withTests([bad.proxy]), { clock: FIXED })
+    expect(refused.ok).toBe(false)
+    if (!refused.ok) expect(refused.violations).toContain(INCONSISTENT_REQUEST)
+    expect(bad.gets()).toBe(0)
+  })
+
+  it("a clock callback cannot make the emitted counts inconsistent", () => {
+    const r = failingRequest()
+    const out = buildOperatorReviewPacket(r, {
+      clock: () => {
+        Object.assign(r.tests[0], { status: "PASS", passed: 900, failed: 500 })
+        return FIXED()
+      },
+    })
+    if (!out.ok) throw new Error(out.violations.join(","))
+    expect(testsOf(out.packet)).toEqual([FAIL_0_9])
+  })
+
+  it("counts stay integer, nonnegative and bounded alongside the rule", () => {
+    for (const [field, bad] of [
+      ["passed", -1],
+      ["failed", 1.5],
+      ["skipped", Number.NaN],
+      ["passed", 1_000_001],
+    ] as const) {
+      const t = { ...row(["FAIL", 0, 9, 0]), [field]: bad }
+      const out = buildOperatorReviewPacket(withTests([t]), { clock: FIXED })
+      expect(out.ok).toBe(false)
+      if (!out.ok)
+        expect(out.violations).toContain(`request_invalid:tests[0].${field}:out_of_range`)
+    }
+  })
+})
+
+// Guards whose only killing case was also caught by a newer check (R1), or
+// that no earlier test reached. Each case here fails if its one guard goes.
+describe("load-bearing guards the R1 hold checks would otherwise mask", () => {
+  const classification = (over: Loose) => (b: unknown) => [{ ...(b as Loose[])[0], ...over }]
+  const at = (code: string) => `entry_schema_invalid:classification.json:[0]:${code}`
+
+  it.each([
+    ["official_legacy carrying a reason", { reasons: ["unknown_artifact_hash"] }],
+    ["legacy receipt relabelled local_guidance_only", { sourceClass: "local_guidance_only" }],
+    ["legacy receipt relabelled successor", { sourceClass: "official_successor_not_shippable" }],
+  ])("classification: %s is not in the catalog", (_n, over) => {
+    const v = verdictOf(forgeEntry("classification.json", classification(over)))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(at("positive_class_not_in_catalog"))
+  })
+
+  it.each([
+    ["unknown keeping a receipt", { sourceClass: "unknown", reasons: ["unknown_artifact_hash"] }],
+    ["unknown with no reason", { sourceClass: "unknown", receiptId: null, reasons: [] }],
+  ])("classification: %s is inconsistent", (_n, over) => {
+    const v = verdictOf(forgeEntry("classification.json", classification(over)))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(at("unknown_class_inconsistent"))
+  })
+
+  it("compatibility: compatible with the one reachable reason contradicts its reasons", () => {
+    const v = verdictOf(
+      forgeEntry("compatibility.json", b => [{ ...(b as Loose[])[0], compatible: true }])
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(
+      "entry_schema_invalid:compatibility.json:[0]:compatible_contradicts_reasons"
+    )
+  })
+
+  it("an Array subclass instance is not a plain list", () => {
+    class Sneaky extends Array {}
+    const r = request() as unknown as Loose
+    r.holdIds = Object.setPrototypeOf(["banner_copy_owner_review"], Sneaky.prototype)
+    const out = buildOperatorReviewPacket(r as unknown as PacketRequest, { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:holdIds:not_array")
+  })
+
+  it("tests.json: a command under an unknown testId has no pin, so it is unpinned too", () => {
+    const v = verdictOf(
+      forgeEntry("tests.json", b => [{ ...(b as Loose[])[0], testId: "jane_3125550142" }])
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toEqual(
+      expect.arrayContaining([
+        "entry_schema_invalid:tests.json:[0].testId:not_in_vocabulary",
+        "entry_schema_invalid:tests.json:[0].command:not_pinned_value",
+      ])
+    )
+    expect(JSON.stringify(v)).not.toContain("3125550142")
+  })
+
+  it("statusMatchesCounts refuses non-number counts on its own", () => {
+    expect(statusMatchesCounts({ status: "PASS", passed: "5", failed: 0 })).toBe(false)
+    expect(statusMatchesCounts({ status: "FAIL", passed: 0, failed: "1" })).toBe(false)
+    expect(statusMatchesCounts({ status: "PASS", passed: 5, failed: 0 })).toBe(true)
+    expect(statusMatchesCounts({ status: "FAIL", passed: 0, failed: 1 })).toBe(true)
   })
 })

@@ -6,7 +6,9 @@
  * who re-hashes consistently can still drop an entry, add one, or put free text
  * into one. So the verifier parses every entry and checks it against the exact
  * shape the builder produces: pinned literals, closed vocabularies, bounded
- * numbers, dense lists, no undeclared keys. Every reason string a gate can emit
+ * numbers, dense lists, no undeclared keys, verdicts that agree with the
+ * mandatory holds (R1) and test statuses that agree with their counts (R2).
+ * Every reason string a gate can emit
  * is enumerated here; AcroForm field names are only ever 16-hex digests.
  *
  * `provenance.json` and `holds.json` are checked in `operator-review-packet.ts`
@@ -36,6 +38,7 @@ import {
   PACKET_TEST_CATALOG,
   SHA256,
   TEST_STATUSES,
+  withConsistentCounts,
 } from "@/lib/forms/form-stack/packet-request-schema"
 import {
   SOURCE_CATALOG,
@@ -119,6 +122,20 @@ export function isCompatibilityReason(r: unknown): boolean {
   return typeof r === "string" && (COMPATIBILITY_REASONS.has(r) || DIGESTED_FIELD_REASON.test(r))
 }
 
+/**
+ * R1: two mandatory holds are claims about the pinned state, and every verdict
+ * in the packet must agree with them, however consistently it was re-hashed.
+ * Lifting either hold is a reviewed change here, never a packet edit.
+ *
+ *   - `no_official_current_evidence`: `SOURCE_CATALOG` pins no official_current
+ *     artifact, so no classification or compatibility item carries that class.
+ *   - `no_proven_field_map_binding`: `PINNED_FIELD_MAP_BINDINGS` is empty, so
+ *     the one result `checkFieldMapCompatibility` can return is
+ *     `compatible: false` with exactly `["no_bound_mapping"]`.
+ */
+const CONTRADICTS_NO_CURRENT_EVIDENCE = "contradicts_hold:no_official_current_evidence"
+const CONTRADICTS_NO_PROVEN_BINDING = "contradicts_hold:no_proven_field_map_binding"
+
 const nullOr =
   (check: Check): Check =>
   v =>
@@ -147,6 +164,7 @@ const classificationItem: Reader = (v, path, report) => {
     reasons: list(leaf(oneOf(CLASSIFICATION_REASONS)), 20),
   })(v, path, report)
   if (!base) return base
+  if (base.sourceClass === "official_current") report(path, CONTRADICTS_NO_CURRENT_EVIDENCE)
   mainCatalogFor(base.formId)(base.mainCatalog, `${path}.mainCatalog`, report)
   const reasons = Array.isArray(base.reasons) ? base.reasons : []
   if (base.sourceClass === "unknown") {
@@ -176,8 +194,15 @@ const compatibilityItem: Reader = (v, path, report) => {
     ),
     sourceClass: leaf(oneOf(SOURCE_CLASSES)),
   })(v, path, report)
-  if (base && Array.isArray(base.reasons) && base.compatible !== (base.reasons.length === 0)) {
+  if (!base) return base
+  const reasons = Array.isArray(base.reasons) ? base.reasons : null
+  if (reasons && base.compatible !== (reasons.length === 0)) {
     report(path, "compatible_contradicts_reasons")
+  }
+  if (base.sourceClass === "official_current") report(path, CONTRADICTS_NO_CURRENT_EVIDENCE)
+  // Exactly one reason; with the check above, that also pins compatible: false.
+  if (reasons?.length !== 1 || reasons[0] !== "no_bound_mapping") {
+    report(path, CONTRADICTS_NO_PROVEN_BINDING)
   }
   return base
 }
@@ -208,7 +233,7 @@ const artifactsList: Reader = (v, path, report) => {
 }
 
 const TEST_IDS = Object.keys(PACKET_TEST_CATALOG) as (keyof typeof PACKET_TEST_CATALOG)[]
-const testItem: Reader = (v, path, report) => {
+const testItem: Reader = withConsistentCounts((v, path, report) => {
   const base = shape({
     command: leaf(isString),
     failed: leaf(boundedInt(0, MAX_COUNT)),
@@ -224,7 +249,7 @@ const testItem: Reader = (v, path, report) => {
     report(`${path}.command`, "not_pinned_value")
   }
   return base
-}
+})
 const testsList: Reader = (v, path, report) => {
   const items = list(testItem, MAX_LIST)(v, path, report)
   const ids = (items ?? []).map(t => (t as { testId?: unknown } | null)?.testId)

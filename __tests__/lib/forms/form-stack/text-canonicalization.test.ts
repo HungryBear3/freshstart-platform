@@ -13,7 +13,9 @@
 import {
   DETECTION_CANONICALIZATION_VERSION,
   canonicalizeForDetection,
+  canonicalizeWithSlots,
   findDisplayTextDefects,
+  slotTolerant,
 } from "@/lib/forms/form-stack/text-canonicalization"
 import {
   findLegalAdviceContent,
@@ -271,6 +273,97 @@ describe("B4 each format control independently reads as nothing or as a separato
   it("display validation still refuses the mixed string on its own", () => {
     expect(findDisplayTextDefects(MIXED_CAPTION)).toContain("display_text_invalid_character")
   })
+
+  // X1: the 400-seed oracle above never puts a slot INSIDE a repeated atom —
+  // every case number there starts with a digit, and every bare form number or
+  // underscore run sits beside a second marker. These do.
+  describe("X1 a control inside a repeated atom still reads either way", () => {
+    it.each([
+      ["case no a​b​1", "case_number"],
+      ["Case No. A‌B⁠C‍9", "case_number"],
+      ["12​34-5678", "official_form_number"],
+      ["Ref 1​2‌3⁠4-5‍6­7﻿8", "official_form_number"],
+      ["1234-5​6​7​8", "official_form_number"],
+      ["‑​_​_​_", "signature"],
+      ["Name: _‌_⁠_‍_­_", "signature"],
+    ])("%j → %s", (text, code) => {
+      expect(findOfficialMarkers(text)).toContain(code)
+      // Matched control: the same text without its controls is the marker too.
+      expect(findOfficialMarkers(text.replace(/[​‌‍⁠­﻿]/g, ""))).toContain(code)
+    })
+
+    it("a slot never supplies a repetition the text lacks", () => {
+      expect(findOfficialMarkers("12​3-5678")).not.toContain("official_form_number")
+      expect(findOfficialMarkers("_​_")).not.toContain("signature")
+      expect(findOfficialMarkers("case no a​b​c")).not.toContain("case_number")
+    })
+
+    // Every quantifier form slotTolerant accepts, on its own.
+    it.each([
+      [/^xa*y$/, "xa​a​ay", "xa​by"],
+      [/^xa+y$/, "xa​a​ay", "x​y"],
+      [/^xa+?y$/, "xa​a​ay", "x​y"],
+      [/^xa*?y$/, "xa​a​ay", "xa​by"],
+      [/^x\d{4}y$/, "x1​2​3​4y", "x1​2​3y"],
+      [/^x_{3,}y$/, "x_​_​_​_y", "x_​_y"],
+      [/^x[ab]{2,3}y$/, "xa​b​ay", "xa​b​a​by"],
+      [/^x\w*9$/, "xa​b​c9", "xa​b​c"],
+      [/^x(?:ab){2}y$/, "xa​b​a​by", "xa​by"],
+    ])("%s matches %j and refuses %j", (re, hit, miss) => {
+      const tolerant = slotTolerant(re)
+      expect(tolerant.test(canonicalizeWithSlots(hit))).toBe(true)
+      expect(tolerant.test(canonicalizeWithSlots(miss))).toBe(false)
+      // Matched control: the plain pattern agrees once the controls are removed.
+      expect(re.test(hit.replace(/​/g, ""))).toBe(true)
+    })
+
+    const REPEATED_ATOM_SOURCES = [
+      "Case No. ab1",
+      "Case #: XY42",
+      "case number QRS7",
+      "Ref 1234-5678",
+      "Code 0970-0154 here",
+      "Name: ____",
+      "Initial _____ here",
+      "safe abcd-efgh",
+      "Not a court form",
+    ]
+    /**
+     * A control between every adjacent pair of characters of each token that
+     * holds a digit or underscore (the repeated run), else of the last token.
+     */
+    const denseInRepeatedRun = (src: string, k: number) => {
+      const toks = src.split(" ")
+      const runs = toks.map(t => /[\d_]/.test(t))
+      if (!runs.includes(true)) runs[runs.length - 1] = true
+      return toks.map((t, i) => (runs[i] ? [...t].join(control(k)) : t)).join(" ")
+    }
+
+    it.each(REPEATED_ATOM_SOURCES)(
+      "dense controls inside the repeated run of %j match the oracle",
+      src => {
+        for (let k = 0; k < CONTROLS.length; k++) {
+          const text = denseInRepeatedRun(src, k)
+          expect([text, [...findOfficialMarkers(text)].sort()]).toEqual([text, oracle(text)])
+        }
+      }
+    )
+
+    it("matches the oracle on 400 seeded strings with controls inside repeated runs", () => {
+      const rand = seeded(20260928)
+      for (let n = 0; n < 400; n++) {
+        const src = REPEATED_ATOM_SOURCES[Math.floor(rand() * REPEATED_ATOM_SOURCES.length)]
+        let text = ""
+        let inserted = 0
+        for (const ch of src) {
+          text += ch
+          // Bias toward the repeated characters: digits, letters, underscores.
+          if (inserted < 7 && /\w/.test(ch) && rand() < 0.45) text += control(inserted++)
+        }
+        expect([text, [...findOfficialMarkers(text)].sort()]).toEqual([text, oracle(text)])
+      }
+    })
+  })
 })
 
 describe("R1 display text is validated before it is ever rendered", () => {
@@ -292,4 +385,20 @@ describe("R1 display text is validated before it is ever rendered", () => {
     expect(findDisplayTextDefects("Cook")).toEqual([])
     expect(findDisplayTextDefects("Jos\u00e9 Pe\u00f1a")).toEqual([])
   })
+})
+
+// slotTolerant guards no marker or advice pattern exercises today (none uses
+// `\s` or a refused construct), pinned directly so each stays load-bearing.
+describe("slotTolerant contract beyond the current pattern tables", () => {
+  it("\\s accepts a slot as a separator", () => {
+    expect(slotTolerant(/^a\sb$/).test(canonicalizeWithSlots("a​b"))).toBe(true)
+    expect(/^a\sb$/.test("ab")).toBe(false)
+  })
+
+  it.each([/a.b/, /[^a]b/, /a\Wb/, /(?=a)b/, /(a)\1/])(
+    "%s could match or reorder a slot, so it is refused at build time",
+    re => {
+      expect(() => slotTolerant(re)).toThrow(/slotTolerant: unsupported pattern syntax/)
+    }
+  )
 })

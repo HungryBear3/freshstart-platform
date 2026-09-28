@@ -14,7 +14,8 @@
  *     the packet is pinned in `PACKET_TEST_CATALOG`; a caller can no longer
  *     supply command text at all, so no name, address or contact detail can
  *     ride in on one;
- *   - hashes, sizes, counts and enums are exact-shape and bounded;
+ *   - hashes, sizes, counts and enums are exact-shape and bounded, and a
+ *     test status must agree with its counts (R2);
  *   - the one field that is not a vocabulary (AcroForm field names) is
  *     restricted-charset, length-bounded, and refused on any run of seven or
  *     more digits or anything email-shaped — and the packet carries field
@@ -151,13 +152,39 @@ const NON_OFFICIAL_INPUT = shape({
   checklist: list(shape({ itemId: leaf(isString), done: leaf(isBoolean) }), MAX_NON_OFFICIAL_ITEMS),
   guidance: list(leaf(isString), MAX_NON_OFFICIAL_ITEMS),
 })
-const TEST_RESULT = shape({
-  testId: leaf(oneOf(Object.keys(PACKET_TEST_CATALOG))),
-  status: leaf(oneOf(TEST_STATUSES)),
-  passed: leaf(boundedInt(0, MAX_COUNT)),
-  failed: leaf(boundedInt(0, MAX_COUNT)),
-  skipped: leaf(boundedInt(0, MAX_COUNT)),
-})
+/**
+ * R2: a status must agree with its counts — PASS has no failures and at least
+ * one pass, FAIL has a failure, NOT_RUN has neither. There is no SKIP or
+ * partial status; anything else is inconsistent. Judged on the checked copy.
+ */
+export function statusMatchesCounts(t: Record<string, unknown>): boolean {
+  const { status, passed, failed } = t
+  const positive = (n: unknown) => typeof n === "number" && n > 0
+  return (
+    (status === "PASS" && failed === 0 && positive(passed)) ||
+    (status === "FAIL" && positive(failed)) ||
+    (status === "NOT_RUN" && passed === 0 && failed === 0)
+  )
+}
+
+/** A test-result shape, then the R2 status/count rule on its copy. */
+export const withConsistentCounts =
+  (read: Reader<Record<string, unknown> | null>): Reader<Record<string, unknown> | null> =>
+  (v, path, report) => {
+    const t = read(v, path, report)
+    if (t && !statusMatchesCounts(t)) report(path, "status_counts_inconsistent")
+    return t
+  }
+
+const TEST_RESULT = withConsistentCounts(
+  shape({
+    testId: leaf(oneOf(Object.keys(PACKET_TEST_CATALOG))),
+    status: leaf(oneOf(TEST_STATUSES)),
+    passed: leaf(boundedInt(0, MAX_COUNT)),
+    failed: leaf(boundedInt(0, MAX_COUNT)),
+    skipped: leaf(boundedInt(0, MAX_COUNT)),
+  })
+)
 
 export type ParsedPacketRequest =
   | { ok: true; value: PacketRequest }
