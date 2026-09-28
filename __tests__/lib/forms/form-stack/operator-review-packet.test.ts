@@ -16,13 +16,18 @@ import crypto from "node:crypto"
 
 import {
   MANDATORY_PACKET_HOLD_IDS,
+  OPERATOR_PACKET_ENTRY_NAMES,
+  OPERATOR_PACKET_VERSION,
+  OPTIONAL_PACKET_HOLDS,
   PINNED_PACKET_HOLDS,
   buildOperatorReviewPacket,
+  canonicalJson,
   computeManifestSha256,
   verifyOperatorReviewPacket,
   type OperatorReviewPacket,
   type PacketRequest,
 } from "@/lib/forms/form-stack/operator-review-packet"
+import { PACKET_TEST_CATALOG } from "@/lib/forms/form-stack/packet-request-schema"
 
 const CANDIDATE = "2e165d22010d51b66c568ab7ecda41a375a9cb19"
 const FIXED = () => new Date("2026-09-26T15:00:00.000Z")
@@ -62,7 +67,7 @@ const request = (): PacketRequest => ({
   ],
   tests: [
     {
-      command: "jest __tests__/lib/forms/form-stack",
+      testId: "form_stack_focused",
       status: "PASS",
       passed: 1,
       failed: 0,
@@ -154,8 +159,14 @@ describe("PR-6 adversarial", () => {
     expect(JSON.stringify(out)).not.toContain(pii)
   }
 
-  it.each(PII)("refuses %j in a test command, without echoing it", pii => {
-    refuses(r => (r.tests[0].command = `jest ${pii}`), "tests[0].command", pii)
+  it.each(PII)("refuses %j as a test id or command text, without echoing it", pii => {
+    // B2: runs are catalog ids; command text is not an accepted field at all.
+    refuses(r => (r.tests[0].testId = `jest ${pii}` as never), "tests[0].testId", pii)
+    refuses(
+      r => ((r.tests[0] as unknown as Record<string, unknown>).command = `jest ${pii}`),
+      "tests[0]:unknown_key",
+      pii
+    )
   })
 
   it.each(PII)("refuses %j as a hold (holds are ids, never text)", pii => {
@@ -366,5 +377,563 @@ describe("R8 mandatory holds cannot be dropped", () => {
     for (const builtAt of ["2026-02-30T15:00:00.000Z", "2026-09-26T15:00:00+00:00"]) {
       expect(verifyForged(forge(build(), { builtAt })).reasons).toContain("malformed_built_at")
     }
+  })
+})
+
+const sha256Hex = (c: string) => crypto.createHash("sha256").update(c).digest("hex")
+type Loose = Record<string, unknown>
+type LooseEntry = { name: string; sha256: string; bytes: number; content: string }
+/** A forger who edits anything, then re-hashes every entry and the manifest consistently. */
+const rehash = (p: Loose): OperatorReviewPacket => {
+  const entries = (p.entries as LooseEntry[]).map(e => ({
+    ...e,
+    sha256: sha256Hex(e.content),
+    bytes: Buffer.byteLength(e.content),
+  }))
+  const body = { ...p, entries } as unknown as OperatorReviewPacket
+  return { ...body, manifestSha256: computeManifestSha256(body) }
+}
+const verdictOf = (f: OperatorReviewPacket) => verifyOperatorReviewPacket(f, f.manifestSha256)
+const ENTRY_NAMES = [
+  "provenance.json",
+  "classification.json",
+  "compatibility.json",
+  "non-official-artifacts.json",
+  "tests.json",
+  "holds.json",
+]
+const PII_MARKS = ["Jane", "3125550142", "312:555:0142", "312_555_0142", "jane@example.com"]
+
+describe("B1 the verifier requires the complete, exact packet contract", () => {
+  it("pins the six entry names in order", () => {
+    expect([...OPERATOR_PACKET_ENTRY_NAMES]).toEqual(ENTRY_NAMES)
+    expect(build().entries.map(e => e.name)).toEqual(ENTRY_NAMES)
+  })
+
+  it("the reviewed counterexample — only holds.json, attacker version, non-SHA — is invalid", () => {
+    const p = build()
+    const f = rehash({
+      ...p,
+      version: "attacker-version",
+      candidateSha: "not-a-sha",
+      entries: p.entries.filter(e => e.name === "holds.json"),
+    })
+    const v = verdictOf(f)
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toEqual(
+      expect.arrayContaining([
+        "packet_version_mismatch",
+        "malformed_candidate_sha",
+        ...ENTRY_NAMES.slice(0, 5).map(n => `entry_missing:${n}`),
+      ])
+    )
+  })
+
+  it.each(ENTRY_NAMES)("a re-hashed packet without %s is invalid", name => {
+    const p = build()
+    const v = verdictOf(rehash({ ...p, entries: p.entries.filter(e => e.name !== name) }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(`entry_missing:${name}`)
+  })
+
+  it.each(ENTRY_NAMES)("a re-hashed packet with %s twice is invalid", name => {
+    const p = build()
+    const extra = p.entries.find(e => e.name === name)!
+    const v = verdictOf(rehash({ ...p, entries: [...p.entries, extra] }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(`entry_duplicate:${name}`)
+  })
+
+  it("an unknown entry is invalid and neither its name nor its body is echoed", () => {
+    const p = build()
+    const content = canonicalJson("call Jane 3125550142")
+    const v = verdictOf(
+      rehash({
+        ...p,
+        entries: [...p.entries, { name: "Jane-3125550142.json", sha256: "", bytes: 0, content }],
+      })
+    )
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain("entry_unknown:6")
+    for (const m of PII_MARKS) expect(JSON.stringify(v)).not.toContain(m)
+  })
+
+  it("entries out of order are invalid", () => {
+    const p = build()
+    const v = verdictOf(rehash({ ...p, entries: [...p.entries].reverse() }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain("entry_order_mismatch")
+  })
+
+  it.each(["attacker-version", "", `${OPERATOR_PACKET_VERSION} `, "cc05-2026-09-26.2"])(
+    "version %j is invalid",
+    version => {
+      const v = verdictOf(rehash({ ...build(), version }))
+      expect(v.valid).toBe(false)
+      expect(v.reasons).toContain("packet_version_mismatch")
+    }
+  )
+
+  it.each([
+    "not-a-sha",
+    CANDIDATE.toUpperCase(),
+    CANDIDATE.slice(1),
+    `${CANDIDATE}0`,
+    ` ${CANDIDATE}`,
+    "g".repeat(40),
+    "0".repeat(64),
+  ])("candidate SHA %j is invalid", candidateSha => {
+    const v = verdictOf(rehash({ ...build(), candidateSha }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain("malformed_candidate_sha")
+  })
+
+  it.each(ENTRY_NAMES)("unparseable %s is invalid", name => {
+    const p = build()
+    const entries = p.entries.map(e => (e.name === name ? { ...e, content: "{" } : e))
+    const v = verdictOf(rehash({ ...p, entries }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(`entry_malformed_json:${name}`)
+  })
+
+  it.each(ENTRY_NAMES)("non-canonical bytes for %s are invalid", name => {
+    const p = build()
+    const entries = p.entries.map(e =>
+      e.name === name ? { ...e, content: JSON.stringify(JSON.parse(e.content), null, 1) } : e
+    )
+    const v = verdictOf(rehash({ ...p, entries }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain(`entry_noncanonical:${name}`)
+  })
+
+  it("reordered keys are non-canonical", () => {
+    const p = build()
+    const entries = p.entries.map(e => {
+      if (e.name !== "tests.json") return e
+      const [t] = JSON.parse(e.content)
+      const reversed = Object.fromEntries(Object.entries(t).reverse())
+      return { ...e, content: JSON.stringify([reversed]) }
+    })
+    expect(verdictOf(rehash({ ...p, entries })).reasons).toContain("entry_noncanonical:tests.json")
+  })
+
+  // Canonical, re-hashed, but outside the entry's closed schema.
+  const SCHEMA_MUTATIONS: [string, string, (body: unknown) => unknown][] = [
+    ["provenance.json", "consistent flipped", b => ({ ...(b as Loose), consistent: false })],
+    ["provenance.json", "free text added", b => ({ ...(b as Loose), note: "Jane 3125550142" })],
+    ["classification.json", "shippable true", b => [{ ...(b as Loose[])[0], shippable: true }]],
+    ["classification.json", "unknown key", b => [{ ...(b as Loose[])[0], note: "Jane" }]],
+    [
+      "classification.json",
+      "free-text reason",
+      b => [{ ...(b as Loose[])[0], reasons: ["call 3125550142"] }],
+    ],
+    [
+      "classification.json",
+      "class upgraded",
+      b => [{ ...(b as Loose[])[0], sourceClass: "official_current" }],
+    ],
+    ["classification.json", "null element", () => [null]],
+    [
+      "compatibility.json",
+      "compatible with reasons",
+      b => [{ ...(b as Loose[])[0], compatible: true }],
+    ],
+    [
+      "compatibility.json",
+      "generation authorized",
+      b => [{ ...(b as Loose[])[0], generationAuthorized: true }],
+    ],
+    [
+      "compatibility.json",
+      "field name in a reason",
+      b => [{ ...(b as Loose[])[0], reasons: ["unexpected_field:Jane Doe"] }],
+    ],
+    [
+      "compatibility.json",
+      "unknown reason",
+      b => [{ ...(b as Loose[])[0], reasons: ["no_bound_mapping", "jane_3125550142"] }],
+    ],
+    ["compatibility.json", "null element", () => [null]],
+    [
+      "non-official-artifacts.json",
+      "officialForm true",
+      b => [{ ...(b as Loose[])[0], officialForm: true }],
+    ],
+    [
+      "non-official-artifacts.json",
+      "markers present",
+      b => [{ ...(b as Loose[])[0], officialMarkers: ["court_caption"] }],
+    ],
+    [
+      "non-official-artifacts.json",
+      "body smuggled",
+      b => [{ ...(b as Loose[])[0], text: "Jane Doe, Cook County" }],
+    ],
+    [
+      "non-official-artifacts.json",
+      "index out of place",
+      b => [{ ...(b as Loose[])[0], index: 5 }],
+    ],
+    ["non-official-artifacts.json", "null element", () => [null]],
+    [
+      "tests.json",
+      "command text replaced",
+      b => [{ ...(b as Loose[])[0], command: "jest 312_555_0142" }],
+    ],
+    ["tests.json", "unknown test id", b => [{ ...(b as Loose[])[0], testId: "jane_3125550142" }]],
+    ["tests.json", "unknown key", b => [{ ...(b as Loose[])[0], note: "Jane" }]],
+    ["tests.json", "duplicate test id", b => [(b as Loose[])[0], (b as Loose[])[0]]],
+    ["tests.json", "null element", () => [null]],
+    [
+      "holds.json",
+      "free-text hold added",
+      b => [...(b as Loose[]), { id: "call_me", owner: "Jane", reason: "Call 312:555:0142" }],
+    ],
+    [
+      "holds.json",
+      "optional hold reworded",
+      b => [...(b as Loose[]).slice(0, 8), { ...OPTIONAL_PACKET_HOLDS[1], reason: "Fine." }],
+    ],
+    ["holds.json", "optional hold twice", b => [...(b as Loose[]), (b as Loose[])[8]]],
+    ["holds.json", "null element", b => [...(b as Loose[]), null]],
+  ]
+  it.each(SCHEMA_MUTATIONS)("%s: %s is invalid, without echo", (name, _what, mutate) => {
+    const p = build()
+    const entries = p.entries.map(e =>
+      e.name === name ? { ...e, content: canonicalJson(mutate(JSON.parse(e.content))) } : e
+    )
+    const v = verdictOf(rehash({ ...p, entries }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons.some(r => r.startsWith(`entry_schema_invalid:${name}`))).toBe(true)
+    for (const m of PII_MARKS) expect(JSON.stringify(v)).not.toContain(m)
+  })
+
+  it("an unbound top-level field is invalid", () => {
+    const v = verdictOf(rehash({ ...build(), note: "call Jane 3125550142" }))
+    expect(v.valid).toBe(false)
+    expect(v.reasons).toContain("packet_invalid:packet:unknown_key")
+    for (const m of PII_MARKS) expect(JSON.stringify(v)).not.toContain(m)
+  })
+
+  it.each([
+    ["null", null],
+    ["string", "packet"],
+    ["array", []],
+    ["entries not an array", { ...build(), entries: "x" }],
+    ["entry not an object", { ...build(), entries: [1, 2, 3, 4, 5, 6] }],
+    ["missing field", Object.fromEntries(Object.entries(build()).filter(([k]) => k !== "builtAt"))],
+  ])("a structurally broken packet (%s) is invalid and does not throw", (_n, packet) => {
+    const v = verifyOperatorReviewPacket(packet as never, "0".repeat(64))
+    expect(v.valid).toBe(false)
+    expect(v.reasons.some(r => r.startsWith("packet_invalid:"))).toBe(true)
+  })
+
+  it("a built packet still verifies", () => {
+    const p = build()
+    expect(verifyOperatorReviewPacket(p, p.manifestSha256)).toEqual({ valid: true, reasons: [] })
+  })
+})
+
+describe("B2 test results carry a closed testId, never caller command text", () => {
+  const PAYLOADS = [
+    "--customer=jane-doe --address=123-main-street",
+    "Jane Doe",
+    "jane-doe",
+    "123 Main Street",
+    "312_555_0142",
+    "312:555:0142",
+    "jane.doe@example.com",
+    "jane@example",
+    "31255501420000",
+    "12345678901234567890",
+  ]
+  const TEST = { status: "PASS" as const, passed: 1, failed: 0, skipped: 0 }
+  const withTests = (tests: unknown[]) => ({ ...request(), tests }) as unknown as PacketRequest
+
+  it.each([
+    "jest --customer=jane-doe --address=123-main-street",
+    "jest 312_555_0142",
+    "jest 312:555:0142",
+    "jest __tests__/lib/forms/form-stack",
+  ])("the reviewed command %j is refused — commands are no longer accepted", command => {
+    const out = buildOperatorReviewPacket(withTests([{ command, ...TEST }]), { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:tests[0]:unknown_key")
+    expect(JSON.stringify(out)).not.toContain(command)
+  })
+
+  it.each(PAYLOADS)("%j as a testId is refused, unechoed", payload => {
+    const out = buildOperatorReviewPacket(withTests([{ testId: payload, ...TEST }]), {
+      clock: FIXED,
+    })
+    expect(out.ok).toBe(false)
+    if (!out.ok)
+      expect(out.violations).toContain("request_invalid:tests[0].testId:not_in_vocabulary")
+    expect(JSON.stringify(out)).not.toContain(payload)
+  })
+
+  it("every catalog testId renders only its pinned command", () => {
+    const ids = Object.keys(PACKET_TEST_CATALOG) as (keyof typeof PACKET_TEST_CATALOG)[]
+    expect(ids.length).toBeGreaterThan(0)
+    for (const testId of ids) {
+      const out = buildOperatorReviewPacket(withTests([{ testId, ...TEST }]), { clock: FIXED })
+      if (!out.ok) throw new Error(out.violations.join(","))
+      const tests = JSON.parse(out.packet.entries.find(e => e.name === "tests.json")!.content)
+      expect(tests).toEqual([{ testId, command: PACKET_TEST_CATALOG[testId], ...TEST }])
+    }
+  })
+
+  it("a testId may be reported once", () => {
+    const t = { testId: "typescript", ...TEST }
+    const out = buildOperatorReviewPacket(withTests([t, t]), { clock: FIXED })
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:tests:duplicate_test_id")
+  })
+
+  // Every place a caller can put a string. Refused or digested — never copied.
+  const SITES: [string, (r: Loose, payload: string) => void][] = [
+    ["testId", (r, x) => ((r.tests as Loose[])[0].testId = x)],
+    ["command key", (r, x) => ((r.tests as Loose[])[0].command = x)],
+    ["extra test key", (r, x) => ((r.tests as Loose[])[0].note = x)],
+    ["holdIds", (r, x) => (r.holdIds = [x])],
+    ["candidateSha", (r, x) => (r.candidateSha = x)],
+    ["classification formId", (r, x) => ((r.classificationQueries as Loose[])[0].formId = x)],
+    ["mappingId", (r, x) => ((r.compatibilityQueries as Loose[])[0].mappingId = x)],
+    [
+      "artifact path",
+      (r, x) => (((r.compatibilityQueries as Loose[])[0].artifact as Loose).path = x),
+    ],
+    [
+      "field inventory",
+      (r, x) => (((r.compatibilityQueries as Loose[])[0].artifact as Loose).fieldInventory = [x]),
+    ],
+    [
+      "summary value",
+      (r, x) => (((r.nonOfficialInputs as Loose[])[0].summary as Loose[])[0].value = x),
+    ],
+    ["extra request key", (r, x) => (r.note = x)],
+  ]
+  it.each(SITES)("no payload placed in %s reaches the packet or its violations", (_site, put) => {
+    const base = () =>
+      ({ ...request(), tests: [{ testId: "form_stack_focused", ...TEST }] }) as unknown as Loose
+    // Matched control: the same request without the payload builds.
+    expect(buildOperatorReviewPacket(base() as unknown as PacketRequest, { clock: FIXED }).ok).toBe(
+      true
+    )
+    for (const payload of PAYLOADS) {
+      const r = base()
+      put(r, payload)
+      const out = buildOperatorReviewPacket(r as unknown as PacketRequest, { clock: FIXED })
+      expect([payload, JSON.stringify(out).includes(payload)]).toEqual([payload, false])
+    }
+  })
+})
+
+describe("B3 sparse lists and inherited fields are refused", () => {
+  const sparse = (len: number, ...set: [number, unknown][]) => {
+    const a: unknown[] = new Array(len)
+    for (const [i, v] of set) a[i] = v
+    return a
+  }
+  const at = (r: Loose, dotted: string): Loose =>
+    dotted
+      .split(".")
+      .reduce((o: Loose, k) => (/^\d+$/.test(k) ? (o as never)[k] : o[k]) as Loose, r)
+  const LISTS: [string, string, string][] = [
+    ["classificationQueries", "", "classificationQueries"],
+    ["compatibilityQueries", "", "compatibilityQueries"],
+    ["nonOfficialInputs", "", "nonOfficialInputs"],
+    ["tests", "", "tests"],
+    ["holdIds", "", "holdIds"],
+    [
+      "fieldInventory",
+      "compatibilityQueries.0.artifact",
+      "compatibilityQueries[0].artifact.fieldInventory",
+    ],
+    ["summary", "nonOfficialInputs.0", "nonOfficialInputs[0].summary"],
+    ["checklist", "nonOfficialInputs.0", "nonOfficialInputs[0].checklist"],
+    ["guidance", "nonOfficialInputs.0", "nonOfficialInputs[0].guidance"],
+  ]
+  const run = (r: Loose) =>
+    buildOperatorReviewPacket(r as unknown as PacketRequest, { clock: FIXED })
+
+  it("the reviewed counterexample — new Array(1) for classification and tests — is refused", () => {
+    const r = request() as unknown as Loose
+    r.classificationQueries = new Array(1)
+    r.tests = new Array(1)
+    const out = run(r)
+    expect(out.ok).toBe(false)
+    if (!out.ok)
+      expect(out.violations).toEqual(
+        expect.arrayContaining([
+          "request_invalid:classificationQueries[0]:hole",
+          "request_invalid:tests[0]:hole",
+        ])
+      )
+  })
+
+  it.each(LISTS)("a hole in %s is refused, value-free", (key, parent, p) => {
+    for (const make of [
+      () => sparse(1),
+      (first: unknown) => sparse(2, [0, first]),
+      (first: unknown) => sparse(3, [0, first], [2, first]),
+    ]) {
+      const r = request() as unknown as Loose
+      const holder = parent ? at(r, parent) : r
+      const first = (holder[key] as unknown[])[0]
+      holder[key] = make(first)
+      const out = run(r)
+      expect(out.ok).toBe(false)
+      if (!out.ok)
+        expect(
+          out.violations.some(v => v.startsWith(`request_invalid:${p}[`) && v.endsWith(":hole"))
+        ).toBe(true)
+    }
+  })
+
+  it("a huge sparse list is refused without walking it", () => {
+    const r = request() as unknown as Loose
+    r.tests = new Array(4_000_000_000)
+    const out = run(r)
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:tests:too_long")
+  })
+
+  const OBJECTS: [string, (r: Loose) => Loose, string][] = [
+    ["request", r => r, "request"],
+    [
+      "classification query",
+      r => (r.classificationQueries as Loose[])[0],
+      "classificationQueries[0]",
+    ],
+    ["compatibility query", r => (r.compatibilityQueries as Loose[])[0], "compatibilityQueries[0]"],
+    [
+      "artifact",
+      r => (r.compatibilityQueries as Loose[])[0].artifact as Loose,
+      "compatibilityQueries[0].artifact",
+    ],
+    ["test result", r => (r.tests as Loose[])[0], "tests[0]"],
+    ["non-official input", r => (r.nonOfficialInputs as Loose[])[0], "nonOfficialInputs[0]"],
+    [
+      "summary item",
+      r => ((r.nonOfficialInputs as Loose[])[0].summary as Loose[])[0],
+      "nonOfficialInputs[0].summary[0]",
+    ],
+    [
+      "checklist item",
+      r => ((r.nonOfficialInputs as Loose[])[0].checklist as Loose[])[0],
+      "nonOfficialInputs[0].checklist[0]",
+    ],
+  ]
+
+  it.each(OBJECTS)("every field of a %s must be its own, not Object.prototype's", (_n, pick, p) => {
+    const r = request() as unknown as Loose
+    const obj = pick(r)
+    const key = Object.keys(obj)[0]
+    const value = obj[key]
+    delete obj[key]
+    const proto = Object.prototype as Loose
+    let out: ReturnType<typeof run>
+    proto[key] = value
+    try {
+      out = run(r)
+    } finally {
+      delete proto[key]
+    }
+    expect(out.ok).toBe(false)
+    // Top-level fields keep the existing `request_invalid:<field>:` form.
+    const field = p === "request" ? key : `${p}.${key}`
+    if (!out.ok) expect(out.violations).toContain(`request_invalid:${field}:missing`)
+  })
+
+  it.each(OBJECTS)(
+    "a %s inheriting every field from a custom prototype is refused",
+    (_n, pick, p) => {
+      const r = request() as unknown as Loose
+      const obj = pick(r)
+      const heir = Object.create({ ...obj })
+      const out =
+        obj === r
+          ? run(heir)
+          : (() => {
+              // Swap the object for its heir wherever it sits in the request.
+              const swap = (node: unknown): unknown =>
+                node === obj
+                  ? heir
+                  : Array.isArray(node)
+                    ? node.map(swap)
+                    : node && typeof node === "object"
+                      ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, swap(v)]))
+                      : node
+              return run(swap(r) as Loose)
+            })()
+      expect(out.ok).toBe(false)
+      if (!out.ok) expect(out.violations).toContain(`request_invalid:${p}:not_object`)
+    }
+  )
+
+  it("a getter is refused and never invoked", () => {
+    const r = request() as unknown as Loose
+    let calls = 0
+    Object.defineProperty((r.tests as Loose[])[0], "status", {
+      enumerable: true,
+      get: () => {
+        calls++
+        return "PASS"
+      },
+    })
+    const out = run(r)
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:tests[0].status:accessor")
+    expect(calls).toBe(0)
+  })
+
+  it("an array carrying a non-index own property is refused", () => {
+    const r = request() as unknown as Loose
+    const ids = ["banner_copy_owner_review"] as unknown as Loose
+    ids.note = "Jane 3125550142"
+    r.holdIds = ids
+    const out = run(r)
+    expect(out.ok).toBe(false)
+    if (!out.ok) expect(out.violations).toContain("request_invalid:holdIds:unknown_key")
+    expect(JSON.stringify(out)).not.toContain("Jane")
+  })
+
+  it("Date, Map and class instances are not data objects", () => {
+    for (const odd of [new Date(0), new Map(), new (class Q {})()]) {
+      const r = request() as unknown as Loose
+      ;(r.tests as unknown[])[0] = odd
+      const out = run(r)
+      expect(out.ok).toBe(false)
+      if (!out.ok) expect(out.violations).toContain("request_invalid:tests[0]:not_object")
+    }
+  })
+
+  it("null-prototype data objects are accepted and build the identical packet", () => {
+    const nullProto = (node: unknown): unknown =>
+      Array.isArray(node)
+        ? node.map(nullProto)
+        : node && typeof node === "object"
+          ? Object.assign(
+              Object.create(null),
+              Object.fromEntries(Object.entries(node).map(([k, v]) => [k, nullProto(v)]))
+            )
+          : node
+    const out = run(nullProto(request()) as Loose)
+    if (!out.ok) throw new Error(out.violations.join(","))
+    expect(out.packet.manifestSha256).toBe(build().manifestSha256)
+  })
+
+  it("the verifier refuses a sparse entries list and an inherited entry", () => {
+    const p = build()
+    const holey = sparse(6, ...p.entries.slice(1).map((e, i) => [i + 1, e] as [number, unknown]))
+    const v1 = verifyOperatorReviewPacket({ ...p, entries: holey } as never, p.manifestSha256)
+    expect(v1.valid).toBe(false)
+    expect(v1.reasons).toContain("packet_invalid:entries[0]:hole")
+    const inherited = [Object.create(p.entries[0]), ...p.entries.slice(1)]
+    const v2 = verifyOperatorReviewPacket({ ...p, entries: inherited } as never, p.manifestSha256)
+    expect(v2.valid).toBe(false)
+    expect(v2.reasons).toContain("packet_invalid:entries[0]:not_object")
   })
 })

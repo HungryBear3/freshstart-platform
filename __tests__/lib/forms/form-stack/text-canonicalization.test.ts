@@ -15,7 +15,10 @@ import {
   canonicalizeForDetection,
   findDisplayTextDefects,
 } from "@/lib/forms/form-stack/text-canonicalization"
-import { findOfficialMarkers } from "@/lib/forms/form-stack/non-official-output"
+import {
+  findLegalAdviceContent,
+  findOfficialMarkers,
+} from "@/lib/forms/form-stack/non-official-output"
 
 // One positive example per marker family, as the blocked suite used them.
 const MARKER_EXAMPLES: [string, string][] = [
@@ -139,6 +142,134 @@ describe("R1 canonicalizer contract", () => {
 
   it("does not flag the fixed disclaimer phrasing", () => {
     expect(findOfficialMarkers("Not a court form. Not for filing. Not legal advice.")).toEqual([])
+  })
+})
+
+describe("B4 each format control independently reads as nothing or as a separator", () => {
+  const MIXED_CAPTION = "IN THE CIR\u200bCUIT\u200bCOURT OF COOK COUNTY"
+  const CONTROLS = INVISIBLES.map(([, c]) => c)
+  const control = (k: number) => CONTROLS[k % CONTROLS.length]
+
+  /** Every space becomes a control AND a control sits inside every token. */
+  const mixEverywhere = (text: string) => {
+    let k = 0
+    return text
+      .split(" ")
+      .map(tok => {
+        const mid = Math.floor(tok.length / 2)
+        return tok.length >= 2 ? `${tok.slice(0, mid)}${control(k++)}${tok.slice(mid)}` : tok
+      })
+      .join(control(3))
+  }
+  /** Space `i` becomes a control and the token before it gets a control inside. */
+  const mixAt = (text: string, i: number) => {
+    const toks = text.split(" ")
+    const t = toks[i]
+    const mid = Math.floor(t.length / 2)
+    toks[i] = t.length >= 2 ? `${t.slice(0, mid)}\u200c${t.slice(mid)}` : t
+    return toks.slice(0, i + 1).join(" ") + "\u2060" + toks.slice(i + 1).join(" ")
+  }
+  const MULTIWORD = MARKER_EXAMPLES.filter(([t]) => t.includes(" "))
+
+  it("the reviewed counterexample CIR<ZWSP>CUIT<ZWSP>COURT is a court caption", () => {
+    expect(findOfficialMarkers(MIXED_CAPTION)).toContain("court_caption")
+  })
+
+  it.each(MULTIWORD)("%j with a control in every token and at every space → %s", (text, code) => {
+    expect(findOfficialMarkers(mixEverywhere(text))).toContain(code)
+  })
+
+  it.each(
+    MULTIWORD.flatMap(([text, code]) =>
+      text
+        .split(" ")
+        .slice(0, -1)
+        .map((_, i) => [`${text} @ space ${i}`, mixAt(text, i), code])
+    )
+  )("%s: one control joins, another separates", (_n, text, code) => {
+    expect(findOfficialMarkers(text)).toContain(code)
+  })
+
+  it("controls next to spaces, dashes and either end are harmless and still detected", () => {
+    expect(
+      findOfficialMarkers("\u200bIN THE\u200b \u2060CIRCUIT\u200d COURT OF COOK COUNTY\ufeff")
+    ).toContain("court_caption")
+    expect(findOfficialMarkers("court\u200b-\u200cready")).toContain(
+      "completion_or_acceptance_claim"
+    )
+    expect(findOfficialMarkers("court\u200b\u200c\u200d\u2060ready")).toContain(
+      "completion_or_acceptance_claim"
+    )
+  })
+
+  it("controls never manufacture a marker out of safe text", () => {
+    for (const safe of [
+      "Not a court form. Not for filing. Not legal advice.",
+      "FRESH START PERSONAL ORGANIZER — NOT A COURT FORM — NOT FOR FILING",
+      "Cook County",
+      "Ask the circuit clerk's office which forms your county expects.",
+    ]) {
+      expect(findOfficialMarkers(mixEverywhere(safe))).toEqual([])
+      expect(findOfficialMarkers(`\u200b${safe}\u200b`)).toEqual([])
+    }
+  })
+
+  it("advice detection shares the same per-control reading", () => {
+    expect(findLegalAdviceContent("you sho\u200buld\u200csettle")).toEqual(
+      expect.arrayContaining(["prescriptive", "settlement"])
+    )
+  })
+
+  // Oracle: resolve every control independently (2^N strings, N small) and
+  // union the markers the ORIGINAL control-free detector finds. The detector
+  // under test must find exactly that union on the unresolved string.
+  const seeded = (seed: number) => () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const oracle = (text: string): string[] => {
+    const parts = text.split(/[\u200b\u200c\u200d\u2060\u00ad\ufeff\u202e]/)
+    const found = new Set<string>()
+    for (let mask = 0; mask < 1 << (parts.length - 1); mask++) {
+      const resolved = parts.reduce(
+        (acc, p, i) => (i === 0 ? p : acc + (mask & (1 << (i - 1)) ? " " : "") + p),
+        ""
+      )
+      for (const m of findOfficialMarkers(resolved)) found.add(m)
+    }
+    return [...found].sort()
+  }
+  it("matches a brute-force per-control oracle on 400 seeded mixed strings", () => {
+    const rand = seeded(20260927)
+    const sources = [...MARKER_EXAMPLES.map(([t]) => t), "Not a court form. Not for filing."]
+    for (let n = 0; n < 400; n++) {
+      const src = sources[Math.floor(rand() * sources.length)]
+      let text = ""
+      let inserted = 0
+      for (const ch of src) {
+        if (ch === " " && inserted < 7 && rand() < 0.5) {
+          text += control(inserted++)
+          continue
+        }
+        text += ch
+        if (inserted < 7 && rand() < 0.15) text += control(inserted++)
+      }
+      expect([text, [...findOfficialMarkers(text)].sort()]).toEqual([text, oracle(text)])
+    }
+  })
+
+  it("stays bounded on 50,000 interleaved controls (no per-variant enumeration)", () => {
+    const text = `${MIXED_CAPTION} ${"a\u200bb\u200c ".repeat(12_500)}`
+    const started = Date.now()
+    expect(findOfficialMarkers(text)).toContain("court_caption")
+    expect(findOfficialMarkers("x\u200b".repeat(50_000))).toEqual([])
+    expect(Date.now() - started).toBeLessThan(5_000)
+  })
+
+  it("display validation still refuses the mixed string on its own", () => {
+    expect(findDisplayTextDefects(MIXED_CAPTION)).toContain("display_text_invalid_character")
   })
 })
 

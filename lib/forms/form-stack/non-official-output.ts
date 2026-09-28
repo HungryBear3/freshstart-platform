@@ -37,7 +37,9 @@ import { ALL_ILLINOIS_COUNTIES } from "@/lib/counties/all-counties"
 import { deepFreeze } from "@/lib/forms/form-stack/provenance-ledger"
 import {
   canonicalizeForDetection,
+  canonicalizeWithSlots,
   findDisplayTextDefects,
+  slotTolerant,
 } from "@/lib/forms/form-stack/text-canonicalization"
 
 export const NON_OFFICIAL_OUTPUT_VERSION = "cc05-2026-09-26.1"
@@ -56,7 +58,8 @@ const CHROME = deepFreeze({
 })
 
 // Patterns run on canonical text (see text-canonicalization.ts): lowercase,
-// single spaces, "-" for every dash, invisible characters removed or spaced.
+// single spaces, "-" for every dash; each invisible-control run is a slot that
+// `slotTolerant` lets read as nothing or as a space, independently (B4).
 const MARKERS: readonly (readonly [string, RegExp])[] = deepFreeze([
   [
     "court_caption",
@@ -78,10 +81,12 @@ const MARKERS: readonly (readonly [string, RegExp])[] = deepFreeze([
   ["official_claim", /\bofficial/],
 ])
 
-/** Marker codes found in ANY canonical variant of `text`. */
+const SLOT_MARKERS = deepFreeze(MARKERS.map(([code, re]) => [code, slotTolerant(re)] as const))
+
+/** Marker codes found under ANY per-control reading of `text`. */
 export function findOfficialMarkers(text: string): string[] {
-  const variants = canonicalizeForDetection(text)
-  return MARKERS.filter(([, re]) => variants.some(v => re.test(v))).map(([code]) => code)
+  const canonical = canonicalizeWithSlots(text)
+  return SLOT_MARKERS.filter(([, re]) => re.test(canonical)).map(([code]) => code)
 }
 
 /**
@@ -172,10 +177,12 @@ const ADVICE: readonly (readonly [string, RegExp])[] = deepFreeze([
   ["strategy", /\bstrateg|\bleverage\b|\btactic/],
 ])
 
-/** Advice categories found in ANY canonical variant of `text`. */
+const SLOT_ADVICE = deepFreeze(ADVICE.map(([code, re]) => [code, slotTolerant(re)] as const))
+
+/** Advice categories found under ANY per-control reading of `text`. */
 export function findLegalAdviceContent(text: string): string[] {
-  const variants = canonicalizeForDetection(text)
-  return ADVICE.filter(([, re]) => variants.some(v => re.test(v))).map(([code]) => code)
+  const canonical = canonicalizeWithSlots(text)
+  return SLOT_ADVICE.filter(([, re]) => re.test(canonical)).map(([code]) => code)
 }
 
 export interface NonOfficialDocument {

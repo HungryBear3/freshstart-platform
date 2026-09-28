@@ -11,11 +11,17 @@
  *   - HASH-BOUND. Each entry is canonical JSON with its own SHA-256; the
  *     manifest hash covers every entry. `verifyOperatorReviewPacket` detects any
  *     change made after the hash an operator reviewed.
+ *   - SCHEMA-COMPLETE (B1). A hash proves consistency, not completeness. The
+ *     verifier requires exactly the six entries in order, the pinned version,
+ *     a lowercase 40-hex candidate SHA, and canonical bytes for every entry,
+ *     and parses each entry against its closed schema — so a forger who
+ *     re-hashes consistently can neither drop evidence nor add free text.
  *   - PII-MINIMIZED. Non-official artifacts appear by hash and shape only —
  *     never their text. Every other request field is checked against a closed,
- *     length-bounded schema (R3, `packet-request-schema.ts`); holds are ids
- *     from a fixed catalog, never caller text; AcroForm field names appear in
- *     compatibility reasons only as digests; violations never echo a value.
+ *     length-bounded schema (R3, `packet-request-schema.ts`); holds and test
+ *     runs are ids from fixed catalogs, never caller text (B2); AcroForm field
+ *     names appear in compatibility reasons only as digests; violations never
+ *     echo a value.
  *   - NO DELIVERY. `delivery` is the literal "none". This module builds an
  *     in-memory object; it has no network, email, storage or database path.
  */
@@ -35,10 +41,28 @@ import {
   renderNonOfficialSummary,
   type NonOfficialInput,
 } from "@/lib/forms/form-stack/non-official-output"
-import { validatePacketRequest } from "@/lib/forms/form-stack/packet-request-schema"
+import { list, shape, isString, leaf, type Report } from "@/lib/forms/form-stack/closed-schema"
+import { ENTRY_SCHEMAS, FIELD_BEARING_REASONS } from "@/lib/forms/form-stack/packet-entry-schema"
+import {
+  COMMIT_SHA,
+  PACKET_TEST_CATALOG,
+  SHA256,
+  parsePacketRequest,
+  type PacketTestId,
+} from "@/lib/forms/form-stack/packet-request-schema"
 import { parseStrictUtcTimestamp } from "@/lib/forms/form-stack/strict-date"
 
 export const OPERATOR_PACKET_VERSION = "cc05-2026-09-26.1"
+
+/** B1: the complete entry contract, in order. Nothing more, nothing less. */
+export const OPERATOR_PACKET_ENTRY_NAMES = deepFreeze([
+  "provenance.json",
+  "classification.json",
+  "compatibility.json",
+  "non-official-artifacts.json",
+  "tests.json",
+  "holds.json",
+] as const)
 
 export interface PacketHold {
   id: string
@@ -126,8 +150,9 @@ export type OptionalHoldId =
   | "template_copy_owner_review"
   | "homoglyph_coverage_partial"
 
+/** B2: a run is named by id; its display command is pinned in `PACKET_TEST_CATALOG`. */
 export interface PacketTestResult {
-  command: string
+  testId: PacketTestId
   status: "PASS" | "FAIL" | "NOT_RUN"
   passed: number
   failed: number
@@ -166,19 +191,10 @@ export type PacketBuild =
   | { ok: true; packet: OperatorReviewPacket }
   | { ok: false; violations: string[] }
 
-/** Codes whose suffix is an AcroForm field name; the packet carries a digest instead. */
-const FIELD_BEARING = new Set([
-  "missing_critical_field",
-  "missing_mapped_field",
-  "unexpected_field",
-  "critical_field_not_in_inventory",
-  "critical_field_unmapped",
-  "mapped_field_not_in_inventory",
-])
-
+/** Field-bearing reasons carry a digest of the AcroForm field name instead of the name. */
 function redactFieldName(reason: string): string {
   const i = reason.indexOf(":")
-  if (i < 0 || !FIELD_BEARING.has(reason.slice(0, i))) return reason
+  if (i < 0 || !FIELD_BEARING_REASONS.has(reason.slice(0, i))) return reason
   return `${reason.slice(0, i)}:field#${sha256(reason.slice(i + 1)).slice(0, 16)}`
 }
 
@@ -225,11 +241,14 @@ export function buildOperatorReviewPacket(
   deps: { clock: () => Date }
 ): PacketBuild {
   const optionalIds = new Set(OPTIONAL_PACKET_HOLDS.map(h => h.id))
-  const violations = validatePacketRequest(req, optionalIds)
+  const parsed = parsePacketRequest(req as unknown, optionalIds)
+  const violations = parsed.ok ? [] : parsed.violations
   const now = deps.clock()
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) violations.push("invalid_clock")
-  // Nothing below may run on a request that failed its schema.
-  if (violations.length > 0) return { ok: false, violations }
+  // Nothing below may run on a request that failed its schema, and everything
+  // below reads the parsed copy, never the caller's object.
+  if (!parsed.ok || violations.length > 0) return { ok: false, violations }
+  req = parsed.value
 
   // Customer inputs are rendered and hashed, never copied.
 
@@ -309,7 +328,8 @@ export function buildOperatorReviewPacket(
       entry(
         "tests.json",
         req.tests.map(t => ({
-          command: t.command,
+          testId: t.testId,
+          command: PACKET_TEST_CATALOG[t.testId],
           status: t.status,
           passed: t.passed,
           failed: t.failed,
@@ -327,24 +347,16 @@ export function buildOperatorReviewPacket(
 }
 
 /** R8: every mandatory hold present with its exact pinned text. */
-function mandatoryHoldDefects(packet: OperatorReviewPacket): string[] {
+function mandatoryHoldDefects(packet: ShapedPacket, holds: unknown): string[] {
   const out: string[] = []
   const ids = packet.mandatoryHoldIds
   if (
-    !Array.isArray(ids) ||
     ids.length !== MANDATORY_PACKET_HOLD_IDS.length ||
     ids.some((id, i) => id !== MANDATORY_PACKET_HOLD_IDS[i])
   ) {
     out.push("mandatory_hold_set_mismatch")
   }
-  const holdsEntries = packet.entries.filter(e => e.name === "holds.json")
-  if (holdsEntries.length !== 1) return [...out, "holds_entry_missing"]
-  let holds: unknown
-  try {
-    holds = JSON.parse(holdsEntries[0].content)
-  } catch {
-    return [...out, "holds_entry_malformed"]
-  }
+  if (holds === MISSING) return [...out, "holds_entry_missing"]
   if (!Array.isArray(holds)) return [...out, "holds_entry_malformed"]
   for (const pinned of PINNED_PACKET_HOLDS) {
     const found = holds.filter(h => h && typeof h === "object" && h.id === pinned.id)
@@ -360,21 +372,163 @@ function mandatoryHoldDefects(packet: OperatorReviewPacket): string[] {
   return out
 }
 
+const HOLD_CATALOG = [...PINNED_PACKET_HOLDS, ...OPTIONAL_PACKET_HOLDS]
+
+/**
+ * B1: holds.json is the pinned holds in order, then catalog optional holds in
+ * catalog order, each with its exact text. Nothing else.
+ */
+function readHolds(v: unknown, path: string, report: Report): void {
+  const holds = list(
+    shape({ id: leaf(isString), owner: leaf(isString), reason: leaf(isString) }),
+    HOLD_CATALOG.length
+  )(v, path, report)
+  if (!holds) return
+  let last = -1
+  holds.forEach((h, i) => {
+    const hold = h as PacketHold | null
+    const at = HOLD_CATALOG.findIndex(c => c.id === hold?.id)
+    const c = HOLD_CATALOG[at]
+    if (at < 0 || hold?.reason !== c.reason || hold?.owner !== c.owner) {
+      report(`${path}[${i}]`, "not_a_catalog_hold")
+    } else if (at <= last) {
+      report(`${path}[${i}]`, "out_of_catalog_order")
+    }
+    if (at >= 0) last = Math.max(last, at)
+  })
+}
+
+const MISSING = Symbol("missing")
+
+interface ShapedPacket {
+  version: string
+  candidateSha: string
+  builtAt: string
+  delivery: string
+  mandatoryHoldIds: string[]
+  entries: PacketEntry[]
+  manifestSha256: string
+}
+
+const PACKET_SHAPE = shape({
+  version: leaf(isString),
+  candidateSha: leaf(isString),
+  builtAt: leaf(isString),
+  delivery: leaf(isString),
+  mandatoryHoldIds: list(leaf(isString), MANDATORY_PACKET_HOLD_IDS.length * 2),
+  entries: list(
+    shape({
+      name: leaf(isString),
+      sha256: leaf(isString),
+      bytes: leaf(v => (Number.isSafeInteger(v) && (v as number) >= 0 ? null : "out_of_range")),
+      content: leaf(isString),
+    }),
+    OPERATOR_PACKET_ENTRY_NAMES.length * 2
+  ),
+  manifestSha256: leaf(isString),
+})
+
+/**
+ * B1 entry-name contract: every required name exactly once, in order, and no
+ * other. An unknown name is reported by index — it may be attacker text.
+ */
+function entryNameDefects(names: string[]): string[] {
+  const out: string[] = []
+  const required: readonly string[] = OPERATOR_PACKET_ENTRY_NAMES
+  names.forEach((n, i) => {
+    if (!required.includes(n)) out.push(`entry_unknown:${i}`)
+  })
+  for (const n of required) {
+    const count = names.filter(x => x === n).length
+    if (count === 0) out.push(`entry_missing:${n}`)
+    if (count > 1) out.push(`entry_duplicate:${n}`)
+  }
+  if (out.length === 0 && names.some((n, i) => n !== required[i])) out.push("entry_order_mismatch")
+  return out
+}
+
+/**
+ * Verify a packet against the reviewed manifest hash. Three phases, in order:
+ *
+ *   A. SHAPE — own data fields only, exact keys, dense lists, correct types.
+ *      Nothing is hashed or parsed until this passes; a failure returns here.
+ *   B. CONTRACT — pinned version, lowercase 40-hex candidate SHA, delivery
+ *      none, canonical builtAt, the exact entry-name list, and for every entry:
+ *      valid JSON, canonical bytes, and its closed schema; the R8 holds.
+ *   C. INTEGRITY — every entry hash and length, then the manifest, recomputed
+ *      from the shaped copy, and compared with the reviewed hash.
+ *
+ * Reasons are codes; none carries a value from the packet.
+ */
 export function verifyOperatorReviewPacket(
-  packet: OperatorReviewPacket,
+  packet: unknown,
   reviewedManifestSha256: string
 ): { valid: boolean; reasons: string[] } {
   const reasons: string[] = []
-  if (packet.delivery !== "none") reasons.push("delivery_not_none")
-  if (parseStrictUtcTimestamp(packet.builtAt) === null) reasons.push("malformed_built_at")
-  reasons.push(...mandatoryHoldDefects(packet))
-  for (const e of packet.entries) {
-    if (sha256(e.content) !== e.sha256 || Buffer.byteLength(e.content) !== e.bytes) {
-      reasons.push(`entry_hash_mismatch:${e.name}`)
+  const report: Report = (path, code) =>
+    reasons.push(`packet_invalid:${path.replace(/^packet\./, "")}:${code}`)
+
+  // A. SHAPE
+  const shaped = PACKET_SHAPE(packet, "packet", report) as ShapedPacket | null
+  if (!shaped || reasons.length > 0) {
+    return {
+      valid: false,
+      reasons: reasons.length ? reasons : ["packet_invalid:packet:not_object"],
     }
   }
-  const recomputed = computeManifestSha256(packet)
-  if (recomputed !== packet.manifestSha256) reasons.push("manifest_hash_mismatch")
+  const p = shaped
+
+  // B. CONTRACT
+  if (p.version !== OPERATOR_PACKET_VERSION) reasons.push("packet_version_mismatch")
+  if (!COMMIT_SHA.test(p.candidateSha)) reasons.push("malformed_candidate_sha")
+  if (p.delivery !== "none") reasons.push("delivery_not_none")
+  if (parseStrictUtcTimestamp(p.builtAt) === null) reasons.push("malformed_built_at")
+  if (!SHA256.test(p.manifestSha256)) reasons.push("malformed_manifest_sha256")
+  reasons.push(...entryNameDefects(p.entries.map(e => e.name)))
+
+  const unique = OPERATOR_PACKET_ENTRY_NAMES.filter(
+    n => p.entries.filter(e => e.name === n).length === 1
+  )
+  let holds: unknown = MISSING
+  for (const name of unique) {
+    const e = p.entries.find(x => x.name === name)!
+    let body: unknown
+    try {
+      body = JSON.parse(e.content)
+    } catch {
+      reasons.push(`entry_malformed_json:${name}`)
+      if (name === "holds.json") holds = undefined
+      continue
+    }
+    if (canonicalJson(body) !== e.content) reasons.push(`entry_noncanonical:${name}`)
+    const schemaReport: Report = (path, code) =>
+      reasons.push(`entry_schema_invalid:${name}:${path}:${code}`)
+    if (name === "provenance.json") {
+      if (e.content !== canonicalJson(reconcileIwoProvenance())) {
+        schemaReport("", "not_pinned_value")
+      }
+    } else if (name === "holds.json") {
+      holds = body
+      readHolds(body, "", schemaReport)
+    } else {
+      ENTRY_SCHEMAS[name](body, "", schemaReport)
+    }
+  }
+  reasons.push(...mandatoryHoldDefects(p, holds))
+
+  // C. INTEGRITY
+  for (const e of p.entries) {
+    if (
+      !SHA256.test(e.sha256) ||
+      sha256(e.content) !== e.sha256 ||
+      Buffer.byteLength(e.content) !== e.bytes
+    ) {
+      const known = (OPERATOR_PACKET_ENTRY_NAMES as readonly string[]).includes(e.name)
+      reasons.push(`entry_hash_mismatch:${known ? e.name : `#${p.entries.indexOf(e)}`}`)
+    }
+  }
+  const recomputed = computeManifestSha256(p as OperatorReviewPacket)
+  if (recomputed !== p.manifestSha256) reasons.push("manifest_hash_mismatch")
   if (recomputed !== reviewedManifestSha256) reasons.push("manifest_changed_after_review")
   return { valid: reasons.length === 0, reasons }
 }
