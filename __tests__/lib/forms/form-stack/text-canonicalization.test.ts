@@ -204,6 +204,19 @@ describe("B4 each format control independently reads as nothing or as a separato
     )
   })
 
+  it.each([
+    ["in \u200b the circuit court", "court_caption"],
+    ["court \u200b ready", "completion_or_acceptance_claim"],
+    ["1234 \u200b -5678", "official_form_number"],
+    ["in\u200b \u200c \u2060the circuit court", "court_caption"],
+  ])("redundant slots beside whitespace or dashes preserve %s detection", (text, code) => {
+    expect(findOfficialMarkers(text)).toContain(code)
+  })
+
+  it("redundant slots beside whitespace preserve advice detection", () => {
+    expect(findLegalAdviceContent("you \u200b must")).toContain("prescriptive")
+  })
+
   it("controls never manufacture a marker out of safe text", () => {
     for (const safe of [
       "Not a court form. Not for filing. Not legal advice.",
